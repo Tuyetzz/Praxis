@@ -1,0 +1,232 @@
+Enum "attempts_status_enum" {
+  "draft"
+  "in_progress"
+  "submitted"
+  "expired"
+  "graded"
+}
+
+Enum "attempts_mode_enum" {
+  "exam"
+  "practice"
+}
+
+Enum "questions_type_enum" {
+  "single"
+  "multiple"
+  "true_false"
+  "fill_blank"
+}
+
+Enum "users_status_enum" {
+  "active"
+  "inactive"
+}
+
+Table "answers" {
+  "id" uuid [pk, not null]
+  "attemptId" uuid [not null]
+  "questionId" uuid [not null]
+  "selectedOptionIds" json
+  "value" text
+  "isCorrect" tinyint(1)
+  "earnedPoints" float [default: '0']
+  "answeredAt" datetime
+  "flagged" tinyint(1) [default: '0']
+  "optionId" uuid
+}
+
+Table "attempt_questions" {
+  "id" uuid [pk, not null]
+  "attemptId" uuid [not null]
+  "questionId" uuid [not null]
+  "optionOrder" json
+  "pageIndex" int [default: '0']
+}
+
+Table "attempts" {
+  "id" uuid [pk, not null]
+  "userId" uuid [not null]
+  "subjectId" uuid
+  "chapterId" uuid
+  "status" attempts_status_enum [default: 'draft']
+  "startedAt" datetime
+  "submittedAt" datetime
+  "durationMinutes" int [not null]
+  "timeSpentSeconds" int [default: '0']
+  "settings" json
+  "score" float [default: '0']
+  "maxScore" float [default: '0']
+  "mode" attempts_mode_enum [not null, default: 'practice']
+  "expiresAt" datetime [note: 'Thời điểm tự động hết hạn']
+}
+
+Table "audit_logs" {
+  "id" uuid [pk, not null]
+  "actorUserId" uuid
+  "entityType" varchar(255) [not null]
+  "entityId" uuid
+  "payload" json
+  "ip" varchar(255)
+  "action" varchar(255) [not null]
+}
+
+Table "auth_sessions" {
+  "id" uuid [pk, not null]
+  "userId" uuid [not null]
+  "refreshToken" varchar(255) [not null]
+  "userAgent" varchar(255)
+  "ip" varchar(255)
+  "expiresAt" datetime [not null]
+  "revokedAt" datetime
+}
+
+Table "chapters" {
+  "id" uuid [pk, not null]
+  "subjectId" uuid [not null]
+  "name" varchar(150) [not null]
+  "order" int [default: '0']
+}
+
+Table "options" {
+  "id" uuid [pk, not null]
+  "questionId" uuid [not null]
+  "text" varchar(255) [not null]
+  "isCorrect" tinyint(1) [default: '0']
+  "media" varchar(255)
+  "order" int [default: '0']
+}
+
+Table "questions" {
+  "id" uuid [pk, not null]
+  "subjectId" uuid [not null]
+  "chapterId" uuid [not null]
+  "type" questions_type_enum [not null]
+  "text" text [not null]
+  "explanation" text
+  "difficulty" int [default: '1']
+  "points" int [default: '1']
+  "media" json
+  "tags" json
+}
+
+Table "result_summaries" {
+  "id" uuid [pk, not null]
+  "attemptId" uuid [not null]
+  "correctCount" int [default: '0']
+  "wrongCount" int [default: '0']
+  "blankCount" int [default: '0']
+  "rank" int
+}
+
+Table "subjects" {
+  "id" uuid [pk, not null]
+  "name" varchar(150) [not null]
+  "slug" varchar(150) [not null]
+  "order" int [default: '0']
+}
+
+Table "users" {
+  "id" uuid [pk, not null]
+  "name" varchar(100) [not null]
+  "email" varchar(150) [not null]
+  "passwordHash" varchar(255) [not null]
+  "status" users_status_enum [default: 'active']
+  "avatarUrl" varchar(255)
+  "lastLoginAt" datetime
+}
+
+Table "flashcard_decks" {
+  "id" uuid [pk, not null]
+  "userId" uuid [not null]
+  "title" varchar(255)
+  "isPublic" tinyint(1) [default: '0']
+}
+
+Table "flashcards" {
+  "id" uuid [pk, not null]
+  "deckId" uuid [not null]
+  "frontText" text [not null]
+  "backText" text [not null] 
+  "order" int [default: '0']
+  "nextReview" datetime
+}
+
+Table "typing_texts" {
+  "id" uuid [pk, not null]
+  "authorId" uuid [not null] 
+  "title" varchar(255)
+  "content" text [not null] 
+  "language" varchar(50) [default: 'vietnamese']
+  "isPublic" tinyint(1) [default: '0'] 
+  "isDefault" tinyint(1) [default: '0'] 
+  "difficulty" enum('easy', 'medium', 'hard')
+}
+
+Table "typing_results" {
+  "id" uuid [pk, not null]
+  "userId" uuid [not null]
+  "textId" uuid [not null]
+  "wpm" float [not null] 
+  "accuracy" float [not null] 
+  "rawWpm" float 
+  "durationSeconds" int 
+  "errorTags" json
+}
+
+Table "roles" {
+  "id" uuid [pk, not null]
+  "name" varchar(50) [not null, unique] 
+  "description" varchar(255)
+}
+
+Table "permissions" {
+  "id" uuid [pk, not null]
+  "name" varchar(100) [not null, unique]
+  "slug" varchar(100) [not null, unique] 
+  "description" varchar(255)
+}
+
+Table "role_permissions" {
+  "roleId" uuid [not null]
+  "permissionId" uuid [not null]
+  
+  indexes {
+    (roleId, permissionId) [pk]
+  }
+}
+
+Table "user_roles" {
+  "userId" uuid [not null]
+  "roleId" uuid [not null]
+
+  indexes {
+    (userId, roleId) [pk]
+  }
+}
+
+// Relationships (References)
+Ref: "typing_texts"."authorId" > "users"."id"
+Ref: "typing_results"."userId" > "users"."id"
+Ref: "typing_results"."textId" > "typing_texts"."id"
+Ref: "flashcards"."deckId" > "flashcard_decks"."id" [delete: cascade]
+Ref: "answers"."attemptId" > "attempts"."id" [delete: cascade]
+Ref: "answers"."questionId" > "questions"."id" [delete: cascade]
+Ref: "answers"."optionId" > "options"."id" [delete: set null]
+Ref: "attempt_questions"."attemptId" > "attempts"."id" [delete: cascade]
+Ref: "attempt_questions"."questionId" > "questions"."id" [delete: cascade]
+Ref: "attempts"."userId" > "users"."id" [delete: cascade]
+Ref: "attempts"."subjectId" > "subjects"."id" [delete: set null]
+Ref: "attempts"."chapterId" > "chapters"."id" [delete: set null]
+Ref: "audit_logs"."actorUserId" > "users"."id" [delete: set null]
+Ref: "auth_sessions"."userId" > "users"."id" [delete: cascade]
+Ref: "chapters"."subjectId" > "subjects"."id" [delete: cascade]
+Ref: "options"."questionId" > "questions"."id" [delete: cascade]
+Ref: "questions"."subjectId" > "subjects"."id" [delete: cascade]
+Ref: "questions"."chapterId" > "chapters"."id" [delete: cascade]
+Ref: "result_summaries"."attemptId" > "attempts"."id" [delete: cascade]
+Ref: "flashcard_decks"."userId" > "users"."id" [delete: cascade]
+Ref: "user_roles"."userId" > "users"."id" [delete: cascade]
+Ref: "user_roles"."roleId" > "roles"."id" [delete: cascade]
+Ref: "role_permissions"."roleId" > "roles"."id" [delete: cascade]
+Ref: "role_permissions"."permissionId" > "permissions"."id" [delete: cascade]
