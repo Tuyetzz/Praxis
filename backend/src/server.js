@@ -1,7 +1,6 @@
-// server.js
 require("dotenv").config();
 const app = require("./app");
-const { sequelize } = require("./models");
+const { sequelize } = require("./infrastructure/database/models");
 
 const PORT = process.env.PORT || 5000;
 
@@ -10,7 +9,6 @@ const PORT = process.env.PORT || 5000;
     await sequelize.authenticate();
     console.log("✅ Database connected");
 
-    // tạo/sync bảng từ models (chỉ nên dùng cho dev/test)
     await sequelize.sync({ alter: true });
     console.log("✅ All models synchronized");
 
