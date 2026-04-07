@@ -12,7 +12,6 @@ class AuthSession extends BaseEntity {
     this.revokedAt = data.revokedAt || null;
   }
 
-  // Logic nghiệp vụ: Kiểm tra session còn dùng được không
   isValid() {
     const now = new Date();
     return !this.revokedAt && new Date(this.expiresAt) > now && !this.isDeleted;

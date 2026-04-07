@@ -16,7 +16,7 @@ class AuthController {
       
       return res.status(200).json({
         success: true,
-        message: "Đăng nhập thành công",
+        message: "Login successful",
         data: result,
       });
     } catch (error) {
@@ -29,7 +29,7 @@ class AuthController {
       const result = await registerUser.execute(req.body);
       return res.status(201).json({
         success: true,
-        message: "Đăng ký tài khoản thành công",
+        message: "Account registered successfully",
         data: result,
       });
     } catch (error) {
@@ -37,7 +37,6 @@ class AuthController {
     }
   }
 
-  // Làm mới Token
   async refreshToken(req, res) {
     try {
       const { refreshToken } = req.body;
@@ -56,7 +55,6 @@ class AuthController {
     }
   }
 
-  // Đăng xuất
   async logout(req, res) {
     try {
       const { refreshToken } = req.body;
@@ -64,7 +62,7 @@ class AuthController {
       
       return res.status(200).json({
         success: true,
-        message: "Đăng xuất thành công",
+        message: "Logout successful",
       });
     } catch (error) {
       return res.status(400).json({ success: false, message: error.message });

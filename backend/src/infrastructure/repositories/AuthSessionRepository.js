@@ -1,23 +1,31 @@
 // src/infrastructure/repositories/AuthSessionRepository.js
-const BaseRepository = require('./BaseRepository');
 const AuthSessionModel = require('../database/models/AuthSessionModel');
 const authSessionMapper = require('../mappers/AuthSessionMapper');
 
-class AuthSessionRepository extends BaseRepository {
+class AuthSessionRepository {
   constructor() {
-    super(AuthSessionModel, authSessionMapper);
+    this.model = AuthSessionModel;
+    this.mapper = authSessionMapper;
+  }
+
+  async create(authSessionEntity) {
+    const persistenceData = this.mapper.toPersistence(authSessionEntity);
+    
+    const record = await this.model.create(persistenceData);
+    
+    return this.mapper.toDomain(record);
   }
 
   async findByUser(userId) {
     const records = await this.model.findAll({
-      where: { userId, isDeleted: false }
+      where: { userId, revokedAt: null }
     });
     return records.map(record => this.mapper.toDomain(record));
   }
 
   async findByRefreshToken(refreshToken) {
     const record = await this.model.findOne({
-      where: { refreshToken, isDeleted: false }
+      where: { refreshToken, revokedAt: null }
     });
     return this.mapper.toDomain(record);
   }

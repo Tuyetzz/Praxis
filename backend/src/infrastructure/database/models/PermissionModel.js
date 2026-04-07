@@ -25,10 +25,7 @@ PermissionModel.init({
   sequelize,
   tableName: "permissions",
   timestamps: true,
-  indexes: [
-    { fields: ["slug"], unique: true },
-    { fields: ["name"], unique: true }
-  ]
+  indexes: []
 });
 
 module.exports = PermissionModel;

@@ -31,3 +31,28 @@ Luồng insert/update
 - Khi có 1 hành động update, usecase sẽ tạo/đổi cái domain entity
 - Repository nhận domain entity dùng toPersistence() ở mapper để biến thành obj
 - Infrastructure sẽ gọi lệnh insert/update vào db
+
+Các API controller:
+
+# API Endpoints
+
+## Auth
+| Method | URL                | Body/Params         | Description                |
+|--------|--------------------|---------------------|----------------------------|
+| POST   | /api/auth/register | { name, email, password } | Đăng ký tài khoản         |
+| POST   | /api/auth/login    | { email, password } | Đăng nhập                  |
+| POST   | /api/auth/refresh | { refreshToken }  | Làm mới access token       |
+| POST   | /api/auth/logout   | { refreshToken }    | Đăng xuất                  |
+
+## User (Yêu cầu xác thực)
+| Method | URL                | Body/Params         | Description                |
+|--------|--------------------|---------------------|----------------------------|
+| GET    | /api/users         | ?filter             | Lấy danh sách user         |
+| GET    | /api/users/me      | -                   | Lấy thông tin user hiện tại|
+| POST   | /api/users         | { ...user }         | Tạo user mới               |
+| PUT    | /api/users/:id     | { ...user }         | Cập nhật user              |
+| DELETE | /api/users/:id     | -                   | Xóa mềm user (admin/superadmin) |
+
+Ghi chú:
+- Các route `/api/users/*` yêu cầu JWT token ở header `Authorization: Bearer <token>`
+- Các trường body/params tham khảo ở phần entity User hoặc liên hệ BE nếu cần chi tiết.

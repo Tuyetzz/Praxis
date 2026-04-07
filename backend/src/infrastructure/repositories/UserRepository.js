@@ -9,7 +9,7 @@ class UserRepository extends BaseRepository {
   }
 
   async findByEmail(email) {
-    const record = await this.model.findOne({
+    const record = await this.model.scope(null).findOne({
       where: { email, isDeleted: false }
     });
     return record ? this.mapper.toDomain(record) : null;

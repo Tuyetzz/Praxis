@@ -6,7 +6,7 @@ const authHelper = require('../../infrastructure/utils/auth_helper');
 class LoginUser {
   async execute(email, password, metadata = {}) {
     const user = await userRepository.findByEmail(email);
-    
+
     if (!user || !user.isActive()) {
       throw new Error("Account not found or is inactive");
     }
@@ -16,12 +16,16 @@ class LoginUser {
       throw new Error("Email or password is incorrect");
     }
 
-    user.recordLogin(); 
+    user.recordLogin();
 
-    await userRepository.update(user.id, { lastLoginAt: user.lastLoginAt });
-    await roleRepository.loadRolesForUser(user);
+    const userId = typeof user.id === 'object' ? user.id.value : user.id;
+    await userRepository.update(userId, {
+      lastLoginAt: user.lastLoginAt
+    });
 
-    const { accessToken, refreshToken, expiresAt } = authHelper.generateTokens({ 
+    await roleRepository.loadRolesForUser(userId);
+
+    const { accessToken, refreshToken, expiresAt } = authHelper.generateTokens({
       id: user.id,
       name: user.name
     });
@@ -31,7 +35,7 @@ class LoginUser {
       refreshToken: refreshToken,
       userAgent: metadata.userAgent || null,
       ip: metadata.ip || null,
-      expiresAt: expiresAt 
+      expiresAt: expiresAt
     });
 
     return {
