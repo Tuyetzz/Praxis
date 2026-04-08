@@ -25,12 +25,12 @@ class RefreshTokenUseCase {
 			name: user.name
 		});
 
-		await sessionRepository.create({
-			userId: user.id,
-			refreshToken: newRefreshToken,
-			userAgent: metadata.userAgent || null,
-			ip: metadata.ip || null,
-			expiresAt: expiresAt
+		await sessionRepository.update(session.id, {
+			refreshToken: newRefreshToken, 
+			expiresAt: expiresAt,     
+			userAgent: metadata.userAgent || session.userAgent,
+			ip: metadata.ip || session.ip,
+			revokedAt: null            
 		});
 
 		return {

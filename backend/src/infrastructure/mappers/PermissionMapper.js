@@ -8,8 +8,15 @@ class PermissionMapper extends BaseMapper {
   }
 
   toDomain(model) {
-    const entity = super.toDomain(model);
-    return entity;
+    if (!model) return null;
+    const data = model instanceof Object && model.get ? model.get({ plain: true }) : model;
+
+    return new PermissionEntity({
+      id: data.id,
+      name: data.name,
+      slug: data.slug,
+      description: data.description
+    });
   }
 }
 

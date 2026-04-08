@@ -8,7 +8,7 @@ RolePermissionModel.init({
   roleId: {
     type: DataTypes.UUID,
     allowNull: false,
-    primaryKey: true, // Kết hợp tạo Composite PK
+    primaryKey: true, 
     references: {
       model: 'roles',
       key: 'id'
@@ -18,7 +18,7 @@ RolePermissionModel.init({
   permissionId: {
     type: DataTypes.UUID,
     allowNull: false,
-    primaryKey: true, // Kết hợp tạo Composite PK
+    primaryKey: true, 
     references: {
       model: 'permissions',
       key: 'id'
@@ -28,7 +28,7 @@ RolePermissionModel.init({
 }, {
   sequelize,
   tableName: "role_permissions",
-  timestamps: false, // Bảng trung gian thường không cần timestamp để tối ưu dung lượng
+  timestamps: false, 
   indexes: [
     { fields: ["roleId"] },
     { fields: ["permissionId"] }

@@ -16,6 +16,13 @@ class AuthSessionRepository {
     return this.mapper.toDomain(record);
   }
 
+  async update(id, authSessionEntity) {
+    const persistenceData = this.mapper.toPersistence(authSessionEntity);
+    await this.model.update(persistenceData, { where: { id } });
+    const updatedRecord = await this.model.findByPk(id);
+    return this.mapper.toDomain(updatedRecord);
+  }
+
   async findByUser(userId) {
     const records = await this.model.findAll({
       where: { userId, revokedAt: null }
