@@ -20,21 +20,29 @@ class RefreshTokenUseCase {
 		}
 
 		const roles = await roleRepository.loadRolesForUser(session.userId);
-		await sessionRepository.revokeToken(refreshToken);
 
 		const { accessToken, refreshToken: newRefreshToken, expiresAt } = authHelper.generateTokens({
 			id: user.id,
 			name: user.name,
-			role: roles.map(r => r.name)
+			roles: roles.map(r => r.name)
 		});
 
-		await sessionRepository.update(session.id, {
-			refreshToken: newRefreshToken, 
-			expiresAt: expiresAt,     
-			userAgent: metadata.userAgent || session.userAgent,
-			ip: metadata.ip || session.ip,
-			revokedAt: null            
-		});
+		// Gợi ý: Nên dùng atomic update theo refreshToken cũ và revokedAt null để tránh race condition
+		if (typeof sessionRepository.updateByRefreshToken === 'function') {
+			await sessionRepository.updateByRefreshToken(refreshToken, {
+				refreshToken: newRefreshToken,
+				expiresAt: expiresAt,
+				userAgent: metadata.userAgent || session.userAgent,
+				ip: metadata.ip || session.ip
+			});
+		} else {
+			await sessionRepository.update(session.id, {
+				refreshToken: newRefreshToken, 
+				expiresAt: expiresAt,     
+				userAgent: metadata.userAgent || session.userAgent,
+				ip: metadata.ip || session.ip
+			});
+		}
 
 		return {
 			user: {
@@ -42,7 +50,7 @@ class RefreshTokenUseCase {
 				name: user.name,
 				email: user.email,
 				avatarUrl: user.avatarUrl,
-        roles: roles.map(r => r.name)
+				roles: roles.map(r => r.name)
 			},
 			accessToken,
 			refreshToken: newRefreshToken

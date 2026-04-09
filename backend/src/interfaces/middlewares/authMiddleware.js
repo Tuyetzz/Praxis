@@ -16,7 +16,7 @@ const authMiddleware = (req, res, next) => {
       const isExpired = err.name === "TokenExpiredError";
       return res.status(401).json({ message: isExpired ? "Token expired" : "Invalid token" });
     }
-    req.user = { id: decoded.id, role: decoded.role };
+    req.user = { id: decoded.id, roles: decoded.roles || (decoded.role ? [decoded.role] : []) };
     next();
   });
 };
@@ -24,7 +24,12 @@ const authMiddleware = (req, res, next) => {
 module.exports = authMiddleware;
 
 module.exports.requiredRole = (...roles) => (req, res, next) => {
-  if (!req.user || !roles.includes(req.user.role)) {
+  if (!req.user || !req.user.roles) {
+    return res.status(403).json({ message: "Forbidden: Missing role" });
+  }
+  const userRoles = Array.isArray(req.user.roles) ? req.user.roles : [req.user.roles];
+  const hasRole = userRoles.some(userRole => roles.includes(userRole));
+  if (!hasRole) {
     return res.status(403).json({ message: "Forbidden: Missing role" });
   }
   next();
@@ -35,7 +40,7 @@ module.exports.requiredPermission = (permissionSlug) => async (req, res, next) =
     if (!req.user || !req.user.id) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    const userRoles = Array.isArray(req.user.roles) ? req.user.roles : [req.user.role];
+    const userRoles = Array.isArray(req.user.roles) ? req.user.roles : [req.user.roles];
     const isSuperAdmin = userRoles.some(
       (role) => String(role).toLowerCase() === SUPERADMIN_ROLE_NAME.toLowerCase()
     );

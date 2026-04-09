@@ -50,6 +50,13 @@ class AuthSessionRepository {
       { where: { userId, revokedAt: null } }
     );
   }
+
+  async updateByRefreshToken(refreshToken, updateData) {
+    const persistenceData = this.mapper.toPersistence(updateData);
+    await this.model.update(persistenceData, { where: { refreshToken, revokedAt: null } });
+    const updatedRecord = await this.model.findOne({ where: { refreshToken } });
+    return this.mapper.toDomain(updatedRecord);
+  }
 }
 
 module.exports = new AuthSessionRepository();

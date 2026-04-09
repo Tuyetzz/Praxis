@@ -14,10 +14,15 @@ class UpdateRole {
 
     const { name, description } = data;
 
-    if (name && name.trim() !== role.name) {
-      const existing = await roleRepository.checkRoleNameExists(name.trim());
-      if (existing) {
-        throw new Error("Role with this name already exists.");
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim() === '') {
+        throw new Error("Role name must be a non-empty string.");
+      }
+      if (name.trim() !== role.name) {
+        const existing = await roleRepository.checkRoleNameExists(name.trim());
+        if (existing) {
+          throw new Error("Role with this name already exists.");
+        }
       }
     }
 

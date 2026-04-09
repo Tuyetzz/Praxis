@@ -24,12 +24,11 @@ class LoginUser {
     });
 
     const roles = await roleRepository.loadRolesForUser(userId);
-    console.log("User roles:", roles.map(r => r.name));
 
     const { accessToken, refreshToken, expiresAt } = authHelper.generateTokens({
       id: user.id,
       name: user.name,
-      role: roles.map(r => r.name)
+      roles: roles.map(r => r.name)
     });
 
     await sessionRepository.create({
@@ -45,7 +44,8 @@ class LoginUser {
         id: user.id,
         name: user.name,
         email: user.email,
-        avatarUrl: user.avatarUrl
+        avatarUrl: user.avatarUrl,
+        roles: roles.map(r => r.name)
       },
       accessToken,
       refreshToken
