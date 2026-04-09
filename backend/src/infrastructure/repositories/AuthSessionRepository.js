@@ -53,8 +53,13 @@ class AuthSessionRepository {
 
   async updateByRefreshToken(refreshToken, updateData) {
     const persistenceData = this.mapper.toPersistence(updateData);
-    await this.model.update(persistenceData, { where: { refreshToken, revokedAt: null } });
-    const updatedRecord = await this.model.findOne({ where: { refreshToken } });
+    const [affectedRows] = await this.model.update(persistenceData, { where: { refreshToken, revokedAt: null } });
+    if (affectedRows === 0) {
+      return null;
+    }
+    const newRefreshToken = persistenceData.refreshToken || refreshToken;
+    const updatedRecord = await this.model.findOne({ where: { refreshToken: newRefreshToken } });
+    if (!updatedRecord) return null;
     return this.mapper.toDomain(updatedRecord);
   }
 }

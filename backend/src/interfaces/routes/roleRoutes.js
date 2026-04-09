@@ -8,6 +8,9 @@ const { PERMISSIONS } = require('../../domain/constants/permissions');
 
 router.use(authMiddleware);
 
+// Get user's roles (move above /:id to avoid collision)
+router.get('/users/:userId/roles', requiredPermission(PERMISSIONS.ROLE_MANAGE), (req, res) => roleController.getUserRoles(req, res));
+
 // Role CRUD operations
 router.get('/', requiredPermission(PERMISSIONS.ROLE_MANAGE), (req, res) => roleController.getAll(req, res));
 
