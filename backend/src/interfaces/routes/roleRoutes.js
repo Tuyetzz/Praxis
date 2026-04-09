@@ -29,7 +29,10 @@ router.delete('/:id/permissions', requiredPermission(PERMISSIONS.PERMISSION_MANA
 // User-Role assignment
 router.post('/:id/users', requiredPermission(PERMISSIONS.ROLE_MANAGE), (req, res) => roleController.assignRoleToUser(req, res));
 
-router.delete('/:id/users', requiredPermission(PERMISSIONS.ROLE_MANAGE), (req, res) => roleController.removeRoleFromUser(req, res));
+router.delete('/:id/users/:userId', requiredPermission(PERMISSIONS.ROLE_MANAGE), (req, res) => {
+  req.body = { ...(req.body || {}), userId: req.params.userId };
+  return roleController.removeRoleFromUser(req, res);
+});
 
 // Get user's roles
 router.get('/users/:userId/roles', requiredPermission(PERMISSIONS.ROLE_MANAGE), (req, res) => roleController.getUserRoles(req, res));

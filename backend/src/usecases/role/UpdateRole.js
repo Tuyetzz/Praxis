@@ -15,7 +15,7 @@ class UpdateRole {
     const { name, description } = data;
 
     if (name && name.trim() !== role.name) {
-      const existing = await roleRepository.findByName(name.trim());
+      const existing = await roleRepository.checkRoleNameExists(name.trim());
       if (existing) {
         throw new Error("Role with this name already exists.");
       }

@@ -8,7 +8,7 @@ const authMiddleware = (req, res, next) => {
   if (!token) return res.status(401).json({ message: "Missing token" });
 
   if (!process.env.JWT_ACCESS_SECRET) {
-    return res.status(500).json({ message: "JWT secret not configured" });
+    return res.status(500).json({ message: "JWT_ACCESS_SECRET not configured" });
   }
 
   jwt.verify(token, process.env.JWT_ACCESS_SECRET, (err, decoded) => {
@@ -35,8 +35,12 @@ module.exports.requiredPermission = (permissionSlug) => async (req, res, next) =
     if (!req.user || !req.user.id) {
       return res.status(401).json({ message: "Unauthorized" });
     }
+    const userRoles = Array.isArray(req.user.roles) ? req.user.roles : [req.user.role];
+    const isSuperAdmin = userRoles.some(
+      (role) => String(role).toLowerCase() === SUPERADMIN_ROLE_NAME.toLowerCase()
+    );
 
-    if (String(req.user.role || "").toLowerCase() === SUPERADMIN_ROLE_NAME) {
+    if (isSuperAdmin) {
       return next();
     }
 

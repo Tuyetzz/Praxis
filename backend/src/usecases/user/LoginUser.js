@@ -23,11 +23,13 @@ class LoginUser {
       lastLoginAt: user.lastLoginAt
     });
 
-    await roleRepository.loadRolesForUser(userId);
+    const roles = await roleRepository.loadRolesForUser(userId);
+    console.log("User roles:", roles.map(r => r.name));
 
     const { accessToken, refreshToken, expiresAt } = authHelper.generateTokens({
       id: user.id,
-      name: user.name
+      name: user.name,
+      role: roles.map(r => r.name)
     });
 
     await sessionRepository.create({

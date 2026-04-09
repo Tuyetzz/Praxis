@@ -9,15 +9,31 @@ class CreateRole {
       throw new Error("Role name is required.");
     }
 
-    const existing = await roleRepository.findByName(name.trim());
+    const trimmedName = name.trim();
+    const existing = await roleRepository.findByName(trimmedName);
     if (existing) {
       throw new Error("Role with this name already exists.");
     }
-
-    const newRole = await roleRepository.create({
-      name: name.trim(),
-      description: description || null
-    }, userId);
+    let newRole;
+    try {
+      newRole = await roleRepository.create({
+        name: trimmedName,
+        description: description || null
+      }, userId);
+    } catch (error) {
+      const message = error && error.message ? error.message.toLowerCase() : '';
+      const code = error && error.code ? error.code : '';
+      const isUniqueConstraintError =
+        code === '23505' ||
+        code === 'ER_DUP_ENTRY' ||
+        message.includes('unique constraint') ||
+        message.includes('duplicate entry') ||
+        message.includes('already exists');
+      if (isUniqueConstraintError) {
+        throw new Error("Role with this name already exists.");
+      }
+      throw error;
+    }
 
     return {
       id: newRole.id,
