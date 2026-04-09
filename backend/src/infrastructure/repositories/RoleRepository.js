@@ -15,6 +15,13 @@ class RoleRepository extends BaseRepository {
     return record ? this.mapper.toDomain(record) : null;
   }
 
+  async checkRoleNameExists(name) {
+    const count = await this.model.count({
+      where: { name }
+    });
+    return count > 0;
+  }
+
   async loadRolesForUser(userId) {
     const records = await this.model.findAll({
       include: [{

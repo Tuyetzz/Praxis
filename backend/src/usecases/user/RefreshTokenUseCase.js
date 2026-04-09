@@ -1,5 +1,6 @@
 const sessionRepository = require('../../infrastructure/repositories/AuthSessionRepository');
 const userRepository = require('../../infrastructure/repositories/UserRepository');
+const roleRepository = require('../../infrastructure/repositories/RoleRepository');
 const authHelper = require('../../infrastructure/utils/auth_helper');
 
 class RefreshTokenUseCase {
@@ -18,27 +19,38 @@ class RefreshTokenUseCase {
 			throw new Error('User not found or inactive');
 		}
 
-		await sessionRepository.revokeToken(refreshToken);
+		const roles = await roleRepository.loadRolesForUser(session.userId);
 
 		const { accessToken, refreshToken: newRefreshToken, expiresAt } = authHelper.generateTokens({
 			id: user.id,
-			name: user.name
+			name: user.name,
+			roles: roles.map(r => r.name)
 		});
 
-		await sessionRepository.create({
-			userId: user.id,
-			refreshToken: newRefreshToken,
-			userAgent: metadata.userAgent || null,
-			ip: metadata.ip || null,
-			expiresAt: expiresAt
-		});
+		// Gợi ý: Nên dùng atomic update theo refreshToken cũ và revokedAt null để tránh race condition
+		if (typeof sessionRepository.updateByRefreshToken === 'function') {
+			await sessionRepository.updateByRefreshToken(refreshToken, {
+				refreshToken: newRefreshToken,
+				expiresAt: expiresAt,
+				userAgent: metadata.userAgent || session.userAgent,
+				ip: metadata.ip || session.ip
+			});
+		} else {
+			await sessionRepository.update(session.id, {
+				refreshToken: newRefreshToken, 
+				expiresAt: expiresAt,     
+				userAgent: metadata.userAgent || session.userAgent,
+				ip: metadata.ip || session.ip
+			});
+		}
 
 		return {
 			user: {
 				id: user.id,
 				name: user.name,
 				email: user.email,
-				avatarUrl: user.avatarUrl
+				avatarUrl: user.avatarUrl,
+				roles: roles.map(r => r.name)
 			},
 			accessToken,
 			refreshToken: newRefreshToken
