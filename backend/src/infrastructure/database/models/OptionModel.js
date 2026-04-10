@@ -6,7 +6,7 @@ const BaseModel = require("./BaseModel");
 class OptionModel extends BaseModel {}
 
 OptionModel.init({
-  ...BaseModel.initBaseAttributes(),
+  
   questionId: {
     type: DataTypes.UUID,
     allowNull: false,

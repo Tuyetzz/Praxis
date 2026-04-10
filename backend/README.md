@@ -56,3 +56,9 @@ Các API controller:
 Ghi chú:
 - Các route `/api/users/*` yêu cầu JWT token ở header `Authorization: Bearer <token>`
 - Các trường body/params tham khảo ở phần entity User hoặc liên hệ BE nếu cần chi tiết.
+
+Cache:
+- Hiện tại đang dùng map cho tiện, mai sau sau khi xong be sẽ sửa thành redis
+- Cấu trúc lưu:
+  - Key: user_permissions:uuid-cua-user (String)
+  - Value: ["permission_1", "permission_2", ...] (Mảng các String)

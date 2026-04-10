@@ -6,7 +6,7 @@ const BaseModel = require("./BaseModel");
 class SubjectModel extends BaseModel {}
 
 SubjectModel.init({
-  ...BaseModel.initBaseAttributes(),
+  
   name: {
     type: DataTypes.STRING(150),
     allowNull: false,

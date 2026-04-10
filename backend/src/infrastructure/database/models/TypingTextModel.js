@@ -6,7 +6,7 @@ const BaseModel = require("./BaseModel");
 class TypingTextModel extends BaseModel {}
 
 TypingTextModel.init({
-  ...BaseModel.initBaseAttributes(),
+  
   authorId: {
     type: DataTypes.UUID,
     allowNull: false,
