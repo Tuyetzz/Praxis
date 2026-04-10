@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const userRepository = require("../../infrastructure/repositories/UserRepository");
+const redisClient = require("../../infrastructure/cache/redisClient");
 const { SUPERADMIN_ROLE_NAME, ALL_PERMISSIONS_FLAG } = require("../../domain/constants/permissions");
 
 const authMiddleware = (req, res, next) => {
@@ -40,16 +41,26 @@ module.exports.requiredPermission = (permissionSlug) => async (req, res, next) =
     if (!req.user || !req.user.id) {
       return res.status(401).json({ message: "Unauthorized" });
     }
+
+    const userId = req.user.id;
     const userRoles = Array.isArray(req.user.roles) ? req.user.roles : [req.user.roles];
+
     const isSuperAdmin = userRoles.some(
       (role) => String(role).toLowerCase() === SUPERADMIN_ROLE_NAME.toLowerCase()
     );
+    if (isSuperAdmin) return next();
 
-    if (isSuperAdmin) {
-      return next();
+    const cacheKey = `user_permissions:${userId}`;
+    let cachedData = await redisClient.get(cacheKey);
+    let permissionSlugs;
+
+    if (!cachedData) {
+      permissionSlugs = await userRepository.getPermissionSlugs(userId);
+      await redisClient.set(cacheKey, JSON.stringify(permissionSlugs), 'EX', 600);
+    } else {
+      permissionSlugs = typeof cachedData === 'string' ? JSON.parse(cachedData) : cachedData;
     }
 
-    const permissionSlugs = await userRepository.getPermissionSlugs(req.user.id);
     const hasPermission =
       permissionSlugs.includes(ALL_PERMISSIONS_FLAG) ||
       permissionSlugs.includes(permissionSlug);
@@ -60,6 +71,7 @@ module.exports.requiredPermission = (permissionSlug) => async (req, res, next) =
 
     return next();
   } catch (error) {
-    return res.status(500).json({ message: "Failed to authorize permission" });
+    console.error("Auth Error:", error);
+    return res.status(500).json({ message: "Internal Server Error during authorization" });
   }
 };

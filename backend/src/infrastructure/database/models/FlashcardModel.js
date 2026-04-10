@@ -6,7 +6,7 @@ const BaseModel = require("./BaseModel");
 class FlashcardModel extends BaseModel {}
 
 FlashcardModel.init({
-  ...BaseModel.initBaseAttributes(),
+  
   deckId: {
     type: DataTypes.UUID,
     allowNull: false,

@@ -6,7 +6,7 @@ const BaseModel = require("./BaseModel");
 class RoleModel extends BaseModel {}
 
 RoleModel.init({
-  ...BaseModel.initBaseAttributes(),
+  
   name: {
     type: DataTypes.STRING(50),
     allowNull: false,

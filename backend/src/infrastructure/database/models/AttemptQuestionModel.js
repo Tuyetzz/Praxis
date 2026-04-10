@@ -6,7 +6,7 @@ const BaseModel = require("./BaseModel");
 class AttemptQuestionModel extends BaseModel {}
 
 AttemptQuestionModel.init({
-  ...BaseModel.initBaseAttributes(),
+  
   attemptId: {
     type: DataTypes.UUID,
     allowNull: false,

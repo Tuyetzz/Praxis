@@ -6,7 +6,7 @@ const BaseModel = require("./BaseModel");
 class ResultSummaryModel extends BaseModel {}
 
 ResultSummaryModel.init({
-  ...BaseModel.initBaseAttributes(),
+  
   attemptId: {
     type: DataTypes.UUID, // Đồng bộ UUID
     allowNull: false,

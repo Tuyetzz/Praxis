@@ -6,7 +6,7 @@ const BaseModel = require("./BaseModel");
 class ChapterModel extends BaseModel {}
 
 ChapterModel.init({
-  ...BaseModel.initBaseAttributes(),
+  
   subjectId: {
     type: DataTypes.UUID,
     allowNull: false,

@@ -2,6 +2,7 @@
 const roleRepository = require('../../infrastructure/repositories/RoleRepository');
 const permissionRepository = require('../../infrastructure/repositories/PermissionRepository');
 const rolePermissionRepository = require('../../infrastructure/repositories/RolePermissionRepository');
+const redisClient = require('../../infrastructure/cache/redisClient');
 
 class AssignPermissionToRole {
   async execute(roleId, permissionId) {
@@ -25,6 +26,9 @@ class AssignPermissionToRole {
     }
 
     await rolePermissionRepository.assignPermissionToRole(roleId, permissionId);
+
+    // Clear all user permissions cache since roles have changed
+    await redisClient.delPattern('user_permissions:*');
 
     return {
       message: "Permission assigned to role successfully.",

@@ -6,7 +6,6 @@ const BaseModel = require("./BaseModel");
 class AnswerModel extends BaseModel {}
 
 AnswerModel.init({
-  ...BaseModel.initBaseAttributes(), 
   attemptId: {
     type: DataTypes.UUID,
     allowNull: false,

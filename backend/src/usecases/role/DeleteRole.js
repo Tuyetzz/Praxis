@@ -1,5 +1,6 @@
 // src/usecases/role/DeleteRole.js
 const roleRepository = require('../../infrastructure/repositories/RoleRepository');
+const redisClient = require('../../infrastructure/cache/redisClient');
 
 class DeleteRole {
   async execute(roleId) {
@@ -13,6 +14,9 @@ class DeleteRole {
     }
 
     await roleRepository.softDelete(roleId);
+
+    // Clear all user permissions cache since a role has been deleted
+    await redisClient.delPattern('user_permissions:*');
   }
 }
 
