@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const contextMiddleware = require('../middlewares/contextMiddleware');
+const authMiddleware = require('../middlewares/authMiddleware');
 
 router.use('/auth', require('./authRoutes'));
 
-// Apply context middleware to protected routes (after auth routes)
+router.use(authMiddleware);
 router.use(contextMiddleware);
 
 router.use('/users', require('./userRoutes'));

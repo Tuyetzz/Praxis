@@ -15,19 +15,23 @@ const redisClient = {
   },
 
   async set(key, value, mode, duration) {
-    logger.info(`[Cache-Map] Setting key: ${key} with mode: ${mode} and duration: ${duration}`);
+    logger.info(`[Cache-Map] Setting key: ${key} (TTL: ${duration}s)`);
 
     if (timeouts.has(key)) {
       clearTimeout(timeouts.get(key));
+      timeouts.delete(key);
     }
 
     memoryStorage.set(key, value);
     
     if (mode === 'EX' && duration) {
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         memoryStorage.delete(key);
+        timeouts.delete(key); 
         logger.info(`[Cache-Map] Key expired and deleted: ${key}`);
       }, duration * 1000);
+
+      timeouts.set(key, timeoutId);
     }
   },
 

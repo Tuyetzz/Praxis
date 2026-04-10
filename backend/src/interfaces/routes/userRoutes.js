@@ -1,11 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/UserController');
-const authMiddleware = require('../middlewares/authMiddleware');
 const { requiredPermission, requiredRole } = authMiddleware;
 const { PERMISSIONS } = require('../../domain/constants/permissions');
 
-router.use(authMiddleware);
 
 router.get('/', requiredPermission(PERMISSIONS.USER_VIEW), (req, res) => userController.getAll(req, res));
 

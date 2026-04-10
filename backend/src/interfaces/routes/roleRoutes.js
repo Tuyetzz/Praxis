@@ -2,11 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const roleController = require('../controllers/RoleController');
-const authMiddleware = require('../middlewares/authMiddleware');
 const { requiredPermission } = authMiddleware;
 const { PERMISSIONS } = require('../../domain/constants/permissions');
-
-router.use(authMiddleware);
 
 // Get user's roles (move above /:id to avoid collision)
 router.get('/users/:userId/roles', requiredPermission(PERMISSIONS.ROLE_MANAGE), (req, res) => roleController.getUserRoles(req, res));

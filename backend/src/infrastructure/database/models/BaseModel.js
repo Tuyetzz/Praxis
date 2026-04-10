@@ -1,6 +1,6 @@
 // src/infrastructure/database/models/BaseModel.js
 const { Model, DataTypes } = require('sequelize');
-const storage = require('../../context/storage'); // Import cái AsyncLocalStorage của bạn
+const storage = require('../../context/storage'); 
 class BaseModel extends Model {
 
   static init(attributes, options) {
@@ -22,6 +22,18 @@ class BaseModel extends Model {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       }
+    };
+
+    // Helper function to compose audit hooks with model-specific hooks
+    const composeHook = (auditHook, modelHook) => {
+      if (!modelHook) return auditHook;
+      if (Array.isArray(modelHook)) {
+        return [auditHook, ...modelHook];
+      }
+      return async (instance) => {
+        await auditHook(instance);
+        await modelHook(instance);
+      };
     };
 
     const auditHooks = {
@@ -49,8 +61,11 @@ class BaseModel extends Model {
       {
         ...options,
         hooks: {
-          ...auditHooks,
-          ...(options.hooks || {}),
+          beforeCreate: composeHook(auditHooks.beforeCreate, options.hooks?.beforeCreate),
+          beforeUpdate: composeHook(auditHooks.beforeUpdate, options.hooks?.beforeUpdate),
+          ...(options.hooks ? Object.fromEntries(
+            Object.entries(options.hooks).filter(([key]) => !['beforeCreate', 'beforeUpdate'].includes(key))
+          ) : {}),
         },
         timestamps: true,
       }
