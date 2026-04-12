@@ -62,3 +62,7 @@ Cache:
 - Cấu trúc lưu:
   - Key: user_permissions:uuid-cua-user (String)
   - Value: ["permission_1", "permission_2", ...] (Mảng các String)
+
+Ví dụ về paging của 2 cái kia
+GET /subjects/search?search=math&page=1&limit=10&order=name
+GET /chapters/search?search=chapter1&subjectId=xxx&page=1&limit=10&order=name
