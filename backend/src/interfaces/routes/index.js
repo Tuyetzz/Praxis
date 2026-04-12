@@ -11,5 +11,7 @@ router.use(contextMiddleware);
 router.use('/users', require('./userRoutes'));
 router.use('/roles', require('./roleRoutes'));
 router.use('/permissions', require('./permissionRoutes'));
+router.use('/subjects', require('./subjectRoutes'));
+router.use('/chapters', require('./chapterRoutes'));
 
 module.exports = router;
