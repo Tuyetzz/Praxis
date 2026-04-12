@@ -11,6 +11,10 @@ router.get('/', requiredPermission(PERMISSIONS.CHAPTER_VIEW), (req, res) =>
   chapterController.getAll(req, res)
 );
 
+router.get('/search', requiredPermission(PERMISSIONS.CHAPTER_VIEW), (req, res) => 
+  chapterController.search(req, res)
+);
+
 router.get('/subject/:subjectId', requiredPermission(PERMISSIONS.CHAPTER_VIEW), (req, res) => 
   chapterController.getBySubject(req, res)
 );

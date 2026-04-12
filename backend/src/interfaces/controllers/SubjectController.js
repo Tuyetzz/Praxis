@@ -4,6 +4,7 @@ const getSubjects = require('../../usecases/subject/GetSubjects');
 const getOneSubject = require('../../usecases/subject/GetOneSubject');
 const updateSubject = require('../../usecases/subject/UpdateSubject');
 const deleteSubject = require('../../usecases/subject/DeleteSubject');
+const searchSubject = require('../../usecases/subject/SearchSubject');
 
 class SubjectController {
   async create(req, res) {
@@ -18,6 +19,15 @@ class SubjectController {
   async getAll(req, res) {
     try {
       const result = await getSubjects.execute(req.query);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async search(req, res) {
+    try {
+      const result = await searchSubject.execute(req.query);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });

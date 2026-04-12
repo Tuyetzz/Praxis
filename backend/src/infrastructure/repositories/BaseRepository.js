@@ -37,6 +37,50 @@ class BaseRepository {
   async softDelete(id) {
     return await this.model.update({ isDeleted: true }, { where: { id } });
   }
+
+  async findWithPagination(options = {}) {
+    const {
+      limit = 10,
+      offset = 0,
+      search = null,
+      searchFields = [],
+      order = [["createdAt", "DESC"]],
+      where = {},
+      include = [],
+      attributes = undefined
+    } = options;
+
+    // Add soft-delete filter by default
+    const finalWhere = { ...where, isDeleted: false };
+
+    // If search is provided, add OR conditions for search fields
+    if (search && searchFields.length > 0) {
+      const { Op } = require("sequelize");
+      finalWhere[Op.or] = searchFields.map(field => ({
+        [field]: { [Op.like]: `%${search}%` }
+      }));
+    }
+
+    const { rows, count } = await this.model.findAndCountAll({
+      where: finalWhere,
+      limit,
+      offset,
+      order,
+      include,
+      attributes,
+      distinct: true
+    });
+
+    const data = rows.map(record => this.mapper.toDomain(record));
+
+    return {
+      data,
+      totalItems: count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: Math.floor(offset / limit) + 1,
+      itemsPerPage: limit
+    };
+  }
 }
 
 module.exports = BaseRepository;

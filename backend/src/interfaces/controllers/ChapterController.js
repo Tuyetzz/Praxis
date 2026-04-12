@@ -5,6 +5,7 @@ const getOneChapter = require('../../usecases/chapter/GetOneChapter');
 const getChaptersBySubject = require('../../usecases/chapter/GetChaptersBySubject');
 const updateChapter = require('../../usecases/chapter/UpdateChapter');
 const deleteChapter = require('../../usecases/chapter/DeleteChapter');
+const searchChapter = require('../../usecases/chapter/SearchChapter');
 
 class ChapterController {
   async create(req, res) {
@@ -19,6 +20,15 @@ class ChapterController {
   async getAll(req, res) {
     try {
       const result = await getChapters.execute(req.query);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async search(req, res) {
+    try {
+      const result = await searchChapter.execute(req.query);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });

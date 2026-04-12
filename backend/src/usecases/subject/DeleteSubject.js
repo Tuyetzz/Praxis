@@ -5,7 +5,7 @@ class DeleteSubject {
   async execute(id) {
     const subject = await subjectRepository.findById(id);
     if (!subject) {
-      throw new Error("Không tìm thấy môn học với ID này.");
+      throw new Error("Subject not found with this ID.");
     }
     return await subjectRepository.softDelete(id);
   }

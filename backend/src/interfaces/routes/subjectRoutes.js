@@ -6,6 +6,10 @@ const { PERMISSIONS } = require('../../domain/constants/permissions');
 const authMiddleware = require('../middlewares/authMiddleware');
 const { requiredPermission } = authMiddleware;
 
+router.get('/search', requiredPermission(PERMISSIONS.SUBJECT_VIEW), (req, res) => 
+  subjectController.search(req, res)
+);
+
 router.get('/', requiredPermission(PERMISSIONS.SUBJECT_VIEW), (req, res) => 
   subjectController.getAll(req, res)
 );
