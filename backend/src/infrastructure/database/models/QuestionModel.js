@@ -2,6 +2,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
 const BaseModel = require("./BaseModel");
+const QUESTIONS_TYPE_ENUM = require("../../../domain/constants/questions_type_enum");
 
 class QuestionModel extends BaseModel {}
 
@@ -16,7 +17,7 @@ QuestionModel.init({
     allowNull: false,
   },
   type: {
-    type: DataTypes.ENUM("single", "multiple", "true_false", "fill_blank"),
+    type: DataTypes.ENUM(...Object.values(QUESTIONS_TYPE_ENUM)),
     allowNull: false,
   },
   text: {
@@ -37,11 +38,11 @@ QuestionModel.init({
     defaultValue: 1,
   },
   media: {
-    type: DataTypes.JSON, // Lưu mảng URL hoặc Object {type, url}
+    type: DataTypes.JSON,
     allowNull: true,
   },
   tags: {
-    type: DataTypes.JSON, // Lưu mảng string các tags
+    type: DataTypes.JSON,
     allowNull: true,
   }
 }, {
@@ -53,7 +54,7 @@ QuestionModel.init({
     { fields: ["chapterId"] },
     { fields: ["type"] },
     { fields: ["difficulty"] },
-    { fields: ["subjectId", "chapterId"] } // Tối ưu load câu hỏi theo cấu trúc cây
+    { fields: ["subjectId", "chapterId"] }
   ]
 });
 

@@ -13,12 +13,12 @@ PermissionModel.init({
   name: {
     type: DataTypes.STRING(100),
     allowNull: false,
-    unique: true,
+    unique: 'unique_permission_name',
   },
   slug: {
     type: DataTypes.STRING(100),
     allowNull: false,
-    unique: true,
+    unique: 'unique_permission_slug',
   },
   description: {
     type: DataTypes.STRING(255),

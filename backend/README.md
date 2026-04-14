@@ -1,3 +1,6 @@
+Cách chạy: npm run dev
+Cách seed: npm run seed:system
+
 src/
 ├── domain/
 │   ├── entities/          # Các class định nghĩa dữ liệu (Plain JS/TS)
@@ -20,7 +23,6 @@ src/
 Seed vào db 1 superadmin
 Seed vào db permission, tạo 1 file enum
 
-
 Luồng get
 - Repository sẽ lấy ra từ db dùng model của infrastructure
   - Khi chạy thì migrate bảng ra từ infrastructure
@@ -37,21 +39,128 @@ Các API controller:
 # API Endpoints
 
 ## Auth
-| Method | URL                | Body/Params         | Description                |
-|--------|--------------------|---------------------|----------------------------|
-| POST   | /api/auth/register | { name, email, password } | Đăng ký tài khoản         |
-| POST   | /api/auth/login    | { email, password } | Đăng nhập                  |
-| POST   | /api/auth/refresh | { refreshToken }  | Làm mới access token       |
-| POST   | /api/auth/logout   | { refreshToken }    | Đăng xuất                  |
+| Method | URL                  | Body/Params                | Description              |
+|--------|----------------------|----------------------------|--------------------------|
+| POST   | /api/auth/register   | { name, email, password }  | Đăng ký tài khoản        |
+| POST   | /api/auth/login      | { email, password }        | Đăng nhập                |
+| POST   | /api/auth/refresh    | { refreshToken }           | Làm mới access token     |
+| POST   | /api/auth/logout     | { refreshToken }           | Đăng xuất                |
 
 ## User (Yêu cầu xác thực)
-| Method | URL                | Body/Params         | Description                |
-|--------|--------------------|---------------------|----------------------------|
-| GET    | /api/users         | ?filter             | Lấy danh sách user         |
-| GET    | /api/users/me      | -                   | Lấy thông tin user hiện tại|
-| POST   | /api/users         | { ...user }         | Tạo user mới               |
-| PUT    | /api/users/:id     | { ...user }         | Cập nhật user              |
-| DELETE | /api/users/:id     | -                   | Xóa mềm user (admin/superadmin) |
+| Method | URL                | Body/Params         | Description                        |
+|--------|--------------------|---------------------|------------------------------------|
+| GET    | /api/users         | ?filter             | Lấy danh sách user                 |
+| GET    | /api/users/me      | -                   | Lấy thông tin user hiện tại        |
+| POST   | /api/users         | { ...user }         | Tạo user mới                       |
+| PUT    | /api/users/:id     | { ...user }         | Cập nhật user                      |
+| DELETE | /api/users/:id     | -                   | Xóa mềm user (admin/superadmin)    |
+
+## Role (Yêu cầu quyền ROLE_MANAGE hoặc PERMISSION_MANAGE)
+| Method | URL                                 | Body/Params                | Description                         |
+|--------|-------------------------------------|----------------------------|-------------------------------------|
+| GET    | /api/roles                          | ?filter                    | Lấy danh sách role                  |
+| POST   | /api/roles                          | { name, description }      | Tạo role mới                        |
+| GET    | /api/roles/:id                      | -                          | Lấy thông tin 1 role                |
+| PUT    | /api/roles/:id | { name, description }      | Cập nhật role |
+| DELETE | /api/roles/:id  | -          | Xóa role                            |
+| GET    | /api/roles/:id/permissions  | -        | Lấy danh sách permission của role    |
+| POST   | /api/roles/:id/permissions | { permissionId } | Gán permission cho role|
+| DELETE | /api/roles/:id/permissions| { permissionId }| Gỡ permission khỏi role|
+| POST   | /api/roles/:id/users                | { userId }                 | Gán role cho user                   |
+| DELETE | /api/roles/:id/users/:userId        | -                          | Gỡ role khỏi user                   |
+| GET    | /api/roles/users/:userId/roles      | -                          | Lấy danh sách role của user         |
+
+## Permission (Yêu cầu quyền PERMISSION_MANAGE)
+| Method | URL               | Body/Params | Description                 |
+|--------|-------------------|-------------|-----------------------------|
+| GET    | /api/permissions  | -           | Lấy danh sách permission    |
+
+## Subject (Yêu cầu xác thực và quyền tương ứng)
+| Method | URL                       | Body/Params                | Description                    |
+|--------|---------------------------|----------------------------|--------------------------------|
+| GET    | /api/subjects/search      | search, page, limit, order | Tìm kiếm subject (có paging)   |
+| GET    | /api/subjects             | -                          | Lấy danh sách subject          |
+| GET    | /api/subjects/:id         | -                          | Lấy thông tin 1 subject        |
+| POST   | /api/subjects             | { ...subject }             | Tạo subject mới                |
+| PUT    | /api/subjects/:id         | { ...subject }             | Cập nhật subject               |
+| DELETE | /api/subjects/:id         | -                          | Xóa subject                    |
+
+## Chapter (Yêu cầu xác thực và quyền tương ứng)
+| Method | URL                                | Body/Params                | Description                        |
+|--------|------------------------------------|----------------------------|------------------------------------|
+| GET    | /api/chapters                      | -                          | Lấy danh sách chapter              |
+| GET    | /api/chapters/search               | search, subjectId, page, limit, order | Tìm kiếm chapter (có paging) |
+| GET    | /api/chapters/subject/:subjectId   | -                          | Lấy danh sách chapter theo subject |
+| GET    | /api/chapters/:id                  | -                          | Lấy thông tin 1 chapter            |
+| POST   | /api/chapters                      | { ...chapter }             | Tạo chapter mới                    |
+| PUT    | /api/chapters/:id                  | { ...chapter }             | Cập nhật chapter                   |
+| DELETE | /api/chapters/:id                  | -                          | Xóa chapter                        |
+
+## Question (Yêu cầu xác thực và quyền tương ứng)
+| Method | URL                                 | Body/Params                                   | Description                          |
+|--------|-------------------------------------|-----------------------------------------------|--------------------------------------|
+| GET    | /api/questions/search               | search, subjectId, chapterId, type, difficulty, page, limit, order | Tìm kiếm question (có paging) |
+| GET    | /api/questions                      | -                                             | Lấy danh sách question               |
+| GET    | /api/questions/subject/:subjectId   | -                                             | Lấy danh sách question theo subject  |
+| GET    | /api/questions/chapter/:chapterId   | -                                             | Lấy danh sách question theo chapter  |
+| GET    | /api/questions/:id                  | -                                             | Lấy thông tin 1 question             |
+| POST   | /api/questions/batch                | Xem phần "Batch Questions Input Format" dưới | Thêm nhiều question + options cùng lúc |
+| POST   | /api/questions                      | { subjectId, chapterId, type, text, explanation, difficulty, points, media, tags } | Tạo question mới |
+| PUT    | /api/questions/:id                  | { type, text, explanation, difficulty, points, media, tags } | Cập nhật question |
+| DELETE | /api/questions/:id                  | -                                             | Xóa question                         |
+
+### Batch Questions Input Format
+POST /api/questions/batch
+
+```json
+{
+  "mode": "all-or-nothing",
+  "subjectId": "uuid-string",
+  "chapterId": "uuid-string",
+  "type": "single",
+  "items": [
+    {
+      "text": "Nội dung câu hỏi",
+      "explanation": "Giải thích (optional)",
+      "difficulty": 1,
+      "points": 1,
+      "media": [],
+      "tags": [],
+      "options": [
+        {
+          "text": "Lựa chọn A",
+          "isCorrect": true,
+          "order": 1,
+          "media": null
+        },
+        {
+          "text": "Lựa chọn B",
+          "isCorrect": false,
+          "order": 2
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Thông tin chi tiết:**
+- `mode`: "all-or-nothing" (hủy toàn bộ nếu 1 item lỗi) hoặc "continue-on-error" (bỏ qua item lỗi)
+- `subjectId`, `chapterId`: Bắt buộc
+- `type`: Mặc định sẽ dùng giá trị chỉ định ở level batch, có thể override ở mỗi item
+- Mỗi item có thể thiếu các trường (explanation, difficulty, points, media, tags) sẽ lấy giá trị mặc định
+- `options`: Có thể để trống nếu không có options
+- Response sẽ trả về: `{ mode, created: (số lượng), errors?: [...], data: [...] }`
+
+## Option (Yêu cầu xác thực và quyền tương ứng - sử dụng QUESTION_*)
+| Method | URL                             | Body/Params                              | Description                    |
+|--------|--------------------------------|------------------------------------------|--------------------------------|
+| GET    | /api/options                   | -                                        | Lấy danh sách option           |
+| GET    | /api/options/question/:questionId | -                                      | Lấy danh sách option theo question |
+| GET    | /api/options/:id               | -                                        | Lấy thông tin 1 option         |
+| POST   | /api/options                   | { questionId, text, isCorrect, media, order } | Tạo option mới         |
+| PUT    | /api/options/:id               | { text, isCorrect, media, order }        | Cập nhật option                |
+| DELETE | /api/options/:id               | -                                        | Xóa option                     |
 
 Ghi chú:
 - Các route `/api/users/*` yêu cầu JWT token ở header `Authorization: Bearer <token>`
