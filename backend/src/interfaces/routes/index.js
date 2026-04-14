@@ -13,5 +13,7 @@ router.use('/roles', require('./roleRoutes'));
 router.use('/permissions', require('./permissionRoutes'));
 router.use('/subjects', require('./subjectRoutes'));
 router.use('/chapters', require('./chapterRoutes'));
+router.use('/questions', require('./questionRoutes'));
+router.use('/options', require('./optionRoutes'));
 
 module.exports = router;

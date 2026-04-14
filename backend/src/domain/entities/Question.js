@@ -1,5 +1,6 @@
 // src/domain/entities/Question.js
 const BaseEntity = require("./BaseEntity");
+const QUESTIONS_TYPE_ENUM = require("../constants/questions_type_enum");
 
 class Question extends BaseEntity {
   constructor(data) {
@@ -17,23 +18,20 @@ class Question extends BaseEntity {
     this.validate();
   }
 
-  // Domain Logic: Kiểm tra tính hợp lệ của câu hỏi
   validate() {
-    const validTypes = ['single', 'multiple', 'true_false', 'fill_blank'];
+    const validTypes = Object.values(QUESTIONS_TYPE_ENUM);
     if (!validTypes.includes(this.type)) {
-      throw new Error(`Loại câu hỏi ${this.type} không hợp lệ.`);
+      throw new Error(`Question type: ${this.type} is invalid.`);
     }
     if (!this.text || this.text.trim() === "") {
-      throw new Error("Nội dung câu hỏi không được để trống.");
+      throw new Error("Question text cannot be empty.");
     }
   }
 
-  // Domain Logic: Check xem có phải câu hỏi tự luận/điền từ không
   isTextBased() {
     return this.type === 'fill_blank';
   }
 
-  // Domain Logic: Check xem có phải loại chọn nhiều đáp án không
   isMultipleChoice() {
     return this.type === 'multiple';
   }

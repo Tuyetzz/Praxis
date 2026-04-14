@@ -22,6 +22,13 @@ class ChapterRepository extends BaseRepository {
     });
     return record ? this.mapper.toDomain(record) : null;
   }
+
+  async existsBySubjectAndId(subjectId, id) {
+    const count = await this.model.count({
+      where: { subjectId, id, isDeleted: false }
+    });
+    return count > 0;
+  }
 }
 
 module.exports = new ChapterRepository();
