@@ -27,7 +27,8 @@ class SequelizeUnitOfWork {
 
   async rollback() {
     if (!this.transaction) {
-      throw new Error('No active transaction to rollback.');
+      // Idempotent: do nothing if no active transaction
+      return;
     }
     try {
       await this.transaction.rollback();

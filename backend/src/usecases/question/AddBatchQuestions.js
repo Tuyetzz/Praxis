@@ -14,6 +14,7 @@ class AddBatchQuestions {
       throw new Error('Input must be an object with mode, subjectId, chapterId, type, and items');
     }
 
+
     const {
       mode = 'all-or-nothing',
       subjectId,
@@ -21,6 +22,12 @@ class AddBatchQuestions {
       type: defaultType,
       items = []
     } = batchData;
+
+    // Validate mode up-front
+    const supportedModes = ['all-or-nothing', 'continue-on-error'];
+    if (!supportedModes.includes(mode)) {
+      throw new Error(`Invalid mode: ${mode}. Supported modes are 'all-or-nothing' and 'continue-on-error'.`);
+    }
 
     if (!subjectId) throw new Error('subjectId is required');
     if (!chapterId) throw new Error('chapterId is required');
@@ -48,92 +55,90 @@ class AddBatchQuestions {
       await uow.start();
     }
 
+
     try {
       for (let i = 0; i < items.length; i++) {
-      try {
-        const item = items[i];
-        const {
-          text,
-          type = defaultType,
-          explanation = null,
-          difficulty = 1,
-          points = 1,
-          media = null,
-          tags = [],
-          options = []
-        } = item;
+        try {
+          const item = items[i];
+          const {
+            text,
+            type = defaultType,
+            explanation = null,
+            difficulty = 1,
+            points = 1,
+            media = null,
+            tags = [],
+            options = []
+          } = item;
 
-        // Validate required fields
-        if (!text || text.trim() === '') {
-          throw new Error(`Item ${i + 1}: Question text cannot be empty`);
-        }
-        if (!type) {
-          throw new Error(`Item ${i + 1}: Question type is required`);
-        }
+          // Validate required fields
+          if (!text || text.trim() === '') {
+            throw new Error(`Item ${i + 1}: Question text cannot be empty`);
+          }
+          if (!type) {
+            throw new Error(`Item ${i + 1}: Question type is required`);
+          }
 
-        // Create question entity
-        const question = new Question({
-          subjectId,
-          chapterId,
-          type,
-          text: text.trim(),
-          explanation,
-          difficulty: parseInt(difficulty) || 1,
-          points: parseInt(points) || 1,
-          media: Array.isArray(media) ? media : (media ? [media] : []),
-          tags: Array.isArray(tags) ? tags : []
-        });
+          // Create question entity
+          const question = new Question({
+            subjectId,
+            chapterId,
+            type,
+            text: text.trim(),
+            explanation,
+            difficulty: parseInt(difficulty) || 1,
+            points: parseInt(points) || 1,
+            media: Array.isArray(media) ? media : (media ? [media] : []),
+            tags: Array.isArray(tags) ? tags : []
+          });
 
-        // Create question in database
-        const txOptions = mode === 'all-or-nothing' ? uow.getTx() : {};
-        const createdQuestion = await questionRepository.create(question, null, txOptions);
+          // Create question in database
+          const txOptions = mode === 'all-or-nothing' ? uow.getTx() : {};
+          const createdQuestion = await questionRepository.create(question, null, txOptions);
 
-        // Create options if provided
-        const createdOptions = [];
-        if (Array.isArray(options) && options.length > 0) {
-          for (const optionData of options) {
-            const {
-              text: optionText,
-              isCorrect = false,
-              media: optionMedia = null,
-              order = 0
-            } = optionData;
+          // Create options if provided
+          const createdOptions = [];
+          if (Array.isArray(options) && options.length > 0) {
+            for (const optionData of options) {
+              const {
+                text: optionText,
+                isCorrect = false,
+                media: optionMedia = null,
+                order = 0
+              } = optionData;
 
-            if (!optionText || optionText.trim() === '') {
-              throw new Error(`Item ${i + 1}: Option text cannot be empty`);
+              if (!optionText || optionText.trim() === '') {
+                throw new Error(`Item ${i + 1}: Option text cannot be empty`);
+              }
+
+              const option = new Option({
+                questionId: createdQuestion.id,
+                text: optionText.trim(),
+                isCorrect: !!isCorrect,
+                media: optionMedia,
+                order: parseInt(order) || 0
+              });
+
+              const createdOption = await optionRepository.create(option, null, txOptions);
+              createdOptions.push(createdOption);
             }
+          }
 
-            const option = new Option({
-              questionId: createdQuestion.id,
-              text: optionText.trim(),
-              isCorrect: !!isCorrect,
-              media: optionMedia,
-              order: parseInt(order) || 0
+          results.push({
+            question: createdQuestion,
+            options: createdOptions
+          });
+
+        } catch (error) {
+          if (mode === 'all-or-nothing') {
+            throw new Error(`Batch creation failed at item ${i + 1}: ${error.message}`);
+          } else if (mode === 'continue-on-error') {
+            errors.push({
+              index: i + 1,
+              error: error.message
             });
-
-            const createdOption = await optionRepository.create(option, null, txOptions);
-            createdOptions.push(createdOption);
           }
         }
-
-        results.push({
-          question: createdQuestion,
-          options: createdOptions
-        });
-
-      } catch (error) {
-        if (mode === 'all-or-nothing') {
-          await uow.rollback();
-          throw new Error(`Batch creation failed at item ${i + 1}: ${error.message}`);
-        } else if (mode === 'continue-on-error') {
-          errors.push({
-            index: i + 1,
-            error: error.message
-          });
-        } else {
-          throw new Error(`Invalid mode: ${mode}. Supported modes are 'all-or-nothing' and 'continue-on-error'.`);
-        }
-      }
       }
     } catch (error) {
       if (mode === 'all-or-nothing') {

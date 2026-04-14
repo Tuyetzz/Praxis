@@ -61,7 +61,7 @@ Các API controller:
 | GET    | /api/roles                          | ?filter                    | Lấy danh sách role                  |
 | POST   | /api/roles                          | { name, description }      | Tạo role mới                        |
 | GET    | /api/roles/:id                      | -                          | Lấy thông tin 1 role                |
-| PUT    | /api/roles/:id| { name, description }      | Cập nhật role|
+| PUT    | /api/roles/:id | { name, description }      | Cập nhật role |
 | DELETE | /api/roles/:id  | -          | Xóa role                            |
 | GET    | /api/roles/:id/permissions  | -        | Lấy danh sách permission của role    |
 | POST   | /api/roles/:id/permissions | { permissionId } | Gán permission cho role|
