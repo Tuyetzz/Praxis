@@ -4,7 +4,9 @@ const questionRepository = require('../../infrastructure/repositories/QuestionRe
 class GetOneQuestion {
   async execute(id) {
     if (!id) throw new Error('Question id is required');
-    return await questionRepository.findById(id);
+    const question = await questionRepository.findById(id);
+    if (!question) throw new Error('Could not find question with the provided id');
+    return question;
   }
 }
 

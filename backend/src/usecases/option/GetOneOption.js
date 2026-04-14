@@ -4,7 +4,9 @@ const optionRepository = require('../../infrastructure/repositories/OptionReposi
 class GetOneOption {
   async execute(id) {
     if (!id) throw new Error('Option id is required');
-    return await optionRepository.findById(id);
+    const option = await optionRepository.findById(id);
+    if (!option) throw new Error('Could not find option with the provided id');
+    return option;
   }
 }
 

@@ -1,3 +1,6 @@
+Cách chạy: npm run dev
+Cách seed: npm run seed:system
+
 src/
 ├── domain/
 │   ├── entities/          # Các class định nghĩa dữ liệu (Plain JS/TS)
@@ -19,7 +22,6 @@ src/
 
 Seed vào db 1 superadmin
 Seed vào db permission, tạo 1 file enum
-
 
 Luồng get
 - Repository sẽ lấy ra từ db dùng model của infrastructure

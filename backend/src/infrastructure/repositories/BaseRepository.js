@@ -19,9 +19,9 @@ class BaseRepository {
     return record ? this.mapper.toDomain(record) : null;
   }
 
-  async create(data, userId = null) {
+  async create(data, userId = null, options = {}) {
     const payload = { ...data, createdBy: userId };
-    const record = await this.model.create(payload);
+    const record = await this.model.create(payload, options);
     return this.mapper.toDomain(record);
   }
 

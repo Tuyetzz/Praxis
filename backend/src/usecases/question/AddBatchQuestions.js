@@ -3,6 +3,7 @@ const questionRepository = require('../../infrastructure/repositories/QuestionRe
 const optionRepository = require('../../infrastructure/repositories/OptionRepository');
 const subjectRepository = require('../../infrastructure/repositories/SubjectRepository');
 const chapterRepository = require('../../infrastructure/repositories/ChapterRepository');
+const SequelizeUnitOfWork = require('../../infrastructure/unitOfWork/SequelizeUnitOfWork');
 const Question = require('../../domain/entities/Question');
 const Option = require('../../domain/entities/Option');
 
@@ -41,8 +42,14 @@ class AddBatchQuestions {
 
     const results = [];
     const errors = [];
+    const uow = new SequelizeUnitOfWork();
 
-    for (let i = 0; i < items.length; i++) {
+    if (mode === 'all-or-nothing') {
+      await uow.start();
+    }
+
+    try {
+      for (let i = 0; i < items.length; i++) {
       try {
         const item = items[i];
         const {
@@ -78,7 +85,8 @@ class AddBatchQuestions {
         });
 
         // Create question in database
-        const createdQuestion = await questionRepository.create(question);
+        const txOptions = mode === 'all-or-nothing' ? uow.getTx() : {};
+        const createdQuestion = await questionRepository.create(question, null, txOptions);
 
         // Create options if provided
         const createdOptions = [];
@@ -103,7 +111,7 @@ class AddBatchQuestions {
               order: parseInt(order) || 0
             });
 
-            const createdOption = await optionRepository.create(option);
+            const createdOption = await optionRepository.create(option, null, txOptions);
             createdOptions.push(createdOption);
           }
         }
@@ -115,15 +123,27 @@ class AddBatchQuestions {
 
       } catch (error) {
         if (mode === 'all-or-nothing') {
+          await uow.rollback();
           throw new Error(`Batch creation failed at item ${i + 1}: ${error.message}`);
-        } else {
-          // Mode: 'continue-on-error'
+        } else if (mode === 'continue-on-error') {
           errors.push({
             index: i + 1,
             error: error.message
           });
+        } else {
+          throw new Error(`Invalid mode: ${mode}. Supported modes are 'all-or-nothing' and 'continue-on-error'.`);
         }
       }
+      }
+    } catch (error) {
+      if (mode === 'all-or-nothing') {
+        await uow.rollback();
+      }
+      throw error;
+    }
+
+    if (mode === 'all-or-nothing') {
+      await uow.commit();
     }
 
     return {
