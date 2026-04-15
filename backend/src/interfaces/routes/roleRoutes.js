@@ -1,8 +1,10 @@
+
 // src/interfaces/routes/roleRoutes.js
 const express = require('express');
 const router = express.Router();
-const roleController = require('../controllers/RoleController');
-const authMiddleware = require('../middlewares/authMiddleware');
+const container = require('../../container');
+const roleController = container.resolve('roleController');
+const authMiddleware = container.resolve('authMiddleware');
 const { requiredPermission } = authMiddleware;
 const { PERMISSIONS } = require('../../domain/constants/permissions');
 

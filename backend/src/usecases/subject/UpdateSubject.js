@@ -1,9 +1,11 @@
 // src/usecases/subject/UpdateSubject.js
-const subjectRepository = require('../../infrastructure/repositories/SubjectRepository');
-
 class UpdateSubject {
+  constructor({ subjectRepository }) {
+    this.subjectRepository = subjectRepository;
+  }
+
   async execute(id, updateData) {
-    const subject = await subjectRepository.findById(id);
+    const subject = await this.subjectRepository.findById(id);
     if (!subject) {
       throw new Error("Subject not found.");
     }
@@ -18,7 +20,7 @@ class UpdateSubject {
     }
 
     if (updateData.slug && updateData.slug !== subject.slug) {
-      const existing = await subjectRepository.findBySlug(updateData.slug);
+      const existing = await this.subjectRepository.findBySlug(updateData.slug);
       if (existing) {
         throw new Error("Slug is already in use.");
       }
@@ -29,8 +31,8 @@ class UpdateSubject {
     if (updateData.slug) dataToUpdate.slug = updateData.slug.toLowerCase();
     if (updateData.order !== undefined) dataToUpdate.order = updateData.order;
 
-    return await subjectRepository.update(id, dataToUpdate);
+    return await this.subjectRepository.update(id, dataToUpdate);
   }
 }
 
-module.exports = new UpdateSubject();
+module.exports = UpdateSubject;

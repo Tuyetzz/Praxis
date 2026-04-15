@@ -1,10 +1,12 @@
 // src/usecases/question/GetQuestions.js
-const questionRepository = require('../../infrastructure/repositories/QuestionRepository');
-
 class GetQuestions {
+  constructor({ questionRepository }) {
+    this.questionRepository = questionRepository;
+  }
+
   async execute(filters = {}) {
-    return await questionRepository.findAll(filters);
+    return await this.questionRepository.findAll(filters);
   }
 }
 
-module.exports = new GetQuestions();
+module.exports = GetQuestions;

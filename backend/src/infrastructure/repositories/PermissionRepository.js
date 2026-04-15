@@ -30,4 +30,4 @@ class PermissionRepository {
   }
 }
 
-module.exports = new PermissionRepository();
+module.exports = PermissionRepository;

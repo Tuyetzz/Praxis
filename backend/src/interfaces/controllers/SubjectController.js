@@ -1,15 +1,23 @@
 // src/interfaces/controllers/SubjectController.js
-const createSubject = require('../../usecases/subject/CreateSubject');
-const getSubjects = require('../../usecases/subject/GetSubjects');
-const getOneSubject = require('../../usecases/subject/GetOneSubject');
-const updateSubject = require('../../usecases/subject/UpdateSubject');
-const deleteSubject = require('../../usecases/subject/DeleteSubject');
-const searchSubject = require('../../usecases/subject/SearchSubject');
-
 class SubjectController {
+  constructor({
+    createSubject,
+    getSubjects,
+    getOneSubject,
+    updateSubject,
+    deleteSubject,
+    searchSubject
+  }) {
+    this.createSubject = createSubject;
+    this.getSubjects = getSubjects;
+    this.getOneSubject = getOneSubject;
+    this.updateSubject = updateSubject;
+    this.deleteSubject = deleteSubject;
+    this.searchSubject = searchSubject;
+  }
   async create(req, res) {
     try {
-      const result = await createSubject.execute(req.body);
+      const result = await this.createSubject.execute(req.body);
       res.status(201).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -18,7 +26,7 @@ class SubjectController {
 
   async getAll(req, res) {
     try {
-      const result = await getSubjects.execute(req.query);
+      const result = await this.getSubjects.execute(req.query);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -27,7 +35,7 @@ class SubjectController {
 
   async search(req, res) {
     try {
-      const result = await searchSubject.execute(req.query);
+      const result = await this.searchSubject.execute(req.query);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -36,7 +44,7 @@ class SubjectController {
 
   async getOne(req, res) {
     try {
-      const result = await getOneSubject.execute(req.params.id);
+      const result = await this.getOneSubject.execute(req.params.id);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -45,7 +53,7 @@ class SubjectController {
 
   async update(req, res) {
     try {
-      const result = await updateSubject.execute(req.params.id, req.body);
+      const result = await this.updateSubject.execute(req.params.id, req.body);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -54,7 +62,7 @@ class SubjectController {
 
   async delete(req, res) {
     try {
-      await deleteSubject.execute(req.params.id);
+      await this.deleteSubject.execute(req.params.id);
       res.status(204).send();
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -62,4 +70,4 @@ class SubjectController {
   }
 }
 
-module.exports = new SubjectController();
+module.exports = SubjectController;

@@ -16,4 +16,4 @@ class ResultSummaryRepository extends BaseRepository {
   }
 }
 
-module.exports = new ResultSummaryRepository();
+module.exports = ResultSummaryRepository;

@@ -1,7 +1,9 @@
 // src/usecases/chapter/SearchChapter.js
-const chapterRepository = require('../../infrastructure/repositories/ChapterRepository');
-
 class SearchChapter {
+  constructor({ chapterRepository }) {
+    this.chapterRepository = chapterRepository;
+  }
+
   async execute(params = {}) {
     const {
       page = 1,
@@ -32,7 +34,7 @@ class SearchChapter {
       where.subjectId = subjectId;
     }
 
-    return await chapterRepository.findWithPagination({
+    return await this.chapterRepository.findWithPagination({
       limit: limitNum,
       offset,
       search,
@@ -43,4 +45,4 @@ class SearchChapter {
   }
 }
 
-module.exports = new SearchChapter();
+module.exports = SearchChapter;

@@ -1,7 +1,9 @@
 // src/usecases/question/SearchQuestion.js
-const questionRepository = require('../../infrastructure/repositories/QuestionRepository');
-
 class SearchQuestion {
+  constructor({ questionRepository }) {
+    this.questionRepository = questionRepository;
+  }
+
   async execute(params = {}) {
     const {
       page = 1,
@@ -39,7 +41,7 @@ class SearchQuestion {
     if (type) where.type = type;
     if (difficulty) where.difficulty = difficulty;
 
-    return await questionRepository.findWithPagination({
+    return await this.questionRepository.findWithPagination({
       limit: limitNum,
       offset,
       order: orderBy,
@@ -48,4 +50,4 @@ class SearchQuestion {
   }
 }
 
-module.exports = new SearchQuestion();
+module.exports = SearchQuestion;

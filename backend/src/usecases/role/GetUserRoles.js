@@ -1,19 +1,21 @@
 // src/usecases/role/GetUserRoles.js
-const userRepository = require('../../infrastructure/repositories/UserRepository');
-const userRoleRepository = require('../../infrastructure/repositories/UserRoleRepository');
-
 class GetUserRoles {
+  constructor({ userRepository, userRoleRepository }) {
+    this.userRepository = userRepository;
+    this.userRoleRepository = userRoleRepository;
+  }
+
   async execute(userId) {
     if (!userId) {
       throw new Error("User ID is required.");
     }
 
-    const user = await userRepository.findById(userId);
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new Error("User not found.");
     }
 
-    const roles = await userRoleRepository.getRolesForUser(userId);
+    const roles = await this.userRoleRepository.getRolesForUser(userId);
 
     return {
       userId,
@@ -27,4 +29,4 @@ class GetUserRoles {
   }
 }
 
-module.exports = new GetUserRoles();
+module.exports = GetUserRoles;

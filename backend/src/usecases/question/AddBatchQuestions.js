@@ -1,13 +1,15 @@
 // src/usecases/question/AddBatchQuestions.js
-const questionRepository = require('../../infrastructure/repositories/QuestionRepository');
-const optionRepository = require('../../infrastructure/repositories/OptionRepository');
-const subjectRepository = require('../../infrastructure/repositories/SubjectRepository');
-const chapterRepository = require('../../infrastructure/repositories/ChapterRepository');
 const SequelizeUnitOfWork = require('../../infrastructure/unitOfWork/SequelizeUnitOfWork');
 const Question = require('../../domain/entities/Question');
 const Option = require('../../domain/entities/Option');
 
 class AddBatchQuestions {
+  constructor({ questionRepository, optionRepository, subjectRepository, chapterRepository }) {
+    this.questionRepository = questionRepository;
+    this.optionRepository = optionRepository;
+    this.subjectRepository = subjectRepository;
+    this.chapterRepository = chapterRepository;
+  }
   async execute(batchData) {
     // Validate input structure
     if (!batchData || typeof batchData !== 'object') {
@@ -36,13 +38,13 @@ class AddBatchQuestions {
     }
 
     // Validate subject and chapter exist
-    const subject = await subjectRepository.findById(subjectId);
+    const subject = await this.subjectRepository.findById(subjectId);
     if (!subject) throw new Error("Subject not found.");
 
-    const chapter = await chapterRepository.findById(chapterId);
+    const chapter = await this.chapterRepository.findById(chapterId);
     if (!chapter) throw new Error("Chapter not found.");
 
-    const chapterBelongsToSubject = await chapterRepository.existsBySubjectAndId(subjectId, chapterId);
+    const chapterBelongsToSubject = await this.chapterRepository.existsBySubjectAndId(subjectId, chapterId);
     if (!chapterBelongsToSubject) {
       throw new Error("Chapter does not belong to the specified subject.");
     }
@@ -94,7 +96,7 @@ class AddBatchQuestions {
 
           // Create question in database
           const txOptions = mode === 'all-or-nothing' ? uow.getTx() : {};
-          const createdQuestion = await questionRepository.create(question, null, txOptions);
+          const createdQuestion = await this.questionRepository.create(question, null, txOptions);
 
           // Create options if provided
           const createdOptions = [];
@@ -119,7 +121,7 @@ class AddBatchQuestions {
                 order: parseInt(order) || 0
               });
 
-              const createdOption = await optionRepository.create(option, null, txOptions);
+              const createdOption = await this.optionRepository.create(option, null, txOptions);
               createdOptions.push(createdOption);
             }
           }
@@ -160,4 +162,4 @@ class AddBatchQuestions {
   }
 }
 
-module.exports = new AddBatchQuestions();
+module.exports = AddBatchQuestions;

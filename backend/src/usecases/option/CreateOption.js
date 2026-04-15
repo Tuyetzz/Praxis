@@ -1,14 +1,17 @@
 // src/usecases/option/CreateOption.js
-const optionRepository = require('../../infrastructure/repositories/OptionRepository');
-const questionRepository = require('../../infrastructure/repositories/QuestionRepository');
 const Option = require('../../domain/entities/Option');
 
 class CreateOption {
+  constructor({ optionRepository, questionRepository }) {
+    this.optionRepository = optionRepository;
+    this.questionRepository = questionRepository;
+  }
+
   async execute(optionData) {
     const { questionId, text, isCorrect, media, order } = optionData;
 
     // Validate question exists
-    const question = await questionRepository.findById(questionId);
+    const question = await this.questionRepository.findById(questionId);
     if (!question) throw new Error("Question not found.");
 
     // Validate option has content
@@ -25,9 +28,9 @@ class CreateOption {
       order: order || 0
     });
 
-    const result = await optionRepository.create(option);
+    const result = await this.optionRepository.create(option);
     return result;
   }
 }
 
-module.exports = new CreateOption();
+module.exports = CreateOption;

@@ -51,4 +51,4 @@ class UserRoleRepository {
   }
 }
 
-module.exports = new UserRoleRepository();
+module.exports = UserRoleRepository;

@@ -1,21 +1,24 @@
 // src/usecases/question/CreateQuestion.js
-const questionRepository = require('../../infrastructure/repositories/QuestionRepository');
-const subjectRepository = require('../../infrastructure/repositories/SubjectRepository');
-const chapterRepository = require('../../infrastructure/repositories/ChapterRepository');
 const Question = require('../../domain/entities/Question');
 
 class CreateQuestion {
+  constructor({ questionRepository, subjectRepository, chapterRepository }) {
+    this.questionRepository = questionRepository;
+    this.subjectRepository = subjectRepository;
+    this.chapterRepository = chapterRepository;
+  }
+
   async execute(questionData) {
     const { subjectId, chapterId, type, text, explanation, difficulty, points, media, tags } = questionData;
 
     // Validate subject and chapter exist
-    const subject = await subjectRepository.findById(subjectId);
+    const subject = await this.subjectRepository.findById(subjectId);
     if (!subject) throw new Error("Subject not found.");
 
-    const chapter = await chapterRepository.findById(chapterId);
+    const chapter = await this.chapterRepository.findById(chapterId);
     if (!chapter) throw new Error("Chapter not found.");
     
-    const chapterBelongsToSubject = await chapterRepository.existsBySubjectAndId(subjectId, chapterId);
+    const chapterBelongsToSubject = await this.chapterRepository.existsBySubjectAndId(subjectId, chapterId);
     if (!chapterBelongsToSubject) {
       throw new Error("Chapter does not belong to the specified subject.");
     }
@@ -33,8 +36,8 @@ class CreateQuestion {
       tags: tags || []
     });
 
-    return await questionRepository.create(question);
+    return await this.questionRepository.create(question);
   }
 }
 
-module.exports = new CreateQuestion();
+module.exports = CreateQuestion;

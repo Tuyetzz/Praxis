@@ -1,13 +1,15 @@
 // src/usecases/role/GetOneRole.js
-const roleRepository = require('../../infrastructure/repositories/RoleRepository');
-
 class GetOneRole {
+  constructor({ roleRepository }) {
+    this.roleRepository = roleRepository;
+  }
+
   async execute(roleId) {
     if (!roleId) {
       throw new Error("Role ID is required.");
     }
 
-    const role = await roleRepository.findById(roleId);
+    const role = await this.roleRepository.findById(roleId);
     if (!role) {
       throw new Error("Role not found.");
     }
@@ -22,4 +24,4 @@ class GetOneRole {
   }
 }
 
-module.exports = new GetOneRole();
+module.exports = GetOneRole;

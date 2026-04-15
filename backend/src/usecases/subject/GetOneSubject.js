@@ -1,9 +1,11 @@
 // src/usecases/subject/GetOneSubject.js
-const subjectRepository = require('../../infrastructure/repositories/SubjectRepository');
-
 class GetOneSubject {
+  constructor({ subjectRepository }) {
+    this.subjectRepository = subjectRepository;
+  }
+
   async execute(id) {
-    const subject = await subjectRepository.findById(id);
+    const subject = await this.subjectRepository.findById(id);
     if (!subject) {
       throw new Error("Subject not found with this ID.");
     }
@@ -11,4 +13,4 @@ class GetOneSubject {
   }
 }
 
-module.exports = new GetOneSubject();
+module.exports = GetOneSubject;

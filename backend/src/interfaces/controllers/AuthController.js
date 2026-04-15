@@ -1,9 +1,12 @@
-const loginUser = require("../../usecases/user/LoginUser");
-const registerUser = require("../../usecases/user/RegisterUser");
-const logoutUser = require("../../usecases/user/LogoutUser");
-const refreshTokenUseCase = require("../../usecases/user/RefreshTokenUseCase");
 
 class AuthController {
+  constructor({ loginUser, registerUser, logoutUser, refreshTokenUseCase }) {
+    this.loginUser = loginUser;
+    this.registerUser = registerUser;
+    this.logoutUser = logoutUser;
+    this.refreshTokenUseCase = refreshTokenUseCase;
+  }
+
   async login(req, res) {
     try {
       const { email, password } = req.body;
@@ -12,8 +15,8 @@ class AuthController {
         userAgent: req.headers["user-agent"],
       };
 
-      const result = await loginUser.execute(email, password, metadata);
-      
+      const result = await this.loginUser.execute(email, password, metadata);
+
       return res.status(200).json({
         success: true,
         message: "Login successful",
@@ -26,7 +29,7 @@ class AuthController {
 
   async register(req, res) {
     try {
-      const result = await registerUser.execute(req.body);
+      const result = await this.registerUser.execute(req.body);
       return res.status(201).json({
         success: true,
         message: "Account registered successfully",
@@ -45,7 +48,7 @@ class AuthController {
         userAgent: req.headers["user-agent"],
       };
 
-      const result = await refreshTokenUseCase.execute(refreshToken, metadata);
+      const result = await this.refreshTokenUseCase.execute(refreshToken, metadata);
       return res.status(200).json({
         success: true,
         data: result,
@@ -58,8 +61,8 @@ class AuthController {
   async logout(req, res) {
     try {
       const { refreshToken } = req.body;
-      await logoutUser.execute(refreshToken);
-      
+      await this.logoutUser.execute(refreshToken);
+
       return res.status(200).json({
         success: true,
         message: "Logout successful",
@@ -70,4 +73,4 @@ class AuthController {
   }
 }
 
-module.exports = new AuthController();
+module.exports = AuthController;

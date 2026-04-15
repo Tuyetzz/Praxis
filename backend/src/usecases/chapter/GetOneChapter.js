@@ -1,9 +1,11 @@
 // src/usecases/chapter/GetOneChapter.js
-const chapterRepository = require('../../infrastructure/repositories/ChapterRepository');
-
 class GetOneChapter {
+  constructor({ chapterRepository }) {
+    this.chapterRepository = chapterRepository;
+  }
+
   async execute(id) {
-    const chapter = await chapterRepository.findById(id);
+    const chapter = await this.chapterRepository.findById(id);
     if (!chapter) {
       throw new Error("Chapter not found.");
     }
@@ -11,4 +13,4 @@ class GetOneChapter {
   }
 }
 
-module.exports = new GetOneChapter();
+module.exports = GetOneChapter;

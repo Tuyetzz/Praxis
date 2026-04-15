@@ -1,16 +1,18 @@
 // src/usecases/chapter/GetChaptersBySubject.js
-const chapterRepository = require('../../infrastructure/repositories/ChapterRepository');
-const subjectRepository = require('../../infrastructure/repositories/SubjectRepository');
-
 class GetChaptersBySubject {
+  constructor({ chapterRepository, subjectRepository }) {
+    this.chapterRepository = chapterRepository;
+    this.subjectRepository = subjectRepository;
+  }
+
   async execute(subjectId) {
-    const subject = await subjectRepository.findById(subjectId);
+    const subject = await this.subjectRepository.findById(subjectId);
     if (!subject) {
       throw new Error("Subject not found.");
     }
 
-    return await chapterRepository.findBySubject(subjectId);
+    return await this.chapterRepository.findBySubject(subjectId);
   }
 }
 
-module.exports = new GetChaptersBySubject();
+module.exports = GetChaptersBySubject;

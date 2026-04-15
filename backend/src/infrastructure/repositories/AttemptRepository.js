@@ -20,4 +20,4 @@ class AttemptRepository extends BaseRepository {
     }
 }
 
-module.exports = new AttemptRepository();
+module.exports = AttemptRepository;

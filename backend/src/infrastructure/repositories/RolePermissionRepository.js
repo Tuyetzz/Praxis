@@ -50,4 +50,4 @@ class RolePermissionRepository {
   }
 }
 
-module.exports = new RolePermissionRepository();
+module.exports = RolePermissionRepository;

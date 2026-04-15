@@ -31,4 +31,4 @@ class ChapterRepository extends BaseRepository {
   }
 }
 
-module.exports = new ChapterRepository();
+module.exports = ChapterRepository;

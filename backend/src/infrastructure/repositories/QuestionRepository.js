@@ -23,4 +23,4 @@ class QuestionRepository extends BaseRepository {
   }
 }
 
-module.exports = new QuestionRepository();
+module.exports = QuestionRepository;

@@ -1,19 +1,21 @@
 // src/usecases/role/GetRolePermissions.js
-const roleRepository = require('../../infrastructure/repositories/RoleRepository');
-const rolePermissionRepository = require('../../infrastructure/repositories/RolePermissionRepository');
-
 class GetRolePermissions {
+  constructor({ roleRepository, rolePermissionRepository }) {
+    this.roleRepository = roleRepository;
+    this.rolePermissionRepository = rolePermissionRepository;
+  }
+
   async execute(roleId) {
     if (!roleId) {
       throw new Error("Role ID is required.");
     }
 
-    const role = await roleRepository.findById(roleId);
+    const role = await this.roleRepository.findById(roleId);
     if (!role) {
       throw new Error("Role not found.");
     }
 
-    const permissions = await rolePermissionRepository.getPermissionsForRole(roleId);
+    const permissions = await this.rolePermissionRepository.getPermissionsForRole(roleId);
 
     return {
       roleId,
@@ -28,4 +30,4 @@ class GetRolePermissions {
   }
 }
 
-module.exports = new GetRolePermissions();
+module.exports = GetRolePermissions;

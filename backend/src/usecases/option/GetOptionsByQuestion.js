@@ -1,16 +1,18 @@
 // src/usecases/option/GetOptionsByQuestion.js
-const optionRepository = require('../../infrastructure/repositories/OptionRepository');
-const questionRepository = require('../../infrastructure/repositories/QuestionRepository');
-
 class GetOptionsByQuestion {
+  constructor({ optionRepository, questionRepository }) {
+    this.optionRepository = optionRepository;
+    this.questionRepository = questionRepository;
+  }
+
   async execute(questionId) {
-    const question = await questionRepository.findById(questionId);
+    const question = await this.questionRepository.findById(questionId);
     if (!question) {
       throw new Error("Question not found.");
     }
 
-    return await optionRepository.findByQuestion(questionId);
+    return await this.optionRepository.findByQuestion(questionId);
   }
 }
 
-module.exports = new GetOptionsByQuestion();
+module.exports = GetOptionsByQuestion;
