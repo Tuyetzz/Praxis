@@ -1,10 +1,12 @@
 // src/usecases/permission/GetPermissions.js
-const permissionRepository = require('../../infrastructure/repositories/PermissionRepository');
-
 class GetPermissions {
+  constructor({ permissionRepository }) {
+    this.permissionRepository = permissionRepository;
+  }
+
   async execute() {
-    return await permissionRepository.findAll();
+    return await this.permissionRepository.findAll();
   }
 }
 
-module.exports = new GetPermissions();
+module.exports = GetPermissions;

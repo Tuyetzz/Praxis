@@ -1,10 +1,12 @@
 // src/usecases/chapter/GetChapters.js
-const chapterRepository = require('../../infrastructure/repositories/ChapterRepository');
-
 class GetChapters {
+  constructor({ chapterRepository }) {
+    this.chapterRepository = chapterRepository;
+  }
+
   async execute(filters = {}) {
-    return await chapterRepository.findAll(filters);
+    return await this.chapterRepository.findAll(filters);
   }
 }
 
-module.exports = new GetChapters();
+module.exports = GetChapters;

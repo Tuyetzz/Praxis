@@ -1,18 +1,31 @@
 // src/interfaces/controllers/QuestionController.js
-const createQuestion = require('../../usecases/question/CreateQuestion');
-const addBatchQuestions = require('../../usecases/question/AddBatchQuestions');
-const getQuestions = require('../../usecases/question/GetQuestions');
-const getOneQuestion = require('../../usecases/question/GetOneQuestion');
-const updateQuestion = require('../../usecases/question/UpdateQuestion');
-const deleteQuestion = require('../../usecases/question/DeleteQuestion');
-const searchQuestion = require('../../usecases/question/SearchQuestion');
-const getQuestionsBySubject = require('../../usecases/question/GetQuestionsBySubject');
-const getQuestionsByChapter = require('../../usecases/question/GetQuestionsByChapter');
-
 class QuestionController {
+  constructor({
+    createQuestion,
+    addBatchQuestions,
+    getQuestions,
+    getOneQuestion,
+    updateQuestion,
+    deleteQuestion,
+    searchQuestion,
+    getQuestionsBySubject,
+    getQuestionsByChapter,
+    importQuestionsFromFile
+  }) {
+    this.createQuestion = createQuestion;
+    this.addBatchQuestions = addBatchQuestions;
+    this.getQuestions = getQuestions;
+    this.getOneQuestion = getOneQuestion;
+    this.updateQuestion = updateQuestion;
+    this.deleteQuestion = deleteQuestion;
+    this.searchQuestion = searchQuestion;
+    this.getQuestionsBySubject = getQuestionsBySubject;
+    this.getQuestionsByChapter = getQuestionsByChapter;
+    this.importQuestionsFromFile = importQuestionsFromFile;
+  }
   async create(req, res) {
     try {
-      const result = await createQuestion.execute(req.body);
+      const result = await this.createQuestion.execute(req.body);
       res.status(201).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -21,7 +34,7 @@ class QuestionController {
 
   async getAll(req, res) {
     try {
-      const result = await getQuestions.execute(req.query);
+      const result = await this.getQuestions.execute(req.query);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -30,7 +43,7 @@ class QuestionController {
 
   async search(req, res) {
     try {
-      const result = await searchQuestion.execute(req.query);
+      const result = await this.searchQuestion.execute(req.query);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -39,7 +52,7 @@ class QuestionController {
 
   async getOne(req, res) {
     try {
-      const result = await getOneQuestion.execute(req.params.id);
+      const result = await this.getOneQuestion.execute(req.params.id);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -48,7 +61,7 @@ class QuestionController {
 
   async getBySubject(req, res) {
     try {
-      const result = await getQuestionsBySubject.execute(req.params.subjectId);
+      const result = await this.getQuestionsBySubject.execute(req.params.subjectId);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -57,7 +70,7 @@ class QuestionController {
 
   async getByChapter(req, res) {
     try {
-      const result = await getQuestionsByChapter.execute(req.params.chapterId);
+      const result = await this.getQuestionsByChapter.execute(req.params.chapterId);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -66,7 +79,7 @@ class QuestionController {
 
   async update(req, res) {
     try {
-      const result = await updateQuestion.execute(req.params.id, req.body);
+      const result = await this.updateQuestion.execute(req.params.id, req.body);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -75,7 +88,7 @@ class QuestionController {
 
   async delete(req, res) {
     try {
-      await deleteQuestion.execute(req.params.id);
+      await this.deleteQuestion.execute(req.params.id);
       res.status(204).send();
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -83,7 +96,29 @@ class QuestionController {
   }
   async addBatch(req, res) {
     try {
-      const result = await addBatchQuestions.execute(req.body);
+      const result = await this.addBatchQuestions.execute(req.body);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+
+  async importFromFile(req, res) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'File is required' });
+      }
+
+      const { subjectId, chapterId, fileType } = req.body;
+
+      const result = await this.importQuestionsFromFile.execute({
+        file: req.file.buffer,
+        fileName: req.file.originalname,
+        subjectId,
+        chapterId,
+        fileType,
+      });
+
       res.status(201).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -91,4 +126,4 @@ class QuestionController {
   }
 }
 
-module.exports = new QuestionController();
+module.exports = QuestionController;

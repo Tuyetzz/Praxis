@@ -1,7 +1,9 @@
 // src/usecases/role/GetRoles.js
-const roleRepository = require('../../infrastructure/repositories/RoleRepository');
-
 class GetRoles {
+  constructor({ roleRepository }) {
+    this.roleRepository = roleRepository;
+  }
+
   async execute(params = {}) {
     const { page = 1, limit = 10, search = '' } = params;
     
@@ -10,7 +12,7 @@ class GetRoles {
       filter.name = { [require('sequelize').Op.like]: `%${search}%` };
     }
 
-    const roles = await roleRepository.findAll(filter);
+    const roles = await this.roleRepository.findAll(filter);
     
     const start = (page - 1) * limit;
     const end = start + limit;
@@ -34,4 +36,4 @@ class GetRoles {
   }
 }
 
-module.exports = new GetRoles();
+module.exports = GetRoles;

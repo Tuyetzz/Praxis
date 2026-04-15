@@ -1,10 +1,11 @@
 // src/interfaces/controllers/PermissionController.js
-const getPermissions = require('../../usecases/permission/GetPermissions');
-
 class PermissionController {
+  constructor({ getPermissions }) {
+    this.getPermissions = getPermissions;
+  }
   async getAll(req, res) {
     try {
-      const result = await getPermissions.execute();
+      const result = await this.getPermissions.execute();
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -12,4 +13,4 @@ class PermissionController {
   }
 }
 
-module.exports = new PermissionController();
+module.exports = PermissionController;

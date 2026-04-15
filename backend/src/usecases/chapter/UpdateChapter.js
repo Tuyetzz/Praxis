@@ -1,10 +1,12 @@
 // src/usecases/chapter/UpdateChapter.js
-const chapterRepository = require('../../infrastructure/repositories/ChapterRepository');
-const subjectRepository = require('../../infrastructure/repositories/SubjectRepository');
-
 class UpdateChapter {
+  constructor({ chapterRepository, subjectRepository }) {
+    this.chapterRepository = chapterRepository;
+    this.subjectRepository = subjectRepository;
+  }
+
   async execute(id, updateData) {
-    const chapter = await chapterRepository.findById(id);
+    const chapter = await this.chapterRepository.findById(id);
     if (!chapter) {
       throw new Error("Chapter not found.");
     }
@@ -18,7 +20,7 @@ class UpdateChapter {
     }
 
     if (updateData.subjectId && updateData.subjectId !== chapter.subjectId) {
-      const subject = await subjectRepository.findById(updateData.subjectId);
+      const subject = await this.subjectRepository.findById(updateData.subjectId);
       if (!subject) {
         throw new Error("Subject not found.");
       }
@@ -29,8 +31,8 @@ class UpdateChapter {
     if (updateData.order !== undefined) dataToUpdate.order = updateData.order;
     if (updateData.subjectId) dataToUpdate.subjectId = updateData.subjectId;
 
-    return await chapterRepository.update(id, dataToUpdate);
+    return await this.chapterRepository.update(id, dataToUpdate);
   }
 }
 
-module.exports = new UpdateChapter();
+module.exports = UpdateChapter;

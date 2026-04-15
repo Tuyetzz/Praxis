@@ -1,13 +1,15 @@
 // src/usecases/role/UpdateRole.js
-const roleRepository = require('../../infrastructure/repositories/RoleRepository');
-
 class UpdateRole {
+  constructor({ roleRepository }) {
+    this.roleRepository = roleRepository;
+  }
+
   async execute(roleId, data, userId = null) {
     if (!roleId) {
       throw new Error("Role ID is required.");
     }
 
-    const role = await roleRepository.findById(roleId);
+    const role = await this.roleRepository.findById(roleId);
     if (!role) {
       throw new Error("Role not found.");
     }
@@ -19,7 +21,7 @@ class UpdateRole {
         throw new Error("Role name must be a non-empty string.");
       }
       if (name.trim() !== role.name) {
-        const existing = await roleRepository.checkRoleNameExists(name.trim());
+        const existing = await this.roleRepository.checkRoleNameExists(name.trim());
         if (existing) {
           throw new Error("Role with this name already exists.");
         }
@@ -30,7 +32,7 @@ class UpdateRole {
     if (name !== undefined) updateData.name = name.trim();
     if (description !== undefined) updateData.description = description;
 
-    const updatedRole = await roleRepository.update(roleId, updateData, userId);
+    const updatedRole = await this.roleRepository.update(roleId, updateData, userId);
 
     return {
       id: updatedRole.id,
@@ -41,4 +43,4 @@ class UpdateRole {
   }
 }
 
-module.exports = new UpdateRole();
+module.exports = UpdateRole;

@@ -1,8 +1,11 @@
 // src/interfaces/routes/questionRoutes.js
+
 const express = require('express');
 const router = express.Router();
-const questionController = require('../controllers/QuestionController');
+const container = require('../../container');
+const questionController = container.resolve('questionController');
 const authMiddleware = require('../middlewares/authMiddleware');
+const upload = require('../middlewares/uploadMiddleware');
 const { PERMISSIONS } = require('../../domain/constants/permissions');
 
 const { requiredPermission } = authMiddleware;
@@ -30,6 +33,10 @@ router.get('/:id', requiredPermission(PERMISSIONS.QUESTION_VIEW), (req, res) =>
 
 router.post('/batch', requiredPermission(PERMISSIONS.QUESTION_CREATE), (req, res) => 
   questionController.addBatch(req, res)
+);
+
+router.post('/import', requiredPermission(PERMISSIONS.QUESTION_CREATE), upload.single('file'), (req, res) => 
+  questionController.importFromFile(req, res)
 );
 
 router.post('/', requiredPermission(PERMISSIONS.QUESTION_CREATE), (req, res) => 

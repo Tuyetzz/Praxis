@@ -23,4 +23,4 @@ class AttemptQuestionRepository extends BaseRepository {
   }
 }
 
-module.exports = new AttemptQuestionRepository();
+module.exports = AttemptQuestionRepository;

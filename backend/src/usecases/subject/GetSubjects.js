@@ -1,10 +1,12 @@
 // src/usecases/subject/GetSubjects.js
-const subjectRepository = require('../../infrastructure/repositories/SubjectRepository');
-
 class GetSubjects {
+  constructor({ subjectRepository }) {
+    this.subjectRepository = subjectRepository;
+  }
+
   async execute(filters = {}) {
-    return await subjectRepository.findAll(filters);
+    return await this.subjectRepository.findAll(filters);
   }
 }
 
-module.exports = new GetSubjects();
+module.exports = GetSubjects;

@@ -1,15 +1,24 @@
 // src/interfaces/controllers/OptionController.js
-const createOption = require('../../usecases/option/CreateOption');
-const getOptions = require('../../usecases/option/GetOptions');
-const getOneOption = require('../../usecases/option/GetOneOption');
-const updateOption = require('../../usecases/option/UpdateOption');
-const deleteOption = require('../../usecases/option/DeleteOption');
-const getOptionsByQuestion = require('../../usecases/option/GetOptionsByQuestion');
-
 class OptionController {
+  constructor({
+    createOption,
+    getOptions,
+    getOneOption,
+    updateOption,
+    deleteOption,
+    getOptionsByQuestion
+  }) {
+    this.createOption = createOption;
+    this.getOptions = getOptions;
+    this.getOneOption = getOneOption;
+    this.updateOption = updateOption;
+    this.deleteOption = deleteOption;
+    this.getOptionsByQuestion = getOptionsByQuestion;
+  }
+
   async create(req, res) {
     try {
-      const result = await createOption.execute(req.body);
+      const result = await this.createOption.execute(req.body);
       res.status(201).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -18,7 +27,7 @@ class OptionController {
 
   async getAll(req, res) {
     try {
-      const result = await getOptions.execute(req.query);
+      const result = await this.getOptions.execute(req.query);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -27,7 +36,7 @@ class OptionController {
 
   async getOne(req, res) {
     try {
-      const result = await getOneOption.execute(req.params.id);
+      const result = await this.getOneOption.execute(req.params.id);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -36,7 +45,7 @@ class OptionController {
 
   async getByQuestion(req, res) {
     try {
-      const result = await getOptionsByQuestion.execute(req.params.questionId);
+      const result = await this.getOptionsByQuestion.execute(req.params.questionId);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -45,7 +54,7 @@ class OptionController {
 
   async update(req, res) {
     try {
-      const result = await updateOption.execute(req.params.id, req.body);
+      const result = await this.updateOption.execute(req.params.id, req.body);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -54,7 +63,7 @@ class OptionController {
 
   async delete(req, res) {
     try {
-      await deleteOption.execute(req.params.id);
+      await this.deleteOption.execute(req.params.id);
       res.status(204).send();
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -62,4 +71,4 @@ class OptionController {
   }
 }
 
-module.exports = new OptionController();
+module.exports = OptionController;

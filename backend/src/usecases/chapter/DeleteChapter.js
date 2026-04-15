@@ -1,14 +1,16 @@
 // src/usecases/chapter/DeleteChapter.js
-const chapterRepository = require('../../infrastructure/repositories/ChapterRepository');
-
 class DeleteChapter {
+  constructor({ chapterRepository }) {
+    this.chapterRepository = chapterRepository;
+  }
+
   async execute(id) {
-    const chapter = await chapterRepository.findById(id);
+    const chapter = await this.chapterRepository.findById(id);
     if (!chapter) {
       throw new Error("Chapter not found.");
     }
-    return await chapterRepository.softDelete(id);
+    return await this.chapterRepository.softDelete(id);
   }
 }
 
-module.exports = new DeleteChapter();
+module.exports = DeleteChapter;

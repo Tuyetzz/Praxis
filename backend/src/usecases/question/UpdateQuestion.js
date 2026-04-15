@@ -1,12 +1,15 @@
 // src/usecases/question/UpdateQuestion.js
-const questionRepository = require('../../infrastructure/repositories/QuestionRepository');
-const subjectRepository = require('../../infrastructure/repositories/SubjectRepository');
-const chapterRepository = require('../../infrastructure/repositories/ChapterRepository');
 const Question = require('../../domain/entities/Question');
 
 class UpdateQuestion {
+  constructor({ questionRepository, subjectRepository, chapterRepository }) {
+    this.questionRepository = questionRepository;
+    this.subjectRepository = subjectRepository;
+    this.chapterRepository = chapterRepository;
+  }
+
   async execute(id, updateData) {
-    const question = await questionRepository.findById(id);
+    const question = await this.questionRepository.findById(id);
     if (!question) throw new Error("Could not find question with the provided id.");
 
     const hasSubject = Object.prototype.hasOwnProperty.call(updateData, 'subjectId');
@@ -16,19 +19,19 @@ class UpdateQuestion {
     if (hasChapter && !updateData.chapterId) throw new Error("Chapter ID cannot be empty.");
 
     if (hasSubject) {
-      const subject = await subjectRepository.findById(updateData.subjectId);
+      const subject = await this.subjectRepository.findById(updateData.subjectId);
       if (!subject) throw new Error("Subject not found.");
     }
 
     if (hasChapter) {
-      const chapter = await chapterRepository.findById(updateData.chapterId);
+      const chapter = await this.chapterRepository.findById(updateData.chapterId);
       if (!chapter) throw new Error("Chapter not found.");
     }
 
     const realSubjectId = updateData.subjectId ?? question.subjectId;
     const realChapterId = updateData.chapterId ?? question.chapterId;
 
-    const chapterBelongsToSubject = await chapterRepository.existsBySubjectAndId(realSubjectId, realChapterId);
+    const chapterBelongsToSubject = await this.chapterRepository.existsBySubjectAndId(realSubjectId, realChapterId);
     if (!chapterBelongsToSubject) {
       throw new Error("Chapter does not belong to the specified subject.");
     }
@@ -53,8 +56,8 @@ class UpdateQuestion {
 
     new Question(validationData);
 
-    return await questionRepository.update(id, updateData);
+    return await this.questionRepository.update(id, updateData);
   }
 }
 
-module.exports = new UpdateQuestion();
+module.exports = UpdateQuestion;

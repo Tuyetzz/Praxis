@@ -1,10 +1,13 @@
-const userRepository = require('../../infrastructure/repositories/UserRepository');
 
 class GetOneUser {
+	constructor({ userRepository }) {
+		this.userRepository = userRepository;
+	}
+
 	async execute(id) {
 		if (!id) throw new Error('User id is required');
-		return await userRepository.findById(id);
+		return await this.userRepository.findById(id);
 	}
 }
 
-module.exports = new GetOneUser();
+module.exports = GetOneUser;

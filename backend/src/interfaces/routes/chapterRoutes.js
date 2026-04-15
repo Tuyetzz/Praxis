@@ -1,7 +1,9 @@
+
 // src/interfaces/routes/chapterRoutes.js
 const express = require('express');
 const router = express.Router();
-const chapterController = require('../controllers/ChapterController');
+const container = require('../../container');
+const chapterController = container.resolve('chapterController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const { PERMISSIONS } = require('../../domain/constants/permissions');
 

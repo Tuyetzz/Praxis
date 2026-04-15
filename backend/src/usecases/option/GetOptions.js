@@ -1,10 +1,12 @@
 // src/usecases/option/GetOptions.js
-const optionRepository = require('../../infrastructure/repositories/OptionRepository');
-
 class GetOptions {
+  constructor({ optionRepository }) {
+    this.optionRepository = optionRepository;
+  }
+
   async execute(filters = {}) {
-    return await optionRepository.findAll(filters);
+    return await this.optionRepository.findAll(filters);
   }
 }
 
-module.exports = new GetOptions();
+module.exports = GetOptions;

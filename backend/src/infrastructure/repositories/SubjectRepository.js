@@ -16,4 +16,4 @@ class SubjectRepository extends BaseRepository {
   }
 }
 
-module.exports = new SubjectRepository();
+module.exports = SubjectRepository;

@@ -1,16 +1,26 @@
 // src/interfaces/controllers/ChapterController.js
-const createChapter = require('../../usecases/chapter/CreateChapter');
-const getChapters = require('../../usecases/chapter/GetChapters');
-const getOneChapter = require('../../usecases/chapter/GetOneChapter');
-const getChaptersBySubject = require('../../usecases/chapter/GetChaptersBySubject');
-const updateChapter = require('../../usecases/chapter/UpdateChapter');
-const deleteChapter = require('../../usecases/chapter/DeleteChapter');
-const searchChapter = require('../../usecases/chapter/SearchChapter');
-
 class ChapterController {
+  constructor({
+    createChapter,
+    getChapters,
+    getOneChapter,
+    getChaptersBySubject,
+    updateChapter,
+    deleteChapter,
+    searchChapter
+  }) {
+    this.createChapter = createChapter;
+    this.getChapters = getChapters;
+    this.getOneChapter = getOneChapter;
+    this.getChaptersBySubject = getChaptersBySubject;
+    this.updateChapter = updateChapter;
+    this.deleteChapter = deleteChapter;
+    this.searchChapter = searchChapter;
+  }
+
   async create(req, res) {
     try {
-      const result = await createChapter.execute(req.body);
+      const result = await this.createChapter.execute(req.body);
       res.status(201).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -19,7 +29,7 @@ class ChapterController {
 
   async getAll(req, res) {
     try {
-      const result = await getChapters.execute(req.query);
+      const result = await this.getChapters.execute(req.query);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -28,7 +38,7 @@ class ChapterController {
 
   async search(req, res) {
     try {
-      const result = await searchChapter.execute(req.query);
+      const result = await this.searchChapter.execute(req.query);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -37,7 +47,7 @@ class ChapterController {
 
   async getOne(req, res) {
     try {
-      const result = await getOneChapter.execute(req.params.id);
+      const result = await this.getOneChapter.execute(req.params.id);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -46,7 +56,7 @@ class ChapterController {
 
   async getBySubject(req, res) {
     try {
-      const result = await getChaptersBySubject.execute(req.params.subjectId);
+      const result = await this.getChaptersBySubject.execute(req.params.subjectId);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -55,7 +65,7 @@ class ChapterController {
 
   async update(req, res) {
     try {
-      const result = await updateChapter.execute(req.params.id, req.body);
+      const result = await this.updateChapter.execute(req.params.id, req.body);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -64,7 +74,7 @@ class ChapterController {
 
   async delete(req, res) {
     try {
-      await deleteChapter.execute(req.params.id);
+      await this.deleteChapter.execute(req.params.id);
       res.status(204).send();
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -72,4 +82,4 @@ class ChapterController {
   }
 }
 
-module.exports = new ChapterController();
+module.exports = ChapterController;

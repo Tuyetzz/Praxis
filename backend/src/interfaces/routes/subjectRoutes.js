@@ -1,7 +1,9 @@
+
 // src/interfaces/routes/subjectRoutes.js
 const express = require('express');
 const router = express.Router();
-const subjectController = require('../controllers/SubjectController');
+const container = require('../../container');
+const subjectController = container.resolve('subjectController');
 const { PERMISSIONS } = require('../../domain/constants/permissions');
 const authMiddleware = require('../middlewares/authMiddleware');
 const { requiredPermission } = authMiddleware;

@@ -1,16 +1,18 @@
 // src/usecases/question/GetQuestionsBySubject.js
-const questionRepository = require('../../infrastructure/repositories/QuestionRepository');
-const subjectRepository = require('../../infrastructure/repositories/SubjectRepository');
-
 class GetQuestionsBySubject {
+  constructor({ questionRepository, subjectRepository }) {
+    this.questionRepository = questionRepository;
+    this.subjectRepository = subjectRepository;
+  }
+
   async execute(subjectId) {
-    const subject = await subjectRepository.findById(subjectId);
+    const subject = await this.subjectRepository.findById(subjectId);
     if (!subject) {
       throw new Error("Subject not found.");
     }
 
-    return await questionRepository.findBySubject(subjectId);
+    return await this.questionRepository.findBySubject(subjectId);
   }
 }
 
-module.exports = new GetQuestionsBySubject();
+module.exports = GetQuestionsBySubject;

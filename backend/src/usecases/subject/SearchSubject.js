@@ -1,7 +1,9 @@
 // src/usecases/subject/SearchSubject.js
-const subjectRepository = require('../../infrastructure/repositories/SubjectRepository');
-
 class SearchSubject {
+  constructor({ subjectRepository }) {
+    this.subjectRepository = subjectRepository;
+  }
+
   async execute(params = {}) {
     const {
       page = 1,
@@ -25,7 +27,7 @@ class SearchSubject {
       orderBy = [["createdAt", "ASC"]];
     }
 
-    return await subjectRepository.findWithPagination({
+    return await this.subjectRepository.findWithPagination({
       limit: limitNum,
       offset,
       search,
@@ -35,4 +37,4 @@ class SearchSubject {
   }
 }
 
-module.exports = new SearchSubject();
+module.exports = SearchSubject;

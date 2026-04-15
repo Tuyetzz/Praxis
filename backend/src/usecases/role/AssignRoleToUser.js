@@ -1,34 +1,36 @@
 // src/usecases/role/AssignRoleToUser.js
-const roleRepository = require('../../infrastructure/repositories/RoleRepository');
-const userRepository = require('../../infrastructure/repositories/UserRepository');
-const userRoleRepository = require('../../infrastructure/repositories/UserRoleRepository');
-const redisClient = require('../../infrastructure/cache/redisClient');
-
 class AssignRoleToUser {
+  constructor({ roleRepository, userRepository, userRoleRepository, redisClient }) {
+    this.roleRepository = roleRepository;
+    this.userRepository = userRepository;
+    this.userRoleRepository = userRoleRepository;
+    this.redisClient = redisClient;
+  }
+
   async execute(userId, roleId) {
     if (!userId || !roleId) {
       throw new Error("User ID and Role ID are required.");
     }
 
-    const user = await userRepository.findById(userId);
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new Error("User not found.");
     }
 
-    const role = await roleRepository.findById(roleId);
+    const role = await this.roleRepository.findById(roleId);
     if (!role) {
       throw new Error("Role not found.");
     }
 
-    const alreadyExists = await userRoleRepository.checkRoleExists(userId, roleId);
+    const alreadyExists = await this.userRoleRepository.checkRoleExists(userId, roleId);
     if (alreadyExists) {
       throw new Error("This role is already assigned to this user.");
     }
 
-    await userRoleRepository.assignRoleToUser(userId, roleId);
+    await this.userRoleRepository.assignRoleToUser(userId, roleId);
 
     // Clear user's permission cache
-    await redisClient.del(`user_permissions:${userId}`);
+    await this.redisClient.del(`user_permissions:${userId}`);
 
     return {
       message: "Role assigned to user successfully.",
@@ -38,4 +40,4 @@ class AssignRoleToUser {
   }
 }
 
-module.exports = new AssignRoleToUser();
+module.exports = AssignRoleToUser;

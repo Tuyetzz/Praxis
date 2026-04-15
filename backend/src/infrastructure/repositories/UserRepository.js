@@ -63,4 +63,4 @@ class UserRepository extends BaseRepository {
   }
 }
 
-module.exports = new UserRepository();
+module.exports = UserRepository;

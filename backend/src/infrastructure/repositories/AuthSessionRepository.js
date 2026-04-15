@@ -64,4 +64,4 @@ class AuthSessionRepository {
   }
 }
 
-module.exports = new AuthSessionRepository();
+module.exports = AuthSessionRepository;

@@ -16,4 +16,4 @@ class AnswerRepository extends BaseRepository {
   }
 }
 
-module.exports = new AnswerRepository();
+module.exports = AnswerRepository;

@@ -17,4 +17,4 @@ class OptionRepository extends BaseRepository {
   }
 }
 
-module.exports = new OptionRepository();
+module.exports = OptionRepository;

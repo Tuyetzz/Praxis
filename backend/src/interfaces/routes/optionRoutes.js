@@ -1,7 +1,9 @@
+
 // src/interfaces/routes/optionRoutes.js
 const express = require('express');
 const router = express.Router();
-const optionController = require('../controllers/OptionController');
+const container = require('../../container');
+const optionController = container.resolve('optionController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const { PERMISSIONS } = require('../../domain/constants/permissions');
 

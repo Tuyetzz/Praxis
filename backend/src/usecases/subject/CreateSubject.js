@@ -1,7 +1,9 @@
 // src/usecases/subject/CreateSubject.js
-const subjectRepository = require('../../infrastructure/repositories/SubjectRepository');
-
 class CreateSubject {
+  constructor({ subjectRepository }) {
+    this.subjectRepository = subjectRepository;
+  }
+
   async execute(subjectData) {
     const { name, slug, order } = subjectData;
 
@@ -13,12 +15,12 @@ class CreateSubject {
       throw new Error("Slug is invalid (only lowercase letters, numbers, and hyphens are allowed).");
     }
 
-    const existing = await subjectRepository.findBySlug(slug);
+    const existing = await this.subjectRepository.findBySlug(slug);
     if (existing) {
       throw new Error("Slug is already in use.");
     }
 
-    const newSubject = await subjectRepository.create({
+    const newSubject = await this.subjectRepository.create({
       name: name.trim(),
       slug: slug.toLowerCase(),
       order: order || 0
@@ -34,4 +36,4 @@ class CreateSubject {
   }
 }
 
-module.exports = new CreateSubject();
+module.exports = CreateSubject;

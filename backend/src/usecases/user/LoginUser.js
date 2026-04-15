@@ -1,17 +1,20 @@
-const userRepository = require('../../infrastructure/repositories/UserRepository');
-const sessionRepository = require('../../infrastructure/repositories/AuthSessionRepository');
-const roleRepository = require('../../infrastructure/repositories/RoleRepository');
-const authHelper = require('../../infrastructure/utils/auth_helper');
 
 class LoginUser {
+  constructor({ userRepository, authSessionRepository, roleRepository, authHelper }) {
+    this.userRepository = userRepository;
+    this.sessionRepository = authSessionRepository;
+    this.roleRepository = roleRepository;
+    this.authHelper = authHelper;
+  }
+
   async execute(email, password, metadata = {}) {
-    const user = await userRepository.findByEmail(email);
+    const user = await this.userRepository.findByEmail(email);
 
     if (!user || !user.isActive()) {
       throw new Error("Account not found or is inactive");
     }
 
-    const isMatch = await authHelper.comparePassword(password, user.passwordHash);
+    const isMatch = await this.authHelper.comparePassword(password, user.passwordHash);
     if (!isMatch) {
       throw new Error("Email or password is incorrect");
     }
@@ -19,19 +22,19 @@ class LoginUser {
     user.recordLogin();
 
     const userId = typeof user.id === 'object' ? user.id.value : user.id;
-    await userRepository.update(userId, {
+    await this.userRepository.update(userId, {
       lastLoginAt: user.lastLoginAt
     });
 
-    const roles = await roleRepository.loadRolesForUser(userId);
+    const roles = await this.roleRepository.loadRolesForUser(userId);
 
-    const { accessToken, refreshToken, expiresAt } = authHelper.generateTokens({
+    const { accessToken, refreshToken, expiresAt } = this.authHelper.generateTokens({
       id: user.id,
       name: user.name,
       roles: roles.map(r => r.name)
     });
 
-    await sessionRepository.create({
+    await this.sessionRepository.create({
       userId: user.id,
       refreshToken: refreshToken,
       userAgent: metadata.userAgent || null,
@@ -53,4 +56,4 @@ class LoginUser {
   }
 }
 
-module.exports = new LoginUser();
+module.exports = LoginUser;

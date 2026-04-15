@@ -1,8 +1,10 @@
 // src/usecases/chapter/CreateChapter.js
-const chapterRepository = require('../../infrastructure/repositories/ChapterRepository');
-const subjectRepository = require('../../infrastructure/repositories/SubjectRepository');
-
 class CreateChapter {
+  constructor({ chapterRepository, subjectRepository }) {
+    this.chapterRepository = chapterRepository;
+    this.subjectRepository = subjectRepository;
+  }
+
   async execute(chapterData) {
     const { subjectId, name, order } = chapterData;
 
@@ -10,7 +12,7 @@ class CreateChapter {
       throw new Error("Please provide the ID of the subject.");
     }
 
-    const subject = await subjectRepository.findById(subjectId);
+    const subject = await this.subjectRepository.findById(subjectId);
     if (!subject) {
       throw new Error("Subject not found.");
     }
@@ -23,7 +25,7 @@ class CreateChapter {
       throw new Error("Chapter order cannot be a negative number.");
     }
 
-    const newChapter = await chapterRepository.create({
+    const newChapter = await this.chapterRepository.create({
       subjectId,
       name: name.trim(),
       order: order || 0
@@ -39,4 +41,4 @@ class CreateChapter {
   }
 }
 
-module.exports = new CreateChapter();
+module.exports = CreateChapter;

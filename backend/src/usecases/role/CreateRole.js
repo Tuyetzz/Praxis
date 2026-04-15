@@ -1,7 +1,9 @@
 // src/usecases/role/CreateRole.js
-const roleRepository = require('../../infrastructure/repositories/RoleRepository');
-
 class CreateRole {
+  constructor({ roleRepository }) {
+    this.roleRepository = roleRepository;
+  }
+
   async execute(data, userId = null) {
     const { name, description } = data;
 
@@ -10,13 +12,13 @@ class CreateRole {
     }
 
     const trimmedName = name.trim();
-    const existing = await roleRepository.findByName(trimmedName);
+    const existing = await this.roleRepository.findByName(trimmedName);
     if (existing) {
       throw new Error("Role with this name already exists.");
     }
     let newRole;
     try {
-      newRole = await roleRepository.create({
+      newRole = await this.roleRepository.create({
         name: trimmedName,
         description: description || null
       }, userId);
@@ -44,4 +46,4 @@ class CreateRole {
   }
 }
 
-module.exports = new CreateRole();
+module.exports = CreateRole;

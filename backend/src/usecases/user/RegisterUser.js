@@ -1,15 +1,17 @@
-// src/usecases/user/RegisterUser.js
-const userRepository = require('../../infrastructure/repositories/UserRepository');
-const { hashPassword } = require('../../infrastructure/utils/auth_helper');
 
 class RegisterUser {
+  constructor({ userRepository, hashPassword }) {
+    this.userRepository = userRepository;
+    this.hashPassword = hashPassword;
+  }
+
   async execute({ name, email, password }) {
-    const existing = await userRepository.findByEmail(email);
+    const existing = await this.userRepository.findByEmail(email);
     if (existing) throw new Error("Email đã được sử dụng.");
 
-    const passwordHash = await hashPassword(password);
+    const passwordHash = await this.hashPassword(password);
 
-    const newUser = await userRepository.create({ 
+    const newUser = await this.userRepository.create({ 
       name, 
       email: email.trim().toLowerCase(), 
       passwordHash,
@@ -25,4 +27,4 @@ class RegisterUser {
   }
 }
 
-module.exports = new RegisterUser();
+module.exports = RegisterUser;

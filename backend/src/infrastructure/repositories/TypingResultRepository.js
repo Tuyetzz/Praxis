@@ -23,4 +23,4 @@ class TypingResultRepository extends BaseRepository {
   }
 }
 
-module.exports = new TypingResultRepository();
+module.exports = TypingResultRepository;
