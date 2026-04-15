@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const container = require('../../container');
 const optionController = container.resolve('optionController');
-const authMiddleware = require('../middlewares/authMiddleware');
+const authMiddleware = container.resolve('authMiddleware');
 const { PERMISSIONS } = require('../../domain/constants/permissions');
 
 const { requiredPermission } = authMiddleware;

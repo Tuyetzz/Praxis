@@ -1,5 +1,6 @@
 // backend/src/container.js
-const { createContainer, asClass, asValue } = require('awilix');
+const { createContainer, asClass, asValue, asFunction } = require('awilix');
+const createAuthMiddleware = require('./interfaces/middlewares/authMiddleware');
 
 //repositories
 const AnswerRepository = require('./infrastructure/repositories/AnswerRepository');
@@ -94,6 +95,8 @@ const container = createContainer();
 
 
 container.register({
+  
+  userRepository: asClass(UserRepository).singleton(),
   redisClient: asValue(redisClient),
   authHelper: asValue(authHelper),
   // helpers
@@ -168,7 +171,6 @@ container.register({
   subjectRepository: asClass(SubjectRepository).singleton(),
   typingResultRepository: asClass(TypingResultRepository).singleton(),
   typingTextRepository: asClass(TypingTextRepository).singleton(),
-  userRepository: asClass(UserRepository).singleton(),
   userRoleRepository: asClass(UserRoleRepository).singleton(),
   chapterController: asClass(ChapterController).singleton(),
   authController: asClass(AuthController).singleton(),
@@ -178,6 +180,9 @@ container.register({
   roleController: asClass(RoleController).singleton(),
   permissionController: asClass(PermissionController).singleton(),
   userController: asClass(UserController).singleton(),
+
+  
+  authMiddleware: asFunction(createAuthMiddleware).singleton(),
 });
 
 module.exports = container;

@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const container = require('../../container');
 const questionController = container.resolve('questionController');
-const authMiddleware = require('../middlewares/authMiddleware');
+const authMiddleware = container.resolve('authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
 const { PERMISSIONS } = require('../../domain/constants/permissions');
 

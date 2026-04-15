@@ -121,7 +121,7 @@ class AddBatchQuestions {
                 order: parseInt(order) || 0
               });
 
-              const createdOption = await optionRepository.create(option, null, txOptions);
+              const createdOption = await this.optionRepository.create(option, null, txOptions);
               createdOptions.push(createdOption);
             }
           }

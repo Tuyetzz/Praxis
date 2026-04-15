@@ -11,6 +11,7 @@ const logger = require('../utils/logger');
 const redisClient = {
   async get(key) {
     logger.info(`[Cache-Map] Getting key: ${key}`);
+    console.log("abc");
     return memoryStorage.get(key) || null;
   },
 

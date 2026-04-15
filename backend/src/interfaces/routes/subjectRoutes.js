@@ -5,7 +5,7 @@ const router = express.Router();
 const container = require('../../container');
 const subjectController = container.resolve('subjectController');
 const { PERMISSIONS } = require('../../domain/constants/permissions');
-const authMiddleware = require('../middlewares/authMiddleware');
+const authMiddleware = container.resolve('authMiddleware');
 const { requiredPermission } = authMiddleware;
 
 router.get('/search', requiredPermission(PERMISSIONS.SUBJECT_VIEW), (req, res) => 
