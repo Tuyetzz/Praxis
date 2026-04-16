@@ -9,8 +9,8 @@ class AttemptController {
     try {
       const userId = req.user?.id;
       const result = await this.startAttempt.execute({
-        userId,
         ...req.body,
+        userId,
       });
 
       return res.status(201).json(result);

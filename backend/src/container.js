@@ -88,6 +88,7 @@ const UpdateSubject = require('./usecases/subject/UpdateSubject');
 const UpdateUser = require('./usecases/user/UpdateUser');
 const StartAttempt = require('./usecases/attempt/StartAttempt');
 const GetAttempt = require('./usecases/attempt/GetAttempt');
+const SequelizeUnitOfWork = require('./infrastructure/unitOfWork/SequelizeUnitOfWork');
 
 
 const authHelper = require('./infrastructure/utils/auth_helper');
@@ -159,6 +160,7 @@ container.register({
   updateUser: asClass(UpdateUser).singleton(),
   startAttempt: asClass(StartAttempt).singleton(),
   getAttempt: asClass(GetAttempt).singleton(),
+  unitOfWork: asClass(SequelizeUnitOfWork).scoped(),
   answerRepository: asClass(AnswerRepository).singleton(),
   attemptQuestionRepository: asClass(AttemptQuestionRepository).singleton(),
   attemptRepository: asClass(AttemptRepository).singleton(),

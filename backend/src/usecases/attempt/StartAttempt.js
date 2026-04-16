@@ -10,6 +10,7 @@ class StartAttempt {
     optionRepository,
     attemptRepository,
     attemptQuestionRepository,
+    unitOfWork,
   }) {
     this.userRepository = userRepository;
     this.subjectRepository = subjectRepository;
@@ -18,6 +19,7 @@ class StartAttempt {
     this.optionRepository = optionRepository;
     this.attemptRepository = attemptRepository;
     this.attemptQuestionRepository = attemptQuestionRepository;
+    this.unitOfWork = unitOfWork;
   }
 
   async execute(payload = {}) {
@@ -57,7 +59,6 @@ class StartAttempt {
       throw new Error("Chapter does not belong to selected subject.");
     }
 
-    const normalizedSettings = this.normalizeSettings(settings, mode);
 
     const allChapterQuestions = await this.questionRepository.findByChapter(chapterId);
     const chapterQuestions = allChapterQuestions.filter((question) => question.subjectId === subjectId);
@@ -73,14 +74,20 @@ class StartAttempt {
       return String(a.id).localeCompare(String(b.id));
     });
 
-    const { from, to } = normalizedSettings.paging;
+    // Clamp default paging to question count if not provided
+    let normalizedSettings = this.normalizeSettings(settings, mode);
+    let { from, to } = normalizedSettings.paging;
+    if (settings.paging === undefined) {
+      from = 1;
+      to = orderedByDefault.length;
+      normalizedSettings.paging = { from, to };
+    } else if (to > orderedByDefault.length) {
+      to = orderedByDefault.length;
+      normalizedSettings.paging = { from, to };
+    }
 
     if (from > orderedByDefault.length) {
       throw new Error("Paging start is out of question range.");
-    }
-
-    if (to > orderedByDefault.length) {
-      throw new Error(`Paging end exceeds question count. Max is ${orderedByDefault.length}.`);
     }
 
     const selectedQuestions = orderedByDefault.slice(from - 1, to);
@@ -111,8 +118,10 @@ class StartAttempt {
       chapterId,
     };
 
+
     let attempt;
-    await sequelize.transaction(async (transaction) => {
+    await this.unitOfWork.start();
+    try {
       attempt = await this.attemptRepository.create(
         {
           userId,
@@ -129,24 +138,44 @@ class StartAttempt {
           settings: finalSettings,
         },
         userId,
-        { transaction }
+        this.unitOfWork.getTx()
       );
 
-      const optionOrders = await Promise.all(
-        finalQuestions.map((question) => this.buildOptionOrder(question.id, mode))
-      );
 
-      const attemptQuestionsPayload = finalQuestions.map((question, index) => ({
-        attemptId: attempt.id,
-        questionId: question.id,
-        pageIndex: Math.floor(index / normalizedSettings.questionsPerPage),
-        optionOrder: optionOrders[index],
-      }));
+      // Optimize: fetch all options for all questions in one query
+      const questionIds = finalQuestions.map(q => q.id);
+      const allOptions = await this.optionRepository.findByQuestionIds(questionIds);
+      // Group options by questionId
+      const optionsByQuestion = {};
+      for (const option of allOptions) {
+        if (!optionsByQuestion[option.questionId]) optionsByQuestion[option.questionId] = [];
+        optionsByQuestion[option.questionId].push(option);
+      }
 
-      await this.attemptQuestionRepository.createMany(attemptQuestionsPayload, userId, {
-        transaction,
+      const attemptQuestionsPayload = finalQuestions.map((question, index) => {
+        let optionIds = (optionsByQuestion[question.id] || []).map(opt => opt.id);
+        if (mode === "exam") {
+          optionIds = this.shuffleArray([...optionIds]);
+        }
+        return {
+          attemptId: attempt.id,
+          questionId: question.id,
+          pageIndex: Math.floor(index / normalizedSettings.questionsPerPage),
+          optionOrder: optionIds,
+        };
       });
-    });
+
+      await this.attemptQuestionRepository.createMany(
+        attemptQuestionsPayload,
+        userId,
+        this.unitOfWork.getTx()
+      );
+
+      await this.unitOfWork.commit();
+    } catch (err) {
+      await this.unitOfWork.rollback();
+      throw err;
+    }
 
     return {
       attempt,
