@@ -32,6 +32,7 @@ const OptionController = require('./interfaces/controllers/OptionController');
 const RoleController = require('./interfaces/controllers/RoleController');
 const PermissionController = require('./interfaces/controllers/PermissionController');
 const UserController = require('./interfaces/controllers/UserController');
+const AttemptController = require('./interfaces/controllers/AttemptController');
 
 
 // usecases
@@ -85,6 +86,8 @@ const UpdateQuestion = require('./usecases/question/UpdateQuestion');
 const UpdateRole = require('./usecases/role/UpdateRole');
 const UpdateSubject = require('./usecases/subject/UpdateSubject');
 const UpdateUser = require('./usecases/user/UpdateUser');
+const StartAttempt = require('./usecases/attempt/StartAttempt');
+const GetAttempt = require('./usecases/attempt/GetAttempt');
 
 
 const authHelper = require('./infrastructure/utils/auth_helper');
@@ -154,6 +157,8 @@ container.register({
   updateRole: asClass(UpdateRole).singleton(),
   updateSubject: asClass(UpdateSubject).singleton(),
   updateUser: asClass(UpdateUser).singleton(),
+  startAttempt: asClass(StartAttempt).singleton(),
+  getAttempt: asClass(GetAttempt).singleton(),
   answerRepository: asClass(AnswerRepository).singleton(),
   attemptQuestionRepository: asClass(AttemptQuestionRepository).singleton(),
   attemptRepository: asClass(AttemptRepository).singleton(),
@@ -180,6 +185,7 @@ container.register({
   roleController: asClass(RoleController).singleton(),
   permissionController: asClass(PermissionController).singleton(),
   userController: asClass(UserController).singleton(),
+  attemptController: asClass(AttemptController).singleton(),
 
   
   authMiddleware: asFunction(createAuthMiddleware).singleton(),

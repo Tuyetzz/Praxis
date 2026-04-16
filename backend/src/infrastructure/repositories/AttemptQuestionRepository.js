@@ -8,6 +8,21 @@ class AttemptQuestionRepository extends BaseRepository {
     super(AttemptQuestionModel, attemptQuestionMapper);
   }
 
+  async createMany(items = [], userId = null, options = {}) {
+    if (!Array.isArray(items) || items.length === 0) {
+      return [];
+    }
+
+    const payload = items.map((item) => ({
+      ...item,
+      createdBy: userId,
+      updatedBy: userId,
+    }));
+
+    const records = await this.model.bulkCreate(payload, options);
+    return records.map((record) => this.mapper.toDomain(record));
+  }
+
   async findByAttempt(attemptId) {
     const records = await this.model.findAll({
       where: { attemptId, isDeleted: false }
