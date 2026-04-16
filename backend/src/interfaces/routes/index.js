@@ -16,5 +16,6 @@ router.use('/subjects', require('./subjectRoutes'));
 router.use('/chapters', require('./chapterRoutes'));
 router.use('/questions', require('./questionRoutes'));
 router.use('/options', require('./optionRoutes'));
+router.use('/attempts', require('./attemptRoutes'));
 
 module.exports = router;

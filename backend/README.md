@@ -175,3 +175,16 @@ Cache:
 Ví dụ về paging của 2 cái kia
 GET /subjects/search?search=math&page=1&limit=10&order=name
 GET /chapters/search?search=chapter1&subjectId=xxx&page=1&limit=10&order=name
+
+{
+  "subjectId": "db0ccc85-00d9-435e-8349-06ea5e9684cf",
+  "chapterId": "8ddcc047-0b32-4159-ba95-a22a94c2fff9",
+  "mode": "exam",
+  "settings": {
+    "paging": "1-5",
+    "questionsPerPage": 10,
+    "questionTimeSeconds": 30,
+    "showAnswerAfterSelect": true,
+    "shuffleQuestions": true
+  }
+}
