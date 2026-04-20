@@ -73,9 +73,6 @@ AnswerModel.belongsTo(AttemptModel, { foreignKey: "attemptId", as: "attempt" });
 QuestionModel.hasMany(AnswerModel, { foreignKey: "questionId", as: "answers", onDelete: "CASCADE" });
 AnswerModel.belongsTo(QuestionModel, { foreignKey: "questionId", as: "question" });
 
-OptionModel.hasMany(AnswerModel, { foreignKey: "optionId", as: "answers", onDelete: "SET NULL" });
-AnswerModel.belongsTo(OptionModel, { foreignKey: "optionId", as: "option" });
-
 AttemptModel.hasOne(ResultSummaryModel, { foreignKey: "attemptId", as: "resultSummary", onDelete: "CASCADE" });
 ResultSummaryModel.belongsTo(AttemptModel, { foreignKey: "attemptId", as: "attempt" });
 

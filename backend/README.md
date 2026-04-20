@@ -186,5 +186,64 @@ GET /chapters/search?search=chapter1&subjectId=xxx&page=1&limit=10&order=name
     "questionTimeSeconds": 30,
     "showAnswerAfterSelect": true,
     "shuffleQuestions": true
-  }
+  },
+  "durationMinutes": 60
 }
+
+## Attempt (Làm bài thi/trắc nghiệm)
+| Method | URL                                   | Body/Params                                 | Description                        |
+|--------|---------------------------------------|---------------------------------------------|------------------------------------|
+| POST   | /api/attempts/start                   | { subjectId, chapterId, mode, settings }    | Bắt đầu 1 lượt làm bài mới         |
+| GET    | /api/attempts/:id                     | -                                           | Lấy thông tin 1 attempt            |
+| POST   | /api/attempts/:attemptId/answers      | { questionId, optionId/selectedOptionIds, value, flagged } | Lưu/chọn đáp án cho 1 câu hỏi |
+| POST   | /api/attempts/:attemptId/submit       | -                                           | Nộp bài, chấm điểm, trả kết quả  |
+
+**Luồng làm bài:**
+1. Gọi POST /api/attempts/start để tạo attempt mới (status: in_progress)
+2. Mỗi lần chọn đáp án, gọi POST /api/attempts/:attemptId/answers để lưu đáp án
+3. Khi nộp bài, gọi POST /api/attempts/:attemptId/submit để chốt bài + chấm điểm (status: graded)
+4. Có thể GET /api/attempts/:id để lấy lại thông tin attempt bất kỳ lúc nào
+
+**settings** khi start attempt:
+```json
+{
+  "paging": "1-50",
+  "questionsPerPage": 10,
+  "questionTimeSeconds": 30,
+  "showAnswerAfterSelect": true,
+  "shuffleQuestions": true
+}
+```
+
+**Lưu ý:**
+- Chỉ user tạo attempt mới được phép thao tác với attempt đó
+- Khi nộp bài (submit), status chuyển sang graded (chấm điểm ngay)
+- Sau khi nộp, không thể sửa đáp án nữa
+- Đáp án được lưu từng câu, có thể update nhiều lần khi làm bài (trừ khi đã nộp)
+
+**Điền 1 đáp án (Có thể gửi mỗi cái flagged cũng đc, nhưng mà questionId là bắt buộc)**
+- single/true-false
+{
+  "questionId": "cau-hoi-uuid",
+  "optionId": "option-uuid",
+  "flagged": true
+}
+- multiple
+{
+  "questionId": "cau-hoi-uuid",
+  "selectedOptionIds": ["option-uuid-1", "option-uuid-2"]
+}
+- fill blank
+{
+  "questionId": "cau-hoi-uuid",
+  "value": "đáp án điền vào"
+}
+
+**Chấm điểm (Grading - tự động khi submit):**
+- POST /api/attempts/:attemptId/submit sẽ tự động chấm điểm theo loại câu hỏi:
+  - Single/TrueFalse: so sánh optionId với đáp án đúng
+  - Multiple: so sánh selectedOptionIds với danh sách đáp án đúng (phải khớp chính xác)
+  - FillBlank: so sánh value với text của option đúng (case-insensitive)
+- Mỗi câu đúng sẽ được fullpoint, câu sai được 0 điểm
+- Score cuối = tổng điểm của tất cả câu đúng
+- Response trả về: `{ attempt, totalEarnedPoints, maxScore, correctCount, totalCount }`

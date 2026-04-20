@@ -14,10 +14,6 @@ AnswerModel.init({
     type: DataTypes.UUID,
     allowNull: false
   },
-  optionId: {
-    type: DataTypes.UUID,
-    allowNull: true
-  },
   selectedOptionIds: {
     type: DataTypes.JSON,
     allowNull: true
