@@ -248,3 +248,53 @@ Lưu ý : mode = practice và showAnswerAfterSelect true thì nó mới hiện �
 - Mỗi câu đúng sẽ được fullpoint, câu sai được 0 điểm
 - Score cuối = tổng điểm của tất cả câu đúng
 - Response trả về: `{ attempt, totalEarnedPoints, maxScore, correctCount, totalCount }`
+
+## Xem kết quả chấm điểm (Grading Result)
+| Method | URL                                   | Body/Params | Description                        |
+|--------|---------------------------------------|-------------|------------------------------------|
+| GET    | /api/attempts/:attemptId/grade        | -           | Xem chi tiết kết quả chấm điểm     |
+
+**Luồng:**
+- Sau khi nộp bài (submit), gọi GET /api/attempts/:attemptId/grade để lấy lại kết quả đã chấm.
+- API trả về:
+  - Thông tin attempt (id, userId, score, maxScore, status, thời gian)
+  - Thống kê: số câu đúng, sai, bỏ trống, phần trăm đúng, pass/fail
+  - Danh sách đáp án chi tiết từng câu (có đáp án đúng để so sánh)
+
+**Ví dụ response:**
+```json
+{
+  "attempt": {
+    "id": "uuid",
+    "userId": "uuid",
+    "score": 85,
+    "maxScore": 100,
+    "status": "graded",
+    "timeSpentSeconds": 3600
+  },
+  "summary": {
+    "correctCount": 17,
+    "wrongCount": 2,
+    "blankCount": 1,
+    "totalQuestions": 20,
+    "totalEarnedPoints": 85,
+    "maxScore": 100,
+    "accuracyPercentage": 85.0,
+    "isPassed": true
+  },
+  "detailedAnswers": [
+    {
+      "questionId": "uuid",
+      "questionType": "single",
+      "status": "correct",
+      "points": 5,
+      "selectedAnswer": ["option-id"],
+      "correctAnswer": ["option-id"]
+    }
+  ]
+}
+```
+
+**Lưu ý:**
+- Kết quả này chỉ lấy lại dữ liệu đã chấm, không tính lại điểm.
+- Nếu chưa nộp bài hoặc chưa chấm xong sẽ trả về lỗi.

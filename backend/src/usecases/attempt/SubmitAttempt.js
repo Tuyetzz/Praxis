@@ -7,12 +7,14 @@ class SubmitAttempt {
     answerRepository,
     questionRepository,
     optionRepository,
+    resultSummaryRepository,
     unitOfWork,
   }) {
     this.attemptRepository = attemptRepository;
     this.answerRepository = answerRepository;
     this.questionRepository = questionRepository;
     this.optionRepository = optionRepository;
+    this.resultSummaryRepository = resultSummaryRepository;
     this.unitOfWork = unitOfWork;
   }
 
@@ -129,13 +131,29 @@ class SubmitAttempt {
         this.unitOfWork.getTx()
       );
 
+      // Step 6: Create or update ResultSummary
+      const correctCount = gradeUpdates.filter(u => u.isCorrect).length;
+      const wrongCount = gradeUpdates.filter(u => !u.isCorrect && u.answerId).length - correctCount;
+      const blankCount = totalCount - correctCount - Math.max(wrongCount, 0);
+
+      await this.resultSummaryRepository.create(
+        {
+          attemptId,
+          correctCount,
+          wrongCount: Math.max(wrongCount, 0),
+          blankCount: Math.max(blankCount, 0),
+        },
+        userId,
+        this.unitOfWork.getTx()
+      );
+
       await this.unitOfWork.commit();
 
       return {
         attempt: await this.attemptRepository.findById(attemptId), // Return updated attempt
         totalEarnedPoints,
         maxScore,
-        correctCount: gradeUpdates.filter(u => u.isCorrect).length,
+        correctCount,
         totalCount,
       };
     } catch (err) {

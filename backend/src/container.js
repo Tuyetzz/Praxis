@@ -90,6 +90,7 @@ const StartAttempt = require('./usecases/attempt/StartAttempt');
 const GetAttempt = require('./usecases/attempt/GetAttempt');
 const SaveAnswer = require('./usecases/attempt/SaveAnswer');
 const SubmitAttempt = require('./usecases/attempt/SubmitAttempt');
+const GetAttemptGrade = require('./usecases/attempt/GetAttemptGrade');
 const SequelizeUnitOfWork = require('./infrastructure/unitOfWork/SequelizeUnitOfWork');
 
 
@@ -164,6 +165,7 @@ container.register({
   getAttempt: asClass(GetAttempt).singleton(),
   saveAnswer: asClass(SaveAnswer).scoped(),
   submitAttempt: asClass(SubmitAttempt).scoped(),
+  getAttemptGrade: asClass(GetAttemptGrade).singleton(),
   unitOfWork: asClass(SequelizeUnitOfWork).scoped(),
   answerRepository: asClass(AnswerRepository).singleton(),
   attemptQuestionRepository: asClass(AttemptQuestionRepository).singleton(),
