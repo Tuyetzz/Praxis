@@ -21,6 +21,19 @@ class QuestionRepository extends BaseRepository {
     });
     return records.map(record => this.mapper.toDomain(record));
   }
-}
 
+  async findByIds(questionIds = []) {
+    if (!Array.isArray(questionIds) || questionIds.length === 0) {
+      return [];
+    }
+    const { Op } = require("sequelize");
+    const records = await this.model.findAll({
+      where: {
+        id: { [Op.in]: questionIds },
+        isDeleted: false
+      }
+    });
+    return records.map(record => this.mapper.toDomain(record));
+  }
+}
 module.exports = QuestionRepository;

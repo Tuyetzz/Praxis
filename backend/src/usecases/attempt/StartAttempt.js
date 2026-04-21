@@ -23,7 +23,7 @@ class StartAttempt {
   }
 
   async execute(payload = {}) {
-    const { userId, subjectId, chapterId, mode = "practice", settings = {} } = payload;
+    const { userId, subjectId, chapterId, mode = "practice", settings = {}, durationMinutes: customDurationMinutes } = payload;
 
     if (!userId) {
       throw new Error("User is required.");
@@ -60,6 +60,7 @@ class StartAttempt {
     }
 
 
+    // Only include questions that are not soft-deleted (findByChapter already filters isDeleted=false)
     const allChapterQuestions = await this.questionRepository.findByChapter(chapterId);
     const chapterQuestions = allChapterQuestions.filter((question) => question.subjectId === subjectId);
 
@@ -101,9 +102,17 @@ class StartAttempt {
 
     const totalQuestions = finalQuestions.length;
     const totalSeconds = totalQuestions * normalizedSettings.questionTimeSeconds;
-    const durationMinutes = Math.max(1, Math.ceil(totalSeconds / 60));
+    let durationMinutes;
+    let expiresAt;
     const startedAt = new Date();
-    const expiresAt = new Date(startedAt.getTime() + totalSeconds * 1000);
+    if (customDurationMinutes && Number.isFinite(Number(customDurationMinutes)) && Number(customDurationMinutes) > 0) {
+      durationMinutes = Math.ceil(Number(customDurationMinutes));
+      durationMinutes = Math.max(1, durationMinutes);
+      expiresAt = new Date(startedAt.getTime() + durationMinutes * 60 * 1000);
+    } else {
+      durationMinutes = Math.max(1, Math.ceil(totalSeconds / 60));
+      expiresAt = new Date(startedAt.getTime() + totalSeconds * 1000);
+    }
 
     const maxScore = finalQuestions.reduce((sum, question) => {
       const points = Number(question.points || 0);

@@ -25,9 +25,9 @@ class BaseRepository {
     return this.mapper.toDomain(record);
   }
 
-  async update(id, data, userId = null) {
+  async update(id, data, userId = null, options = {}) {
     const payload = { ...data, updatedBy: userId };
-    const [affectedCount] = await this.model.update(payload, { where: { id } });
+    const [affectedCount] = await this.model.update(payload, { where: { id }, ...options });
     
     if (affectedCount === 0) return null;
     

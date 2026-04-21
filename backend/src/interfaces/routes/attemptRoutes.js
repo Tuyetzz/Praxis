@@ -12,6 +12,14 @@ router.get("/:id", requiredPermission(PERMISSIONS.ATTEMPT_VIEW), (req, res) =>
   attemptController.getOne(req, res)
 );
 
+router.post("/:attemptId/answers", requiredPermission(PERMISSIONS.ATTEMPT_CREATE), (req, res) =>
+  attemptController.saveAnswer(req, res)
+);
+
+router.post("/:attemptId/submit", requiredPermission(PERMISSIONS.ATTEMPT_SUBMIT), (req, res) =>
+  attemptController.submitAttempt(req, res)
+);
+
 router.post("/start", requiredPermission(PERMISSIONS.ATTEMPT_CREATE), (req, res) =>
   attemptController.start(req, res)
 );
