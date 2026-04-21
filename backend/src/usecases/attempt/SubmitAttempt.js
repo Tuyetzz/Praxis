@@ -131,21 +131,26 @@ class SubmitAttempt {
         this.unitOfWork.getTx()
       );
 
-      // Step 6: Create or update ResultSummary
-      const correctCount = gradeUpdates.filter(u => u.isCorrect).length;
-      const wrongCount = gradeUpdates.filter(u => !u.isCorrect && u.answerId).length - correctCount;
-      const blankCount = totalCount - correctCount - Math.max(wrongCount, 0);
 
-      await this.resultSummaryRepository.create(
-        {
-          attemptId,
-          correctCount,
-          wrongCount: Math.max(wrongCount, 0),
-          blankCount: Math.max(blankCount, 0),
-        },
-        userId,
-        this.unitOfWork.getTx()
-      );
+      // Step 6: Upsert ResultSummary
+      const correctCount = gradeUpdates.filter(u => u.isCorrect).length;
+      const wrongCount = gradeUpdates.filter(u => u.isCorrect === false).length;
+      let blankCount = totalCount - correctCount - wrongCount;
+      if (isNaN(blankCount) || blankCount < 0) blankCount = 0;
+
+      // Upsert ResultSummary (find then update or create)
+      let summary = await this.resultSummaryRepository.findByAttempt(attemptId);
+      const summaryPayload = {
+        attemptId,
+        correctCount,
+        wrongCount,
+        blankCount,
+      };
+      if (summary) {
+        await this.resultSummaryRepository.update(summary.id, summaryPayload, userId, this.unitOfWork.getTx());
+      } else {
+        await this.resultSummaryRepository.create(summaryPayload, userId, this.unitOfWork.getTx());
+      }
 
       await this.unitOfWork.commit();
 
