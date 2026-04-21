@@ -46,13 +46,16 @@ class SaveAnswer {
       throw new Error("Attempt has expired.");
     }
 
-    // Validate question exists and belongs to attempt
+
+    // Validate question exists
     const question = await this.questionRepository.findById(questionId);
     if (!question) {
       throw new Error("Question not found.");
     }
 
-    if (question.chapterId !== attempt.chapterId) {
+    // Validate question is part of this attempt (prevent tampering)
+    const attemptQuestion = await this.attemptRepository.attemptQuestionRepository?.findByAttemptAndQuestion?.(attemptId, questionId);
+    if (!attemptQuestion) {
       throw new Error("Question does not belong to this attempt.");
     }
 

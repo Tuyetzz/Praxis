@@ -54,7 +54,6 @@ class SubmitAttempt {
         submittedAt: now,
         timeSpentSeconds: Math.min(timeSpentSeconds, attempt.durationMinutes * 60),
       };
-      console.log("Submitting attempt with payload:", submittedAttemptPayload);
 
       await this.attemptRepository.update(
         attemptId,
@@ -84,6 +83,9 @@ class SubmitAttempt {
 
       for (const answer of answers) {
         const question = questionMap[answer.questionId];
+        if (!question) {
+          throw new Error(`Question for answer ${answer.id} (questionId: ${answer.questionId}) has been deleted or is unavailable.`);
+        }
         const questionOptions = optionsMap[answer.questionId] || [];
 
         const gradeResult = this.gradeAnswer(answer, question, questionOptions);
@@ -113,10 +115,8 @@ class SubmitAttempt {
       );
 
       // Step 5: Mark as graded and set score
-      const maxScore = answers.reduce((sum, a) => {
-        const question = questionMap[a.questionId];
-        return sum + (question?.points || 0);
-      }, 0);
+      const maxScore = attempt.maxScore || 0;
+      const totalCount = attempt.settings?.totalQuestions || 0;
       const gradedAttemptPayload = {
         status: "graded",
         score: totalEarnedPoints,
@@ -136,7 +136,7 @@ class SubmitAttempt {
         totalEarnedPoints,
         maxScore,
         correctCount: gradeUpdates.filter(u => u.isCorrect).length,
-        totalCount: answers.length,
+        totalCount,
       };
     } catch (err) {
       await this.unitOfWork.rollback();

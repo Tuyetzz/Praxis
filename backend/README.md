@@ -176,6 +176,7 @@ Ví dụ về paging của 2 cái kia
 GET /subjects/search?search=math&page=1&limit=10&order=name
 GET /chapters/search?search=chapter1&subjectId=xxx&page=1&limit=10&order=name
 
+Lưu ý : mode = practice và showAnswerAfterSelect true thì nó mới hiện đáp án
 {
   "subjectId": "db0ccc85-00d9-435e-8349-06ea5e9684cf",
   "chapterId": "8ddcc047-0b32-4159-ba95-a22a94c2fff9",

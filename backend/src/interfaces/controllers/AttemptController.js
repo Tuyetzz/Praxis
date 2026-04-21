@@ -34,9 +34,9 @@ class AttemptController {
       const userId = req.user?.id;
       const { attemptId } = req.params;
       const result = await this.saveAnswerUsecase.execute({
+        ...req.body,
         userId,
         attemptId,
-        ...req.body,
       });
       return res.status(200).json(result);
     } catch (error) {

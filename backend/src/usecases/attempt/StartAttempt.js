@@ -60,6 +60,7 @@ class StartAttempt {
     }
 
 
+    // Only include questions that are not soft-deleted (findByChapter already filters isDeleted=false)
     const allChapterQuestions = await this.questionRepository.findByChapter(chapterId);
     const chapterQuestions = allChapterQuestions.filter((question) => question.subjectId === subjectId);
 
@@ -105,7 +106,8 @@ class StartAttempt {
     let expiresAt;
     const startedAt = new Date();
     if (customDurationMinutes && Number.isFinite(Number(customDurationMinutes)) && Number(customDurationMinutes) > 0) {
-      durationMinutes = Math.floor(Number(customDurationMinutes));
+      durationMinutes = Math.ceil(Number(customDurationMinutes));
+      durationMinutes = Math.max(1, durationMinutes);
       expiresAt = new Date(startedAt.getTime() + durationMinutes * 60 * 1000);
     } else {
       durationMinutes = Math.max(1, Math.ceil(totalSeconds / 60));
