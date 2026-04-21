@@ -53,12 +53,6 @@ class SaveAnswer {
       throw new Error("Question not found.");
     }
 
-    // Validate question is part of this attempt (prevent tampering)
-    const attemptQuestion = await this.attemptRepository.attemptQuestionRepository?.findByAttemptAndQuestion?.(attemptId, questionId);
-    if (!attemptQuestion) {
-      throw new Error("Question does not belong to this attempt.");
-    }
-
     // Normalize selectedOptionIds: support both optionId (single) and selectedOptionIds (multiple)
     let normalizedSelectedOptionIds = selectedOptionIds || [];
     if (optionId && (!Array.isArray(normalizedSelectedOptionIds) || normalizedSelectedOptionIds.length === 0)) {

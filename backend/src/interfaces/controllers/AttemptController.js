@@ -1,10 +1,11 @@
 // src/interfaces/controllers/AttemptController.js
 class AttemptController {
-  constructor({ startAttempt, getAttempt, saveAnswer, submitAttempt }) {
+  constructor({ startAttempt, getAttempt, saveAnswer, submitAttempt, getAttemptGrade }) {
     this.startAttemptUsecase = startAttempt;
     this.getAttemptUsecase = getAttempt;
     this.saveAnswerUsecase = saveAnswer;
     this.submitAttemptUsecase = submitAttempt;
+    this.getAttemptGradeUsecase = getAttemptGrade;
   }
 
   async start(req, res) {
@@ -51,6 +52,20 @@ class AttemptController {
       const result = await this.submitAttemptUsecase.execute({
         userId,
         attemptId,
+      });
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+  }
+
+  async getGrade(req, res) {
+    try {
+      const userId = req.user?.id;
+      const { attemptId } = req.params;
+      const result = await this.getAttemptGradeUsecase.execute({
+        attemptId,
+        userId,
       });
       return res.status(200).json(result);
     } catch (error) {

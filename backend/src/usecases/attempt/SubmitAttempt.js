@@ -7,12 +7,14 @@ class SubmitAttempt {
     answerRepository,
     questionRepository,
     optionRepository,
+    resultSummaryRepository,
     unitOfWork,
   }) {
     this.attemptRepository = attemptRepository;
     this.answerRepository = answerRepository;
     this.questionRepository = questionRepository;
     this.optionRepository = optionRepository;
+    this.resultSummaryRepository = resultSummaryRepository;
     this.unitOfWork = unitOfWork;
   }
 
@@ -129,13 +131,34 @@ class SubmitAttempt {
         this.unitOfWork.getTx()
       );
 
+
+      // Step 6: Upsert ResultSummary
+      const correctCount = gradeUpdates.filter(u => u.isCorrect).length;
+      const wrongCount = gradeUpdates.filter(u => u.isCorrect === false).length;
+      let blankCount = totalCount - correctCount - wrongCount;
+      if (isNaN(blankCount) || blankCount < 0) blankCount = 0;
+
+      // Upsert ResultSummary (find then update or create)
+      let summary = await this.resultSummaryRepository.findByAttempt(attemptId);
+      const summaryPayload = {
+        attemptId,
+        correctCount,
+        wrongCount,
+        blankCount,
+      };
+      if (summary) {
+        await this.resultSummaryRepository.update(summary.id, summaryPayload, userId, this.unitOfWork.getTx());
+      } else {
+        await this.resultSummaryRepository.create(summaryPayload, userId, this.unitOfWork.getTx());
+      }
+
       await this.unitOfWork.commit();
 
       return {
         attempt: await this.attemptRepository.findById(attemptId), // Return updated attempt
         totalEarnedPoints,
         maxScore,
-        correctCount: gradeUpdates.filter(u => u.isCorrect).length,
+        correctCount,
         totalCount,
       };
     } catch (err) {
