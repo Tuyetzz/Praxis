@@ -33,6 +33,8 @@ const RoleController = require('./interfaces/controllers/RoleController');
 const PermissionController = require('./interfaces/controllers/PermissionController');
 const UserController = require('./interfaces/controllers/UserController');
 const AttemptController = require('./interfaces/controllers/AttemptController');
+const FlashcardDeckController = require('./interfaces/controllers/FlashcardDeckController');
+const FlashcardController = require('./interfaces/controllers/FlashcardController');
 
 
 // usecases
@@ -91,6 +93,17 @@ const GetAttempt = require('./usecases/attempt/GetAttempt');
 const SaveAnswer = require('./usecases/attempt/SaveAnswer');
 const SubmitAttempt = require('./usecases/attempt/SubmitAttempt');
 const GetAttemptGrade = require('./usecases/attempt/GetAttemptGrade');
+const CreateFlashcardDeck = require('./usecases/flashcardDeck/CreateFlashcardDeck');
+const GetMyFlashcardDecks = require('./usecases/flashcardDeck/GetMyFlashcardDecks');
+const GetPublicFlashcardDecks = require('./usecases/flashcardDeck/GetPublicFlashcardDecks');
+const GetOneFlashcardDeck = require('./usecases/flashcardDeck/GetOneFlashcardDeck');
+const UpdateFlashcardDeck = require('./usecases/flashcardDeck/UpdateFlashcardDeck');
+const DeleteFlashcardDeck = require('./usecases/flashcardDeck/DeleteFlashcardDeck');
+const CreateFlashcard = require('./usecases/flashcard/CreateFlashcard');
+const GetFlashcardsByDeck = require('./usecases/flashcard/GetFlashcardsByDeck');
+const GetOneFlashcard = require('./usecases/flashcard/GetOneFlashcard');
+const UpdateFlashcard = require('./usecases/flashcard/UpdateFlashcard');
+const DeleteFlashcard = require('./usecases/flashcard/DeleteFlashcard');
 const SequelizeUnitOfWork = require('./infrastructure/unitOfWork/SequelizeUnitOfWork');
 const AutoSubmitAttemptsJob = require('./infrastructure/jobs/autoSubmitAttempts');
 
@@ -169,6 +182,17 @@ container.register({
   saveAnswer: asClass(SaveAnswer).scoped(),
   submitAttempt: asClass(SubmitAttempt).scoped(),
   getAttemptGrade: asClass(GetAttemptGrade).singleton(),
+  createFlashcardDeck: asClass(CreateFlashcardDeck).singleton(),
+  getMyFlashcardDecks: asClass(GetMyFlashcardDecks).singleton(),
+  getPublicFlashcardDecks: asClass(GetPublicFlashcardDecks).singleton(),
+  getOneFlashcardDeck: asClass(GetOneFlashcardDeck).singleton(),
+  updateFlashcardDeck: asClass(UpdateFlashcardDeck).singleton(),
+  deleteFlashcardDeck: asClass(DeleteFlashcardDeck).singleton(),
+  createFlashcard: asClass(CreateFlashcard).singleton(),
+  getFlashcardsByDeck: asClass(GetFlashcardsByDeck).singleton(),
+  getOneFlashcard: asClass(GetOneFlashcard).singleton(),
+  updateFlashcard: asClass(UpdateFlashcard).singleton(),
+  deleteFlashcard: asClass(DeleteFlashcard).singleton(),
   unitOfWork: asClass(SequelizeUnitOfWork).scoped(),
   answerRepository: asClass(AnswerRepository).singleton(),
   attemptQuestionRepository: asClass(AttemptQuestionRepository).singleton(),
@@ -197,6 +221,8 @@ container.register({
   permissionController: asClass(PermissionController).singleton(),
   userController: asClass(UserController).singleton(),
   attemptController: asClass(AttemptController).singleton(),
+  flashcardDeckController: asClass(FlashcardDeckController).singleton(),
+  flashcardController: asClass(FlashcardController).singleton(),
   autoSubmitAttemptsJob: asClass(AutoSubmitAttemptsJob).singleton(),
 
   

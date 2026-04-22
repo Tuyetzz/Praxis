@@ -162,6 +162,26 @@ POST /api/questions/batch
 | PUT    | /api/options/:id               | { text, isCorrect, media, order }        | Cập nhật option                |
 | DELETE | /api/options/:id               | -                                        | Xóa option                     |
 
+
+## Flashcard Deck (Yêu cầu xác thực và quyền tương ứng)
+| Method | URL                          | Body/Params                | Description                        |
+|--------|------------------------------|----------------------------|------------------------------------|
+| GET    | /api/flashcard-decks/mine    | -                          | Lấy danh sách deck của tôi         |
+| GET    | /api/flashcard-decks/public  | -                          | Lấy danh sách deck public          |
+| GET    | /api/flashcard-decks/:id     | -                          | Lấy thông tin 1 deck (nếu xem được)|
+| POST   | /api/flashcard-decks         | { title, isPublic }        | Tạo deck mới                       |
+| PUT    | /api/flashcard-decks/:id     | { title, isPublic }        | Cập nhật deck                      |
+| DELETE | /api/flashcard-decks/:id     | -                          | Xóa deck                           |
+
+## Flashcard (Yêu cầu xác thực và quyền tương ứng)
+| Method | URL                              | Body/Params                              | Description                        |
+|--------|----------------------------------|------------------------------------------|------------------------------------|
+| GET    | /api/flashcards/deck/:deckId     | -                                        | Lấy danh sách flashcard trong deck |
+| GET    | /api/flashcards/:id              | -                                        | Lấy thông tin 1 flashcard          |
+| POST   | /api/flashcards                  | { deckId, frontText, backText, order, nextReview } | Tạo flashcard mới      |
+| PUT    | /api/flashcards/:id              | { frontText, backText, order, nextReview }        | Cập nhật flashcard      |
+| DELETE | /api/flashcards/:id              | -                                        | Xóa flashcard                     |
+
 Ghi chú:
 - Các route `/api/users/*` yêu cầu JWT token ở header `Authorization: Bearer <token>`
 - Các trường body/params tham khảo ở phần entity User hoặc liên hệ BE nếu cần chi tiết.
