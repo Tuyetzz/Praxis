@@ -18,22 +18,42 @@ const AUTO_SUBMIT_ENABLED = process.env.AUTO_SUBMIT_ENABLED === "true";
       console.log(`🚀 Server running on port ${PORT}`);
     });
 
-    if (AUTO_SUBMIT_ENABLED) {
-      const autoSubmitJob = container.resolve("autoSubmitAttemptsJob");
+    const autoSubmitJob = AUTO_SUBMIT_ENABLED
+      ? container.resolve("autoSubmitAttemptsJob")
+      : null;
+    if (autoSubmitJob) {
       autoSubmitJob.start();
     }
-
-    process.on("SIGTERM", async () => {
-      console.log("📌 SIGTERM received, gracefully shutting down...");
-      if (AUTO_SUBMIT_ENABLED) {
-        const autoSubmitJob = container.resolve("autoSubmitAttemptsJob");
-        autoSubmitJob.stop();
+    let isShuttingDown = false;
+    const shutdown = async (signal) => {
+      if (isShuttingDown) {
+        return;
       }
-      server.close(() => {
-        console.log("✅ Server closed");
+      isShuttingDown = true;
+      console.log(`📌 ${signal} received, gracefully shutting down...`);
+      try {
+        if (autoSubmitJob) {
+          autoSubmitJob.stop();
+        }
+        await new Promise((resolve, reject) => {
+          server.close((err) => {
+            if (err) {
+              return reject(err);
+            }
+            console.log("✅ Server closed");
+            resolve();
+          });
+        });
+        await sequelize.close();
+        console.log("✅ Database connection closed");
         process.exit(0);
-      });
-    });
+      } catch (err) {
+        console.error("❌ Error during graceful shutdown:", err);
+        process.exit(1);
+      }
+    };
+    process.once("SIGTERM", () => shutdown("SIGTERM"));
+    process.once("SIGINT", () => shutdown("SIGINT"));
   } catch (err) {
     console.error("❌ Unable to connect to DB:", err);
     process.exit(1);

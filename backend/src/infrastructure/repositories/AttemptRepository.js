@@ -2,6 +2,7 @@
 const BaseRepository = require('./BaseRepository');
 const AttemptModel = require('../database/models/AttemptModel');
 const attemptMapper = require('../mappers/AttemptMapper');
+const { Op } = require('sequelize');
 
 class AttemptRepository extends BaseRepository {
     constructor() {
@@ -20,7 +21,6 @@ class AttemptRepository extends BaseRepository {
     }
 
     async findExpiredAttempts(now) {
-        const { Op } = require('sequelize');
         const records = await this.model.findAll({
             where: {
                 status: 'in_progress',
