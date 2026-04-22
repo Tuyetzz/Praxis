@@ -17,5 +17,7 @@ router.use('/chapters', require('./chapterRoutes'));
 router.use('/questions', require('./questionRoutes'));
 router.use('/options', require('./optionRoutes'));
 router.use('/attempts', require('./attemptRoutes'));
+router.use('/flashcard-decks', require('./flashcardDeckRoutes'));
+router.use('/flashcards', require('./flashcardRoutes'));
 
 module.exports = router;
