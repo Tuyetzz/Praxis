@@ -92,9 +92,11 @@ const SaveAnswer = require('./usecases/attempt/SaveAnswer');
 const SubmitAttempt = require('./usecases/attempt/SubmitAttempt');
 const GetAttemptGrade = require('./usecases/attempt/GetAttemptGrade');
 const SequelizeUnitOfWork = require('./infrastructure/unitOfWork/SequelizeUnitOfWork');
+const AutoSubmitAttemptsJob = require('./infrastructure/jobs/autoSubmitAttempts');
 
 
 const authHelper = require('./infrastructure/utils/auth_helper');
+const logger = require('./infrastructure/utils/logger');
 const { hashPassword, comparePassword, generateTokens } = authHelper;
 const redisClient = require('./infrastructure/cache/redisClient');
 
@@ -106,6 +108,7 @@ container.register({
   userRepository: asClass(UserRepository).singleton(),
   redisClient: asValue(redisClient),
   authHelper: asValue(authHelper),
+  logger: asValue(logger),
   // helpers
   hashPassword: asValue(hashPassword),
   comparePassword: asValue(comparePassword),
@@ -194,9 +197,15 @@ container.register({
   permissionController: asClass(PermissionController).singleton(),
   userController: asClass(UserController).singleton(),
   attemptController: asClass(AttemptController).singleton(),
+  autoSubmitAttemptsJob: asClass(AutoSubmitAttemptsJob).singleton(),
 
   
   authMiddleware: asFunction(createAuthMiddleware).singleton(),
+});
+
+// Register container itself for use in jobs and other services
+container.register({
+  container: asValue(container),
 });
 
 module.exports = container;

@@ -18,6 +18,20 @@ class AttemptRepository extends BaseRepository {
         });
         return records.map(record => this.mapper.toDomain(record));
     }
+
+    async findExpiredAttempts(now) {
+        const { Op } = require('sequelize');
+        const records = await this.model.findAll({
+            where: {
+                status: 'in_progress',
+                expiresAt: {
+                    [Op.lte]: now
+                },
+                isDeleted: false
+            }
+        });
+        return records.map(record => this.mapper.toDomain(record));
+    }
 }
 
 module.exports = AttemptRepository;
