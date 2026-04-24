@@ -35,6 +35,14 @@ const PERMISSIONS = Object.freeze({
   FLASHCARD_UPDATE: "flashcard:update",
   FLASHCARD_DELETE: "flashcard:delete",
 
+  TYPING_TEXT_VIEW: "typing_text:view",
+  TYPING_TEXT_CREATE: "typing_text:create",
+  TYPING_TEXT_UPDATE: "typing_text:update",
+  TYPING_TEXT_DELETE: "typing_text:delete",
+
+  TYPING_RESULT_VIEW: "typing_result:view",
+  TYPING_RESULT_CREATE: "typing_result:create",
+
   ROLE_MANAGE: "role:manage",
   PERMISSION_MANAGE: "permission:manage"
 });

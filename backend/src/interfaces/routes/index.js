@@ -19,5 +19,7 @@ router.use('/options', require('./optionRoutes'));
 router.use('/attempts', require('./attemptRoutes'));
 router.use('/flashcard-decks', require('./flashcardDeckRoutes'));
 router.use('/flashcards', require('./flashcardRoutes'));
+router.use('/typing-texts', require('./typingTextRoutes'));
+router.use('/typing-results', require('./typingResultRoutes'));
 
 module.exports = router;

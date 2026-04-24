@@ -35,6 +35,8 @@ const UserController = require('./interfaces/controllers/UserController');
 const AttemptController = require('./interfaces/controllers/AttemptController');
 const FlashcardDeckController = require('./interfaces/controllers/FlashcardDeckController');
 const FlashcardController = require('./interfaces/controllers/FlashcardController');
+const TypingTextController = require('./interfaces/controllers/TypingTextController');
+const TypingResultController = require('./interfaces/controllers/TypingResultController');
 
 
 // usecases
@@ -104,6 +106,18 @@ const GetFlashcardsByDeck = require('./usecases/flashcard/GetFlashcardsByDeck');
 const GetOneFlashcard = require('./usecases/flashcard/GetOneFlashcard');
 const UpdateFlashcard = require('./usecases/flashcard/UpdateFlashcard');
 const DeleteFlashcard = require('./usecases/flashcard/DeleteFlashcard');
+const CreateTypingText = require('./usecases/typingText/CreateTypingText');
+const GetTypingTexts = require('./usecases/typingText/GetTypingTexts');
+const GetPublicTypingTexts = require('./usecases/typingText/GetPublicTypingTexts');
+const GetMyTypingTexts = require('./usecases/typingText/GetMyTypingTexts');
+const GetOneTypingText = require('./usecases/typingText/GetOneTypingText');
+const UpdateTypingText = require('./usecases/typingText/UpdateTypingText');
+const DeleteTypingText = require('./usecases/typingText/DeleteTypingText');
+const CreateTypingResult = require('./usecases/typingResult/CreateTypingResult');
+const GetMyTypingResults = require('./usecases/typingResult/GetMyTypingResults');
+const GetTypingResultsByText = require('./usecases/typingResult/GetTypingResultsByText');
+const GetTypingLeaderboard = require('./usecases/typingResult/GetTypingLeaderboard');
+const GetOneTypingResult = require('./usecases/typingResult/GetOneTypingResult');
 const SequelizeUnitOfWork = require('./infrastructure/unitOfWork/SequelizeUnitOfWork');
 const AutoSubmitAttemptsJob = require('./infrastructure/jobs/autoSubmitAttempts');
 
@@ -193,6 +207,18 @@ container.register({
   getOneFlashcard: asClass(GetOneFlashcard).singleton(),
   updateFlashcard: asClass(UpdateFlashcard).singleton(),
   deleteFlashcard: asClass(DeleteFlashcard).singleton(),
+  createTypingText: asClass(CreateTypingText).singleton(),
+  getTypingTexts: asClass(GetTypingTexts).singleton(),
+  getPublicTypingTexts: asClass(GetPublicTypingTexts).singleton(),
+  getMyTypingTexts: asClass(GetMyTypingTexts).singleton(),
+  getOneTypingText: asClass(GetOneTypingText).singleton(),
+  updateTypingText: asClass(UpdateTypingText).singleton(),
+  deleteTypingText: asClass(DeleteTypingText).singleton(),
+  createTypingResult: asClass(CreateTypingResult).singleton(),
+  getMyTypingResults: asClass(GetMyTypingResults).singleton(),
+  getTypingResultsByText: asClass(GetTypingResultsByText).singleton(),
+  getTypingLeaderboard: asClass(GetTypingLeaderboard).singleton(),
+  getOneTypingResult: asClass(GetOneTypingResult).singleton(),
   unitOfWork: asClass(SequelizeUnitOfWork).scoped(),
   answerRepository: asClass(AnswerRepository).singleton(),
   attemptQuestionRepository: asClass(AttemptQuestionRepository).singleton(),
@@ -223,6 +249,8 @@ container.register({
   attemptController: asClass(AttemptController).singleton(),
   flashcardDeckController: asClass(FlashcardDeckController).singleton(),
   flashcardController: asClass(FlashcardController).singleton(),
+  typingTextController: asClass(TypingTextController).singleton(),
+  typingResultController: asClass(TypingResultController).singleton(),
   autoSubmitAttemptsJob: asClass(AutoSubmitAttemptsJob).singleton(),
 
   
