@@ -1,5 +1,5 @@
 const TypingText = require('../../domain/entities/TypingText');
-const { toBoolean } = require('../../infrastructure/utils/typeConverters');
+const { toBoolean } = require('../../infrastructure/utils/booleanHelper');
 
 class CreateTypingText {
   constructor({ typingTextRepository, userRepository }) {
