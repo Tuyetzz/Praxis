@@ -5,3 +5,7 @@ const toBoolean = (val) => {
   }
   return !!val;
 };
+
+module.exports = {
+  toBoolean
+};
