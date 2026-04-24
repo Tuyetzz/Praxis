@@ -11,7 +11,7 @@ const AUTO_SUBMIT_ENABLED = process.env.AUTO_SUBMIT_ENABLED === "true";
     await sequelize.authenticate();
     console.log("✅ Database connected");
 
-    await sequelize.sync({ alter: false });
+    await sequelize.sync({ alter: true });
     console.log("✅ All models synchronized");
 
     const server = app.listen(PORT, () => {

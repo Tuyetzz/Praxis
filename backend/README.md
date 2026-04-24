@@ -316,5 +316,24 @@ Lưu ý : mode = practice và showAnswerAfterSelect true thì nó mới hiện �
 ```
 
 **Lưu ý:**
-- Kết quả này chỉ lấy lại dữ liệu đã chấm, không tính lại điểm.
-- Nếu chưa nộp bài hoặc chưa chấm xong sẽ trả về lỗi.
+- Kết quả này chỉ sẽ tính lại toàn bộ điểm.
+
+## Typing text
+| Method | URL                            | Body/Params                                    | Description                        |
+|--------|--------------------------------|------------------------------------------------|------------------------------------|
+| GET    | /api/typing-texts/mine         | -                                              | Lấy danh sách bài tập của tôi      |
+| GET    | /api/typing-texts/public       | -                                              | Lấy danh sách bài tập công khai    |
+| GET    | /api/typing-texts              | -                                              | Lấy tất cả bài tập                 |
+| GET    | /api/typing-texts/:id          | -                                              | Lấy chi tiết một văn bản           |
+| POST   | /api/typing-texts              | { title, content, language, isPublic, difficulty } | Tạo mới một bài tập                |
+| PUT    | /api/typing-texts/:id          | { title, content, isPublic, difficulty }       | Cập nhật một bài tập               |
+| DELETE | /api/typing-texts/:id          | -                                              | Xóa một bài tập                    |
+
+## Typing result
+| Method | URL                                     | Body/Params                                              | Description                        |
+|--------|-----------------------------------------|----------------------------------------------------------|------------------------------------|
+| GET    | /api/typing-results/mine                | -                                                        | Lấy lịch sử kết quả của tôi        |
+| GET    | /api/typing-results/text/:textId        | textId (path)                                            | Lấy danh sách kết quả theo bài tập |
+| GET    | /api/typing-results/text/:textId/leaderboard | textId (path)                                        | Lấy bảng xếp hạng theo bài tập     |
+| GET    | /api/typing-results/:id                 | id (path)                                                | Lấy chi tiết kết quả               |
+| POST   | /api/typing-results                     | { textId, wpm, accuracy, rawWpm, durationSeconds, errorTags } | Lưu kết quả gõ phím                |
