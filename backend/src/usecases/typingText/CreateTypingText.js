@@ -1,4 +1,5 @@
 const TypingText = require('../../domain/entities/TypingText');
+const { toBoolean } = require('../../infrastructure/utils/typeConverters');
 
 class CreateTypingText {
   constructor({ typingTextRepository, userRepository }) {
@@ -32,8 +33,8 @@ class CreateTypingText {
       title,
       content,
       language,
-      isPublic: Boolean(isPublic),
-      isDefault: Boolean(isDefault),
+      isPublic: toBoolean(isPublic),
+      isDefault: toBoolean(isDefault),
       difficulty,
       sourceType
     });

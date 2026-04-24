@@ -316,18 +316,18 @@ Lưu ý : mode = practice và showAnswerAfterSelect true thì nó mới hiện �
 ```
 
 **Lưu ý:**
-- Kết quả này chỉ sẽ tính lại toàn bộ điểm.
+- Kết quả này sẽ tính lại toàn bộ điểm.
 
 ## Typing text
-| Method | URL                            | Body/Params                                    | Description                        |
-|--------|--------------------------------|------------------------------------------------|------------------------------------|
-| GET    | /api/typing-texts/mine         | -                                              | Lấy danh sách bài tập của tôi      |
-| GET    | /api/typing-texts/public       | -                                              | Lấy danh sách bài tập công khai    |
-| GET    | /api/typing-texts              | -                                              | Lấy tất cả bài tập                 |
-| GET    | /api/typing-texts/:id          | -                                              | Lấy chi tiết một văn bản           |
-| POST   | /api/typing-texts              | { title, content, language, isPublic, difficulty } | Tạo mới một bài tập                |
-| PUT    | /api/typing-texts/:id          | { title, content, isPublic, difficulty }       | Cập nhật một bài tập               |
-| DELETE | /api/typing-texts/:id          | -                                              | Xóa một bài tập                    |
+| Method | URL                            | Body/Params                                                               | Description                        |
+|--------|--------------------------------|---------------------------------------------------------------------------|------------------------------------|
+| GET    | /api/typing-texts/mine         | -                                                                         | Lấy danh sách bài tập của tôi      |
+| GET    | /api/typing-texts/public       | -                                                                         | Lấy danh sách bài tập công khai    |
+| GET    | /api/typing-texts              | -                                                                         | Lấy tất cả bài tập                 |
+| GET    | /api/typing-texts/:id          | -                                                                         | Lấy chi tiết một văn bản           |
+| POST   | /api/typing-texts              | { title, content, language, isPublic, difficulty, isDefault, sourceType } | Tạo mới một bài tập                |
+| PUT    | /api/typing-texts/:id          | { title, content, language, isPublic, difficulty, isDefault, sourceType } | Cập nhật một bài tập               |
+| DELETE | /api/typing-texts/:id          | -                                                                         | Xóa một bài tập                    |
 
 ## Typing result
 | Method | URL                                     | Body/Params                                              | Description                        |

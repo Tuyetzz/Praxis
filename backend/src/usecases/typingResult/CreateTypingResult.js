@@ -44,12 +44,19 @@ class CreateTypingResult {
       throw new Error('Forbidden: You cannot submit result for this text.');
     }
 
+    const hasRawWpm = Object.prototype.hasOwnProperty.call(payload, 'rawWpm');
+    if (hasRawWpm) {
+      if (!Number.isFinite(rawWpm) || rawWpm < 0) {
+        throw new Error('Raw WPM must be a non-negative number.');
+      }
+    }
+
     const typingResult = new TypingResult({
       userId,
       textId,
       wpm: Number(wpm),
       accuracy: Number(accuracy),
-      rawWpm: rawWpm ? Number(rawWpm) : Number(wpm),
+      rawWpm: hasRawWpm ? Number(rawWpm) : Number(wpm),
       durationSeconds: Math.round(durationSeconds),
       errorTags: errorTags || {}
     });
