@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "sync": "node src/infrastructure/database/config/sync-db.js",
     "seed:system": "node src/usecases/base/SeedSystemData.js"
   },
   "keywords": [],
