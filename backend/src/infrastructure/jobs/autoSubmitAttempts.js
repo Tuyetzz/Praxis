@@ -1,12 +1,14 @@
 // src/infrastructure/jobs/autoSubmitAttempts.js
 const schedule = require("node-schedule");
 
+
 class AutoSubmitAttemptsJob {
   constructor({ attemptRepository, container, logger }) {
     this.attemptRepository = attemptRepository;
     this.container = container;
     this.logger = logger || console;
     this.job = null;
+    this.isRunning = false;
   }
 
   start() {
@@ -33,13 +35,18 @@ class AutoSubmitAttemptsJob {
   }
 
   async executeAutoSubmit() {
+    if (this.isRunning) {
+      this.logger.warn("[AUTO-SUBMIT] Job is already running, skipping this tick.");
+      return;
+    }
+    this.isRunning = true;
     try {
       const now = new Date();
 
       const expiredAttempts = await this.attemptRepository.findExpiredAttempts(now);
 
       if (!expiredAttempts || expiredAttempts.length === 0) {
-        return; 
+        return;
       }
 
       this.logger.info(
@@ -52,8 +59,9 @@ class AutoSubmitAttemptsJob {
 
       for (const attempt of expiredAttempts) {
         try {
-          const submitAttempt = this.container.resolve("submitAttempt");
-          
+          // Create a child scope for each submission to get a fresh unitOfWork/submitAttempt
+          const childScope = this.container.createScope();
+          const submitAttempt = childScope.resolve("submitAttempt");
           await submitAttempt.execute({
             userId: attempt.userId,
             attemptId: attempt.id,
@@ -82,6 +90,8 @@ class AutoSubmitAttemptsJob {
       }
     } catch (err) {
       this.logger.error(`[AUTO-SUBMIT] Job error: ${err.message}`);
+    } finally {
+      this.isRunning = false;
     }
   }
 }
