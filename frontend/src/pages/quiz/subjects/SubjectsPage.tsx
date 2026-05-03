@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getSubjects } from "../../api/subjects";
-import type { Subject } from "../../types/subject";
+import { getSubjects } from "../../../api/subjects";
+import type { Subject } from "../../../types/subject";
 
 export default function SubjectsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);

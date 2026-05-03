@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { User } from "../../types/user";
-import { getMe, login as apiLogin, logout as apiLogout } from "../../api/auth";
+import { login as apiLogin, logout as apiLogout } from "../../api/auth";
 import { http } from "../../api/http";
 
 type AuthCtx = {
@@ -16,32 +16,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Khởi động: nếu có token thì gọi /auth/me để lấy user
-  useEffect(() => {
+  function getStoredUser(): User | null {
+    const raw = localStorage.getItem("authUser");
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as User;
+    } catch {
+      localStorage.removeItem("authUser");
+      return null;
+    }
+  }
+
+  function setStoredUser(nextUser: User | null) {
+    if (!nextUser) {
+      localStorage.removeItem("authUser");
+      return;
+    }
+    localStorage.setItem("authUser", JSON.stringify(nextUser));
+  }
+
+  function getValidToken() {
     const token = localStorage.getItem("accessToken");
-    if (!token) { setLoading(false); return; }
-    // đã set interceptor nên chỉ cần gọi getMe
-    getMe().then(setUser).catch(() => {
+    if (!token || token === "undefined" || token === "null") return null;
+    return token;
+  }
+
+  // Khởi động: nếu có token thì dùng user đã lưu localStorage
+  useEffect(() => {
+    const token = getValidToken();
+    if (!token) {
       localStorage.removeItem("accessToken");
-    }).finally(() => setLoading(false));
+      localStorage.removeItem("authUser");
+      setLoading(false);
+      return;
+    }
+
+    const storedUser = getStoredUser();
+    if (!storedUser) {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("authUser");
+      setLoading(false);
+      return;
+    }
+
+    setUser(storedUser);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const handleAuthInvalid = () => {
+      localStorage.removeItem("authUser");
+      setUser(null);
+      setLoading(false);
+    };
+
+    window.addEventListener("auth:invalid", handleAuthInvalid);
+    return () => window.removeEventListener("auth:invalid", handleAuthInvalid);
   }, []);
 
   async function login(email: string, password: string) {
     const res = await apiLogin({ email, password });
     localStorage.setItem("accessToken", res.accessToken);
+    if (res.refreshToken) {
+      localStorage.setItem("refreshToken", res.refreshToken);
+    }
 
     // attach token cho axios
     http.defaults.headers.common.Authorization = `Bearer ${res.accessToken}`;
 
-    // gọi /auth/me để lấy thông tin user
-    const me = await getMe();
-    setUser(me);
+    setUser(res.user);
+    setStoredUser(res.user);
   }
 
 
   async function logout() {
     try { await apiLogout(); } catch {}
     localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("authUser");
     delete http.defaults.headers.common.Authorization;
     setUser(null);
   }
