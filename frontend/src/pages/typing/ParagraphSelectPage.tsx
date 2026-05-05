@@ -35,6 +35,7 @@ export default function ParagraphSelectPage() {
   const [form, setForm] = useState<TypingTextForm>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function loadTexts() {
     setLoading(true);
@@ -89,8 +90,16 @@ export default function ParagraphSelectPage() {
 
   const handleDelete = async (text: TypingText) => {
     if (!window.confirm(`Delete "${text.title}"?`)) return;
-    await deleteTypingText(text.id);
-    await loadTexts();
+    setFormError(null);
+    setDeletingId(text.id);
+    try {
+      await deleteTypingText(text.id);
+      await loadTexts();
+    } catch {
+      setFormError("Unable to delete the selected text.");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handleSubmit = async () => {
@@ -100,15 +109,19 @@ export default function ParagraphSelectPage() {
     }
 
     setFormError(null);
-    if (editingId) {
-      await updateTypingText(editingId, form);
-    } else {
-      await createTypingText(form);
-    }
+    try {
+      if (editingId) {
+        await updateTypingText(editingId, form);
+      } else {
+        await createTypingText(form);
+      }
 
-    setForm(EMPTY_FORM);
-    setEditingId(null);
-    await loadTexts();
+      setForm(EMPTY_FORM);
+      setEditingId(null);
+      await loadTexts();
+    } catch {
+      setFormError("Unable to save the text. Please try again.");
+    }
   };
 
   return (
@@ -280,6 +293,7 @@ export default function ParagraphSelectPage() {
                         </button>
                         <button
                           onClick={() => handleDelete(snippet)}
+                          disabled={deletingId === snippet.id}
                           className="bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-3 rounded-lg transition flex items-center gap-1"
                         >
                           <Trash2 size={16} />

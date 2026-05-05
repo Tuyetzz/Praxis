@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { startAttempt } from "../../../api/attempts";
 
-export default function AttemptConfigPage() {
+export default function ExamConfigPage() {
   const { id: subjectIdParam, chapterId: chapterIdParam } = useParams();
   const navigate = useNavigate();
 

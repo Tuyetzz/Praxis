@@ -79,6 +79,7 @@ export default function TypingPage() {
   const [mistakes, setMistakes] = useState<number[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [completedAt, setCompletedAt] = useState<number | null>(null);
   const [stats, setStats] = useState<TypingStats>({
     wpm: 0,
     accuracy: 100,
@@ -87,6 +88,7 @@ export default function TypingPage() {
   });
   const inputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -128,11 +130,12 @@ export default function TypingPage() {
 
   // Handle timer
   useEffect(() => {
-    if (stats.isActive && currentIndex > 0) {
+    if (stats.isActive && currentIndex > 0 && startedAtRef.current) {
       timerRef.current = setInterval(() => {
+        const elapsed = Math.max(1, Math.floor((Date.now() - startedAtRef.current) / 1000));
         setStats((prev) => ({
           ...prev,
-          timeElapsed: prev.timeElapsed + 1,
+          timeElapsed: elapsed,
         }));
       }, 1000);
     } else {
@@ -166,6 +169,9 @@ export default function TypingPage() {
     if (currentIndex >= paragraph.length) return;
 
     if (!stats.isActive) {
+      if (!startedAtRef.current) {
+        startedAtRef.current = Date.now();
+      }
       setStats((prev) => ({ ...prev, isActive: true }));
     }
 
@@ -196,6 +202,8 @@ export default function TypingPage() {
     setMistakes([]);
     setSubmitError(null);
     setHasSubmitted(false);
+    setCompletedAt(null);
+    startedAtRef.current = null;
     setStats({
       wpm: 0,
       accuracy: 100,
@@ -230,10 +238,22 @@ export default function TypingPage() {
   const isComplete = currentIndex >= paragraph.length && currentIndex > 0;
 
   useEffect(() => {
-    if (!isComplete || hasSubmitted || stats.timeElapsed === 0) return;
+    if (!isComplete || completedAt) return;
+    const finishTime = Date.now();
+    setCompletedAt(finishTime);
+    setStats((prev) => ({ ...prev, isActive: false }));
+    if (startedAtRef.current) {
+      const elapsed = Math.max(1, Math.floor((finishTime - startedAtRef.current) / 1000));
+      setStats((prev) => ({ ...prev, timeElapsed: elapsed }));
+    }
+  }, [completedAt, isComplete]);
+
+  useEffect(() => {
+    if (!isComplete || hasSubmitted) return;
     if (!activeText || activeText.id.startsWith("local-")) return;
 
-    const minutes = stats.timeElapsed / 60;
+    const durationSeconds = Math.max(1, stats.timeElapsed);
+    const minutes = durationSeconds / 60;
     const rawWpm = Math.round((input.length / 5) / minutes) || 0;
 
     createTypingResult({
@@ -241,7 +261,7 @@ export default function TypingPage() {
       wpm: stats.wpm,
       accuracy: stats.accuracy,
       rawWpm,
-      durationSeconds: stats.timeElapsed,
+      durationSeconds,
       errorTags: buildErrorTags(input, mistakes),
     })
       .then(() => {

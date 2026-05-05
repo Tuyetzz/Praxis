@@ -2,9 +2,9 @@
 import { http } from "./http";
 import type { AttemptQuestion } from "../types/attemptsquestion";
 
-// Lấy danh sách AttemptQuestions theo attemptId
-export async function getAttemptQuestions(attemptId: number) {
-  const res = await http.get<AttemptQuestion[]>(`/attempt-questions/attempt/${attemptId}`);
+// Lấy danh sách AttemptQuestions theo attemptId (kèm question + options)
+export async function getAttemptQuestions(attemptId: string) {
+  const res = await http.get<AttemptQuestion[]>(`/attempts/${attemptId}/questions`);
   return res.data;
 }
 

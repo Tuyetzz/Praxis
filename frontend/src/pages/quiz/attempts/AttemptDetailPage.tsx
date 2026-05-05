@@ -6,8 +6,7 @@ import {
   submitAttempt,
   type SaveAnswerPayload,
 } from "../../../api/attempts";
-import { getQuestionsByChapter } from "../../../api/questions";
-import { getOptionsByQuestion } from "../../../api/options";
+import { getAttemptQuestions } from "../../../api/attemptsQuestion";
 import type { Attempt } from "../../../types/attempt";
 import type { Option } from "../../../types/options";
 import type { Question } from "../../../types/question";
@@ -20,35 +19,6 @@ type LocalAnswer = {
   flagged: boolean;
 };
 
-function parsePagingRange(input: unknown, maxLength: number): { from: number; to: number } {
-  if (typeof input === "string") {
-    const match = input.match(/^(\d+)\s*-\s*(\d+)$/);
-    if (match) {
-      const from = Math.max(1, Number(match[1]));
-      const to = Math.max(from, Number(match[2]));
-      return { from, to: Math.min(to, maxLength) };
-    }
-  }
-
-  if (typeof input === "object" && input) {
-    const from = Number((input as { from?: number }).from ?? 1);
-    const to = Number((input as { to?: number }).to ?? maxLength);
-    const normalizedFrom = Number.isFinite(from) ? Math.max(1, Math.floor(from)) : 1;
-    const normalizedTo = Number.isFinite(to) ? Math.max(normalizedFrom, Math.floor(to)) : maxLength;
-    return { from: normalizedFrom, to: Math.min(normalizedTo, maxLength) };
-  }
-
-  return { from: 1, to: maxLength };
-}
-
-function sortByCreatedAtThenId(questions: Question[]): Question[] {
-  return [...questions].sort((a, b) => {
-    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-    if (aTime !== bTime) return aTime - bTime;
-    return String(a.id).localeCompare(String(b.id));
-  });
-}
 
 export default function AttemptDetailPage() {
   const { id } = useParams();
@@ -63,15 +33,7 @@ export default function AttemptDetailPage() {
 
   const [submitting, setSubmitting] = useState(false);
 
-  const settings = attempt?.settings;
-  const questionsPerPage = Math.max(1, Number(settings?.questionsPerPage || 10));
-  const totalPages = Math.max(1, Math.ceil(questions.length / questionsPerPage));
-  const [currentPage, setCurrentPage] = useState(0);
-
-  const pagedQuestions = useMemo(() => {
-    const start = currentPage * questionsPerPage;
-    return questions.slice(start, start + questionsPerPage);
-  }, [questions, currentPage, questionsPerPage]);
+  const orderedQuestions = useMemo(() => questions, [questions]);
 
   const readOnly = attempt?.status !== "in_progress";
 
@@ -99,23 +61,18 @@ export default function AttemptDetailPage() {
           return;
         }
 
-        const chapterQuestions = await getQuestionsByChapter(String(attemptData.chapterId));
-        if (!alive) return;
+        const attemptQuestions = await getAttemptQuestions(attemptId);
+        const selectedQuestions = attemptQuestions
+          .map((aq) => aq.question)
+          .filter(Boolean) as Question[];
 
-        const ordered = sortByCreatedAtThenId(chapterQuestions);
-        const { from, to } = parsePagingRange(attemptData.settings?.paging, ordered.length);
-        const selectedQuestions = ordered.slice(from - 1, to);
-
-        const withOptions = await Promise.all(
-          selectedQuestions.map(async (q) => {
-            const options = await getOptionsByQuestion(String(q.id));
-            return { ...q, options };
-          })
-        );
+        const withOptions = selectedQuestions.map((q) => ({
+          ...q,
+          options: q.options ?? [],
+        }));
 
         if (!alive) return;
         setQuestions(withOptions);
-        setCurrentPage(0);
       } catch (e: unknown) {
         const message =
           typeof e === "object" &&
@@ -152,12 +109,23 @@ export default function AttemptDetailPage() {
       payload.value = next.value;
     }
 
-    await saveAttemptAnswer(attemptId, payload);
-
-    setAnswersByQuestionId((prev) => ({
-      ...prev,
-      [questionId]: next,
-    }));
+    try {
+      await saveAttemptAnswer(attemptId, payload);
+      setAnswersByQuestionId((prev) => ({
+        ...prev,
+        [questionId]: next,
+      }));
+      setError(null);
+    } catch (e: unknown) {
+      const message =
+        typeof e === "object" &&
+        e &&
+        "response" in e &&
+        typeof (e as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
+          ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
+          : "Không lưu được đáp án.";
+      setError(message || "Không lưu được đáp án.");
+    }
   }
 
   async function onPickSingle(questionId: string, optionId: string) {
@@ -244,14 +212,14 @@ export default function AttemptDetailPage() {
         </div>
       )}
 
-      {pagedQuestions.map((q, idx) => {
+      {orderedQuestions.map((q, idx) => {
         const local = answersByQuestionId[q.id] || { selectedOptionIds: [], value: "", flagged: false };
 
         return (
           <div key={q.id} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
               <p style={{ margin: 0, fontWeight: 600 }}>
-                {currentPage * questionsPerPage + idx + 1}. {q.text}
+                {idx + 1}. {q.text}
               </p>
               <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
                 <input
@@ -310,21 +278,6 @@ export default function AttemptDetailPage() {
           </div>
         );
       })}
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
-        <button disabled={currentPage <= 0} onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}>
-          Trang trước
-        </button>
-        <span>
-          {currentPage + 1} / {totalPages}
-        </span>
-        <button
-          disabled={currentPage >= totalPages - 1}
-          onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
-        >
-          Trang sau
-        </button>
-      </div>
 
       <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
         <button disabled={readOnly || submitting} onClick={() => void onSubmitAttempt()}>

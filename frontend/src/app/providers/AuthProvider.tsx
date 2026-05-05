@@ -16,6 +16,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  function clearAuthStorage() {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("authUser");
+    delete http.defaults.headers.common.Authorization;
+  }
+
   function getStoredUser(): User | null {
     const raw = localStorage.getItem("authUser");
     if (!raw) return null;
@@ -45,16 +52,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = getValidToken();
     if (!token) {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("authUser");
+      clearAuthStorage();
       setLoading(false);
       return;
     }
 
     const storedUser = getStoredUser();
     if (!storedUser) {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("authUser");
+      clearAuthStorage();
       setLoading(false);
       return;
     }
@@ -65,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleAuthInvalid = () => {
-      localStorage.removeItem("authUser");
+      clearAuthStorage();
       setUser(null);
       setLoading(false);
     };
