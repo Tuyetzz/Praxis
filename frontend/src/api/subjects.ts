@@ -8,7 +8,7 @@ export async function getSubjects(): Promise<Subject[]> {
 }
 
 // Lấy 1 subject theo id
-export async function getSubjectById(id: number): Promise<Subject> {
+export async function getSubjectById(id: string | number): Promise<Subject> {
   const res = await http.get(`/subjects/${id}`);
   return res.data;
 }
@@ -21,7 +21,7 @@ export async function createSubject(payload: Omit<Subject, "id" | "createdAt">):
 
 // Cập nhật subject
 export async function updateSubject(
-  id: number,
+  id: string | number,
   payload: Partial<Omit<Subject, "id" | "createdAt">>
 ): Promise<Subject> {
   const res = await http.put(`/subjects/${id}`, payload);
@@ -29,6 +29,6 @@ export async function updateSubject(
 }
 
 // Xoá subject
-export async function deleteSubject(id: number): Promise<void> {
+export async function deleteSubject(id: string | number): Promise<void> {
   await http.delete(`/subjects/${id}`);
 }

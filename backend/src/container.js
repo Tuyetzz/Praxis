@@ -92,6 +92,7 @@ const UpdateSubject = require('./usecases/subject/UpdateSubject');
 const UpdateUser = require('./usecases/user/UpdateUser');
 const StartAttempt = require('./usecases/attempt/StartAttempt');
 const GetAttempt = require('./usecases/attempt/GetAttempt');
+const GetAttemptQuestions = require('./usecases/attempt/GetAttemptQuestions');
 const SaveAnswer = require('./usecases/attempt/SaveAnswer');
 const SubmitAttempt = require('./usecases/attempt/SubmitAttempt');
 const GetAttemptGrade = require('./usecases/attempt/GetAttemptGrade');
@@ -193,6 +194,7 @@ container.register({
   updateUser: asClass(UpdateUser).singleton(),
   startAttempt: asClass(StartAttempt).scoped(),
   getAttempt: asClass(GetAttempt).singleton(),
+  getAttemptQuestions: asClass(GetAttemptQuestions).singleton(),
   saveAnswer: asClass(SaveAnswer).scoped(),
   submitAttempt: asClass(SubmitAttempt).scoped(),
   getAttemptGrade: asClass(GetAttemptGrade).singleton(),

@@ -12,6 +12,10 @@ router.get("/:id", requiredPermission(PERMISSIONS.ATTEMPT_VIEW), (req, res) =>
   attemptController.getOne(req, res)
 );
 
+router.get("/:attemptId/questions", requiredPermission(PERMISSIONS.ATTEMPT_VIEW), (req, res) =>
+  attemptController.getQuestions(req, res)
+);
+
 router.get("/:attemptId/grade", requiredPermission(PERMISSIONS.ATTEMPT_VIEW), (req, res) =>
   attemptController.getGrade(req, res)
 );

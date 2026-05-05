@@ -9,8 +9,13 @@ export async function getAllQuestions() {
 }
 
 // Lấy chi tiết question theo id
-export async function getQuestionById(id: number) {
+export async function getQuestionById(id: string | number) {
   const res = await http.get<Question>(`/questions/${id}`);
+  return res.data;
+}
+
+export async function getQuestionsByChapter(chapterId: string): Promise<Question[]> {
+  const res = await http.get<Question[]>(`/questions/chapter/${chapterId}`);
   return res.data;
 }
 
@@ -21,13 +26,13 @@ export async function createQuestion(payload: Partial<Question>) {
 }
 
 // Cập nhật question
-export async function updateQuestion(id: number, payload: Partial<Question>) {
+export async function updateQuestion(id: string | number, payload: Partial<Question>) {
   const res = await http.put<Question>(`/questions/${id}`, payload);
   return res.data;
 }
 
 // Xóa question
-export async function deleteQuestion(id: number) {
+export async function deleteQuestion(id: string | number) {
   const res = await http.delete<{ success: boolean }>(`/questions/${id}`);
   return res.data;
 }

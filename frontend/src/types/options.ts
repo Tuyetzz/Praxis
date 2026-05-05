@@ -1,5 +1,5 @@
 export interface Option {
-  id: number;
+  id: string;
   text: string;
   isCorrect: boolean;
   order: number;

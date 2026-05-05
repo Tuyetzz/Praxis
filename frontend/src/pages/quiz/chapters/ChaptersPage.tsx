@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getChaptersBySubject } from "../../api/chapters";
-import type { Chapter } from "../../types/chapter";
-import { getSubjectById } from "../../api/subjects";
+import { getChaptersBySubject } from "../../../api/chapters";
+import type { Chapter } from "../../../types/chapter";
+import { getSubjectById } from "../../../api/subjects";
 
 export default function ChaptersPage() {
   const { id } = useParams(); // subjectId
@@ -13,8 +13,7 @@ export default function ChaptersPage() {
 
   useEffect(() => {
     if (!id) return;
-    const subjectId = parseInt(id, 10);
-    getChaptersBySubject(subjectId)
+    getChaptersBySubject(id)
       .then(setChapters)  //thanh cong thi set chapter vao dong so 10
       .catch((err) => console.error("Lỗi khi load chapters:", err))
       .finally(() => setLoading(false));
@@ -22,7 +21,7 @@ export default function ChaptersPage() {
   
   useEffect(() => {
     if (!id) return;
-    getSubjectById(parseInt(id, 10))
+    getSubjectById(id)
       .then((s) => setSubjectName(s.name))
       .catch((err) => console.error("Lỗi khi load subject:", err));
   }, [id]);

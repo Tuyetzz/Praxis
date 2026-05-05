@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { RotateCcw, BookOpen } from "lucide-react";
+import { createTypingResult } from "../../api/typingResults";
+import { getPublicTypingTexts } from "../../api/typingTexts";
+import type { TypingText } from "../../types/typingText";
 
 interface TypingStats {
   wpm: number;
@@ -9,14 +12,74 @@ interface TypingStats {
   isActive: boolean;
 }
 
+const LOCAL_DEFAULT_TEXTS: TypingText[] = [
+  {
+    id: "local-1",
+    authorId: "",
+    title: "Quick Brown Fox",
+    content:
+      "The quick brown fox jumps over the lazy dog. This pangram includes every letter of the alphabet.",
+    language: "english",
+    isPublic: false,
+    isDefault: true,
+    difficulty: "easy",
+  },
+  {
+    id: "local-2",
+    authorId: "",
+    title: "Modern Tech",
+    content:
+      "Technology shapes how we communicate, learn, and create. Practice smooth, steady typing with this paragraph.",
+    language: "english",
+    isPublic: false,
+    isDefault: true,
+    difficulty: "medium",
+  },
+  {
+    id: "local-3",
+    authorId: "",
+    title: "Focused Practice",
+    content:
+      "Consistent practice builds accuracy. Keep your eyes on the text and your fingers on the home row.",
+    language: "english",
+    isPublic: false,
+    isDefault: true,
+    difficulty: "medium",
+  },
+];
+
+function getStoredTypingText(): TypingText | null {
+  const raw = localStorage.getItem("selectedTypingText");
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as TypingText;
+  } catch {
+    localStorage.removeItem("selectedTypingText");
+    return null;
+  }
+}
+
+function buildErrorTags(input: string, mistakes: number[]) {
+  const tags: Record<string, number> = {};
+  mistakes.forEach((index) => {
+    const char = input[index];
+    if (!char) return;
+    tags[char] = (tags[char] ?? 0) + 1;
+  });
+  return Object.keys(tags).length ? tags : undefined;
+}
+
 export default function TypingPage() {
   const navigate = useNavigate();
-  const [paragraph, setParagraph] = useState(
-    "The quick brown fox jumps over the lazy dog. This is a test paragraph for the typing practice system."
-  );
+  const [activeText, setActiveText] = useState<TypingText | null>(null);
+  const [paragraph, setParagraph] = useState("");
+  const [loadingText, setLoadingText] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [input, setInput] = useState("");
   const [mistakes, setMistakes] = useState<number[]>([]);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [completedAt, setCompletedAt] = useState<number | null>(null);
   const [stats, setStats] = useState<TypingStats>({
     wpm: 0,
     accuracy: 100,
@@ -24,15 +87,55 @@ export default function TypingPage() {
     isActive: false,
   });
   const inputRef = useRef<HTMLInputElement>(null);
-  const timerRef = useRef<NodeJS.Timeout>();
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startedAtRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const storedText = getStoredTypingText();
+
+    async function loadDefaultText() {
+      try {
+        const publicTexts = await getPublicTypingTexts();
+        if (!mounted) return;
+        if (publicTexts.length > 0) {
+          const randomText = publicTexts[Math.floor(Math.random() * publicTexts.length)];
+          setActiveText(randomText);
+          setParagraph(randomText.content);
+          setLoadingText(false);
+          return;
+        }
+      } catch {
+        if (!mounted) return;
+      }
+
+      const fallback = LOCAL_DEFAULT_TEXTS[Math.floor(Math.random() * LOCAL_DEFAULT_TEXTS.length)];
+      setActiveText(fallback);
+      setParagraph(fallback.content);
+      setLoadingText(false);
+    }
+
+    if (storedText) {
+      setActiveText(storedText);
+      setParagraph(storedText.content);
+      setLoadingText(false);
+    } else {
+      loadDefaultText();
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Handle timer
   useEffect(() => {
-    if (stats.isActive && currentIndex > 0) {
+    if (stats.isActive && currentIndex > 0 && startedAtRef.current) {
       timerRef.current = setInterval(() => {
+        const elapsed = Math.max(1, Math.floor((Date.now() - startedAtRef.current) / 1000));
         setStats((prev) => ({
           ...prev,
-          timeElapsed: prev.timeElapsed + 1,
+          timeElapsed: elapsed,
         }));
       }, 1000);
     } else {
@@ -66,6 +169,9 @@ export default function TypingPage() {
     if (currentIndex >= paragraph.length) return;
 
     if (!stats.isActive) {
+      if (!startedAtRef.current) {
+        startedAtRef.current = Date.now();
+      }
       setStats((prev) => ({ ...prev, isActive: true }));
     }
 
@@ -94,6 +200,10 @@ export default function TypingPage() {
     setCurrentIndex(0);
     setInput("");
     setMistakes([]);
+    setSubmitError(null);
+    setHasSubmitted(false);
+    setCompletedAt(null);
+    startedAtRef.current = null;
     setStats({
       wpm: 0,
       accuracy: 100,
@@ -127,15 +237,66 @@ export default function TypingPage() {
 
   const isComplete = currentIndex >= paragraph.length && currentIndex > 0;
 
+  useEffect(() => {
+    if (!isComplete || completedAt) return;
+    const finishTime = Date.now();
+    setCompletedAt(finishTime);
+    setStats((prev) => ({ ...prev, isActive: false }));
+    if (startedAtRef.current) {
+      const elapsed = Math.max(1, Math.floor((finishTime - startedAtRef.current) / 1000));
+      setStats((prev) => ({ ...prev, timeElapsed: elapsed }));
+    }
+  }, [completedAt, isComplete]);
+
+  useEffect(() => {
+    if (!isComplete || hasSubmitted) return;
+    if (!activeText || activeText.id.startsWith("local-")) return;
+
+    const durationSeconds = Math.max(1, stats.timeElapsed);
+    const minutes = durationSeconds / 60;
+    const rawWpm = Math.round((input.length / 5) / minutes) || 0;
+
+    createTypingResult({
+      textId: activeText.id,
+      wpm: stats.wpm,
+      accuracy: stats.accuracy,
+      rawWpm,
+      durationSeconds,
+      errorTags: buildErrorTags(input, mistakes),
+    })
+      .then(() => {
+        setHasSubmitted(true);
+        setSubmitError(null);
+      })
+      .catch(() => {
+        setHasSubmitted(true);
+        setSubmitError("Unable to save typing result.");
+      });
+  }, [
+    activeText,
+    hasSubmitted,
+    input,
+    isComplete,
+    mistakes,
+    stats.accuracy,
+    stats.timeElapsed,
+    stats.wpm,
+  ]);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-4">
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Typing Practice</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">Fast Type</h1>
           <p className="text-gray-300">
             Practice your typing skills and improve your WPM
           </p>
+          {activeText && (
+            <p className="text-gray-400 text-sm mt-2">
+              Text: {activeText.title}
+            </p>
+          )}
         </div>
 
         {/* Stats */}
@@ -161,16 +322,26 @@ export default function TypingPage() {
         {/* Typing Area */}
         <div className="bg-slate-700 rounded-lg p-8 mb-8">
           <div className="mb-6 text-2xl leading-relaxed font-mono">
-            {paragraph.split("").map((char, index) => (
-              <span key={index} className={`${getCharClass(index)} px-0.5`}>
-                {char === " " ? "\u00A0" : char}
-              </span>
-            ))}
+            {loadingText ? (
+              <span className="text-gray-400">Loading text...</span>
+            ) : (
+              paragraph.split("").map((char, index) => (
+                <span key={index} className={`${getCharClass(index)} px-0.5`}>
+                  {char === " " ? "\u00A0" : char}
+                </span>
+              ))
+            )}
           </div>
 
           {isComplete && (
             <div className="bg-green-600 text-white p-4 rounded-lg text-center font-semibold">
               🎉 Typing complete! Great job!
+            </div>
+          )}
+
+          {submitError && (
+            <div className="bg-amber-500 text-white p-3 rounded-lg text-center font-semibold mt-3">
+              {submitError}
             </div>
           )}
 
@@ -218,7 +389,9 @@ export default function TypingPage() {
             <div
               className="bg-blue-500 h-2 rounded-full transition-all duration-300"
               style={{
-                width: `${(currentIndex / paragraph.length) * 100}%`,
+                width: paragraph.length
+                  ? `${(currentIndex / paragraph.length) * 100}%`
+                  : "0%",
               }}
             ></div>
           </div>
