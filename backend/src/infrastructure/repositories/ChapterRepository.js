@@ -1,6 +1,7 @@
 // src/infrastructure/repositories/ChapterRepository.js
 const BaseRepository = require("./BaseRepository");
 const ChapterModel = require("../database/models/ChapterModel");
+const QuestionModel = require("../database/models/QuestionModel");
 const chapterMapper = require("../mappers/ChapterMapper");
 
 class ChapterRepository extends BaseRepository {
@@ -28,6 +29,20 @@ class ChapterRepository extends BaseRepository {
       where: { subjectId, id, isDeleted: false }
     });
     return count > 0;
+  }
+
+  async countQuestionsByChapterId(chapterId) {
+    try {
+      const count = await QuestionModel.count({
+        where: { 
+          chapterId: chapterId,
+          isDeleted: false 
+        }
+      });
+      return count;
+    } catch (error) {
+      throw new Error(`Error counting questions for chapter ${chapterId}: ${error.message}`);
+    }
   }
 }
 

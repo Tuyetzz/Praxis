@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, ChevronRight, Pencil, Plus, Sparkles, Trash2, RefreshCcw } from "lucide-react";
 import type { TypingText, TypingTextDifficulty } from "../../types/typingText";
+import AppHeader from "../../components/AppHeader";
 import {
   createTypingText,
   deleteTypingText,
@@ -125,8 +126,16 @@ export default function ParagraphSelectPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-4">
-      <div className="max-w-6xl mx-auto">
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "radial-gradient(circle at 15% 20%, #cffafe 0%, #0f172a 55%, #020617 100%)",
+        fontFamily: '"Space Grotesk", "IBM Plex Sans", sans-serif',
+      }}
+    >
+      <AppHeader />
+      <div className="min-h-screen p-4">
+        <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-12 flex flex-col gap-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -359,6 +368,7 @@ export default function ParagraphSelectPage() {
               </div>
             )}
           </section>
+        </div>
         </div>
       </div>
     </div>
