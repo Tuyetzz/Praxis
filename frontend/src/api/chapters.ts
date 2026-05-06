@@ -12,3 +12,8 @@ export async function getChapterById(id: string | number): Promise<Chapter> {
   const res = await http.get(`/chapters/${id}`);
   return res.data;
 }
+
+export async function getChapterQuestionCount(id: string | number): Promise<{ chapterId: string; totalQuestions: number }> {
+  const res = await http.get(`/chapters/${id}/questions/count`);
+  return res.data;
+}

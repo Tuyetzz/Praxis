@@ -21,6 +21,10 @@ router.get('/subject/:subjectId', requiredPermission(PERMISSIONS.CHAPTER_VIEW), 
   chapterController.getBySubject(req, res)
 );
 
+router.get('/:id/questions/count', requiredPermission(PERMISSIONS.CHAPTER_VIEW), (req, res) =>
+  chapterController.getQuestionCount(req, res)
+);
+
 router.get('/:id', requiredPermission(PERMISSIONS.CHAPTER_VIEW), (req, res) => 
   chapterController.getOne(req, res)
 );

@@ -57,6 +57,7 @@ const DeleteSubject = require('./usecases/subject/DeleteSubject');
 const DeleteUser = require('./usecases/user/DeleteUser');
 const GetChapters = require('./usecases/chapter/GetChapters');
 const GetChaptersBySubject = require('./usecases/chapter/GetChaptersBySubject');
+const GetChapterQuestionCount = require('./usecases/chapter/GetChapterQuestionCount');
 const GetOneChapter = require('./usecases/chapter/GetOneChapter');
 const GetOneOption = require('./usecases/option/GetOneOption');
 const GetOneQuestion = require('./usecases/question/GetOneQuestion');
@@ -159,6 +160,7 @@ container.register({
   deleteUser: asClass(DeleteUser).singleton(),
   getChapters: asClass(GetChapters).singleton(),
   getChaptersBySubject: asClass(GetChaptersBySubject).singleton(),
+  getChapterQuestionCount: asClass(GetChapterQuestionCount).singleton(),
   getOneChapter: asClass(GetOneChapter).singleton(),
   getOneOption: asClass(GetOneOption).singleton(),
   getOneQuestion: asClass(GetOneQuestion).singleton(),

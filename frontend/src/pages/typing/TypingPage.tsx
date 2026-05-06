@@ -4,6 +4,7 @@ import { RotateCcw, BookOpen } from "lucide-react";
 import { createTypingResult } from "../../api/typingResults";
 import { getPublicTypingTexts } from "../../api/typingTexts";
 import type { TypingText } from "../../types/typingText";
+import AppHeader from "../../components/AppHeader";
 
 interface TypingStats {
   wpm: number;
@@ -284,8 +285,16 @@ export default function TypingPage() {
   ]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-4">
-      <div className="w-full max-w-2xl">
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "radial-gradient(circle at 10% 10%, #e0f2fe 0%, #0f172a 55%, #020617 100%)",
+        fontFamily: '"Space Grotesk", "IBM Plex Sans", sans-serif',
+      }}
+    >
+      <AppHeader />
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">Fast Type</h1>
@@ -395,6 +404,7 @@ export default function TypingPage() {
               }}
             ></div>
           </div>
+        </div>
         </div>
       </div>
     </div>

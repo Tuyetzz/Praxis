@@ -89,8 +89,8 @@ export type AttemptGradeResponse = {
     points: number;
     maxPoints: number;
     status: "correct" | "wrong" | "blank";
-    selectedAnswer: string[] | string | null;
-    correctAnswer: string[] | string | null;
+    selectedAnswer: Array<{ id: string; text: string }> | string | null;
+    correctAnswer: Array<{ id: string; text: string }> | string | null;
   }>;
 };
 

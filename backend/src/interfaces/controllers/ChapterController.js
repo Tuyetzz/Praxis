@@ -5,6 +5,7 @@ class ChapterController {
     getChapters,
     getOneChapter,
     getChaptersBySubject,
+    getChapterQuestionCount,
     updateChapter,
     deleteChapter,
     searchChapter
@@ -13,6 +14,7 @@ class ChapterController {
     this.getChapters = getChapters;
     this.getOneChapter = getOneChapter;
     this.getChaptersBySubject = getChaptersBySubject;
+    this.getChapterQuestionCount = getChapterQuestionCount;
     this.updateChapter = updateChapter;
     this.deleteChapter = deleteChapter;
     this.searchChapter = searchChapter;
@@ -57,6 +59,15 @@ class ChapterController {
   async getBySubject(req, res) {
     try {
       const result = await this.getChaptersBySubject.execute(req.params.subjectId);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+
+  async getQuestionCount(req, res) {
+    try {
+      const result = await this.getChapterQuestionCount.execute(req.params.id);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });

@@ -64,6 +64,7 @@ class GetAttemptGrade {
     const detailedAnswers = attemptQuestions.map(aq => {
       const question = questionMap[aq.questionId];
       const questionOptions = optionsMap[aq.questionId] || [];
+      const optionTextById = new Map(questionOptions.map(option => [option.id, option.text]));
       const answer = answerMap[aq.questionId];
 
       let status = "blank";
@@ -74,7 +75,7 @@ class GetAttemptGrade {
           status = answer.isCorrect ? "correct" : "wrong";
         }
         points = answer.earnedPoints || 0;
-        selectedAnswer = this.formatSelectedAnswer(answer, question?.type);
+        selectedAnswer = this.formatSelectedAnswer(answer, question?.type, optionTextById);
       }
       return {
         questionId: aq.questionId,
@@ -132,11 +133,15 @@ class GetAttemptGrade {
     };
   }
 
-  formatSelectedAnswer(answer, questionType) {
+  formatSelectedAnswer(answer, questionType, optionTextById) {
     if (questionType === QUESTIONS_TYPE_ENUM.FILL_BLANK) {
       return answer.value || null;
     }
-    return answer.selectedOptionIds || [];
+    if (!answer.selectedOptionIds?.length) return [];
+    return answer.selectedOptionIds.map((id) => ({
+      id,
+      text: optionTextById?.get(id) || "",
+    }));
   }
 
   formatCorrectAnswer(options, questionType) {
@@ -144,7 +149,10 @@ class GetAttemptGrade {
       const correctOption = options.find(o => o.isCorrect);
       return correctOption?.text || null;
     }
-    return options.filter(o => o.isCorrect).map(o => o.id);
+    return options.filter(o => o.isCorrect).map(o => ({
+      id: o.id,
+      text: o.text,
+    }));
   }
 }
 
