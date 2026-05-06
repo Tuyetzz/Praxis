@@ -19,3 +19,8 @@ export async function createTypingResult(payload: TypingResult) {
   const { data } = await http.post("/typing-results", payload);
   return unwrapData<TypingResult>(data);
 }
+
+export async function getMyTypingResults(): Promise<TypingResult[]> {
+  const { data } = await http.get("/typing-results/mine");
+  return unwrapData<TypingResult[]>(data);
+}

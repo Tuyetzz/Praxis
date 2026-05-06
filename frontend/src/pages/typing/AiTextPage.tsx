@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createTypingText } from "../../api/typingTexts";
 import type { TypingTextDifficulty } from "../../types/typingText";
+import AppHeader from "../../components/AppHeader";
 
 function summarizeText(text: string) {
   const trimmed = text.trim();
@@ -12,6 +13,7 @@ function summarizeText(text: string) {
 
 export default function AiTextPage() {
   const navigate = useNavigate();
+  const [inputMode, setInputMode] = useState<"text" | "file">("text");
   const [title, setTitle] = useState("");
   const [inputText, setInputText] = useState("");
   const [summary, setSummary] = useState("");
@@ -23,6 +25,7 @@ export default function AiTextPage() {
   const [saving, setSaving] = useState(false);
 
   const handleSummarize = () => {
+    if (inputMode !== "text") return;
     const nextSummary = summarizeText(inputText);
     setSummary(nextSummary);
   };
@@ -54,113 +57,204 @@ export default function AiTextPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold text-white mb-2">AI Text Generator</h1>
-          <p className="text-gray-300">
-            Upload a document or paste text, then generate a typing-friendly summary.
-          </p>
-        </div>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "radial-gradient(circle at 20% 10%, #ecfeff 0%, #f8fafc 55%, #ffffff 100%)",
+        color: "#0f172a",
+        fontFamily: '"Space Grotesk", "IBM Plex Sans", sans-serif',
+      }}
+    >
+      <AppHeader />
+      <style>{`
+        .ai-wrap {
+          max-width: 980px;
+          margin: 28px auto 60px;
+          padding: 0 20px 44px;
+        }
+        .ai-hero {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 18px;
+          align-items: center;
+          margin-bottom: 24px;
+        }
+        .ai-panel {
+          background: #ffffff;
+          border-radius: 16px;
+          border: 1px solid #e2e8f0;
+          padding: 18px 20px;
+          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+        }
+        .ai-panel--dark {
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+          color: #f8fafc;
+          border: none;
+        }
+        .ai-input {
+          background: #f8fafc;
+          border: 1px solid #cbd5f5;
+          border-radius: 12px;
+          padding: 12px 14px;
+          color: #0f172a;
+        }
+        .ai-input:focus {
+          outline: none;
+          border-color: #14b8a6;
+          box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
+        }
+        .ai-button {
+          border-radius: 12px;
+          font-weight: 600;
+          padding: 10px 16px;
+          transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+        }
+        .ai-button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+        }
+      `}</style>
+      <div className="min-h-screen">
+        <div className="ai-wrap">
+          <div className="ai-hero">
+            <div>
+              <h1 className="text-4xl font-bold text-slate-900 mb-2">AI Text Generator</h1>
+              <p className="text-slate-600">
+                Generate a typing-friendly summary from text or a file.
+              </p>
+            </div>
+            <div className="ai-panel ai-panel--dark">
+              <h3 className="text-lg font-semibold mb-1">Quick tips</h3>
+              <p className="text-slate-200/80">
+                Add a title and keep summaries around 3 to 5 sentences for best results.
+              </p>
+            </div>
+          </div>
 
-        <div className="bg-slate-700 rounded-lg p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              className="bg-slate-600 text-white border border-slate-500 rounded-lg p-3"
-              placeholder="Title (optional)"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            <input
-              className="bg-slate-600 text-white border border-slate-500 rounded-lg p-3"
-              placeholder="Language (english)"
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-            />
-            <select
-              className="bg-slate-600 text-white border border-slate-500 rounded-lg p-3"
-              value={difficulty}
-              onChange={(e) => setDifficulty(e.target.value as TypingTextDifficulty)}
-            >
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
-            </select>
-            <label className="flex items-center gap-2 text-gray-200">
+          <div className="ai-panel mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input
-                type="checkbox"
-                checked={isPublic}
-                onChange={(e) => setIsPublic(e.target.checked)}
+                className="ai-input"
+                placeholder="Title (optional)"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
               />
-              Public text
-            </label>
+              <input
+                className="ai-input"
+                placeholder="Language (english)"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+              />
+              <select
+                className="ai-input"
+                value={difficulty}
+                onChange={(e) => setDifficulty(e.target.value as TypingTextDifficulty)}
+              >
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+              <label className="flex items-center gap-2 text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={isPublic}
+                  onChange={(e) => setIsPublic(e.target.checked)}
+                />
+                Public text
+              </label>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                onClick={() => setInputMode("text")}
+                className={`ai-button ${
+                  inputMode === "text"
+                    ? "bg-slate-900 text-white"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                Input Text
+              </button>
+              <button
+                onClick={() => setInputMode("file")}
+                className={`ai-button ${
+                  inputMode === "file"
+                    ? "bg-slate-900 text-white"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                Upload File
+              </button>
+            </div>
           </div>
 
-          <div className="mt-4">
-            <label className="block text-sm text-gray-300 mb-2">Upload PDF/Word</label>
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                setFileName(file ? file.name : null);
-              }}
-              className="text-gray-200"
+          {inputMode === "file" ? (
+            <div className="ai-panel mb-6">
+              <label className="block text-sm text-slate-600 mb-2">Upload PDF/Word</label>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  setFileName(file ? file.name : null);
+                }}
+                className="text-slate-700"
+              />
+              {fileName && <p className="text-slate-500 mt-2">Selected: {fileName}</p>}
+            </div>
+          ) : (
+            <div className="ai-panel mb-6">
+              <label className="block text-sm text-slate-600 mb-2">Source Text</label>
+              <textarea
+                className="w-full ai-input min-h-[180px]"
+                placeholder="Paste text here..."
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+              />
+              <div className="mt-4 flex gap-3">
+                <button
+                  onClick={handleSummarize}
+                  className="ai-button bg-slate-900 text-white"
+                >
+                  Summarize
+                </button>
+                <button
+                  onClick={() => {
+                    setInputText("");
+                    setSummary("");
+                  }}
+                  className="ai-button bg-slate-100 text-slate-700"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="ai-panel">
+            <label className="block text-sm text-slate-600 mb-2">Summary Output</label>
+            <textarea
+              className="w-full ai-input min-h-[160px]"
+              placeholder="Summary will appear here..."
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
             />
-            {fileName && <p className="text-gray-400 mt-2">Selected: {fileName}</p>}
-          </div>
-        </div>
-
-        <div className="bg-slate-700 rounded-lg p-6 mb-6">
-          <label className="block text-sm text-gray-300 mb-2">Source Text</label>
-          <textarea
-            className="w-full bg-slate-600 text-white border border-slate-500 rounded-lg p-3 min-h-[180px]"
-            placeholder="Paste text here..."
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-          />
-          <div className="mt-4 flex gap-3">
-            <button
-              onClick={handleSummarize}
-              className="bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              Summarize
-            </button>
-            <button
-              onClick={() => {
-                setInputText("");
-                setSummary("");
-              }}
-              className="bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-slate-700 rounded-lg p-6">
-          <label className="block text-sm text-gray-300 mb-2">Summary Output</label>
-          <textarea
-            className="w-full bg-slate-600 text-white border border-slate-500 rounded-lg p-3 min-h-[160px]"
-            placeholder="Summary will appear here..."
-            value={summary}
-            onChange={(e) => setSummary(e.target.value)}
-          />
-          {error && <p className="text-amber-300 mt-3">{error}</p>}
-          <div className="mt-4 flex flex-wrap gap-3">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition disabled:opacity-60"
-            >
-              {saving ? "Saving..." : "Save to Text Library"}
-            </button>
-            <button
-              onClick={() => navigate("/practice/select")}
-              className="bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              Back to Texts
-            </button>
+            {error && <p className="text-rose-600 mt-3">{error}</p>}
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="ai-button bg-slate-900 text-white disabled:opacity-60"
+              >
+                {saving ? "Saving..." : "Save to Text Library"}
+              </button>
+              <button
+                onClick={() => navigate("/practice/select")}
+                className="ai-button bg-slate-100 text-slate-700"
+              >
+                Back to Texts
+              </button>
+            </div>
           </div>
         </div>
       </div>

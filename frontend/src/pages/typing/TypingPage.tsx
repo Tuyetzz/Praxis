@@ -288,123 +288,180 @@ export default function TypingPage() {
     <div
       style={{
         minHeight: "100vh",
-        background: "radial-gradient(circle at 10% 10%, #e0f2fe 0%, #0f172a 55%, #020617 100%)",
+        background: "radial-gradient(circle at 10% 10%, #ecfeff 0%, #f8fafc 55%, #ffffff 100%)",
+        color: "#0f172a",
         fontFamily: '"Space Grotesk", "IBM Plex Sans", sans-serif',
       }}
     >
       <AppHeader />
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <div className="w-full max-w-2xl">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Fast Type</h1>
-          <p className="text-gray-300">
-            Practice your typing skills and improve your WPM
-          </p>
-          {activeText && (
-            <p className="text-gray-400 text-sm mt-2">
-              Text: {activeText.title}
-            </p>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-slate-700 rounded-lg p-4 text-center">
-            <div className="text-4xl font-bold text-blue-400">{stats.wpm}</div>
-            <div className="text-sm text-gray-300 mt-2">WPM</div>
-          </div>
-          <div className="bg-slate-700 rounded-lg p-4 text-center">
-            <div className="text-4xl font-bold text-green-400">
-              {stats.accuracy}%
+      <style>{`
+        .typing-page-wrap {
+          max-width: 1050px;
+          margin: 28px auto 60px;
+          padding: 0 20px 44px;
+        }
+        .typing-hero {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 18px;
+          align-items: center;
+          margin-bottom: 18px;
+        }
+        .typing-panel {
+          background: #ffffff;
+          border-radius: 16px;
+          border: 1px solid #e2e8f0;
+          padding: 18px 20px;
+          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+        }
+        .typing-panel--dark {
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+          color: #f8fafc;
+          border: none;
+        }
+        .typing-stat {
+          border-radius: 16px;
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
+          padding: 16px 18px;
+          text-align: center;
+          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+        }
+        .typing-input {
+          width: 100%;
+          background: #f8fafc;
+          border: 1px solid #cbd5f5;
+          border-radius: 12px;
+          padding: 12px 14px;
+          color: #0f172a;
+        }
+        .typing-input:focus {
+          outline: none;
+          border-color: #14b8a6;
+          box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
+        }
+        .typing-button {
+          border-radius: 12px;
+          font-weight: 600;
+          padding: 12px 20px;
+          transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+        }
+        .typing-button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+        }
+      `}</style>
+      <div className="min-h-screen">
+        <div className="typing-page-wrap">
+          <div className="typing-hero">
+            <div>
+              <h1 className="text-4xl font-bold text-slate-900 mb-2">Fast Type</h1>
+              <p className="text-slate-600">
+                Practice your typing skills and improve your WPM
+              </p>
+              {activeText && (
+                <p className="text-slate-500 text-sm mt-2">Text: {activeText.title}</p>
+              )}
             </div>
-            <div className="text-sm text-gray-300 mt-2">Accuracy</div>
-          </div>
-          <div className="bg-slate-700 rounded-lg p-4 text-center">
-            <div className="text-4xl font-bold text-purple-400">
-              {formatTime(stats.timeElapsed)}
+            <div className="typing-panel typing-panel--dark">
+              <div style={{ fontWeight: 600, fontSize: 16 }}>Stay consistent</div>
+              <div style={{ color: "rgba(248, 250, 252, 0.7)" }}>
+                Keep a steady rhythm for better accuracy and speed.
+              </div>
             </div>
-            <div className="text-sm text-gray-300 mt-2">Time</div>
           </div>
-        </div>
 
-        {/* Typing Area */}
-        <div className="bg-slate-700 rounded-lg p-8 mb-8">
-          <div className="mb-6 text-2xl leading-relaxed font-mono">
-            {loadingText ? (
-              <span className="text-gray-400">Loading text...</span>
-            ) : (
-              paragraph.split("").map((char, index) => (
-                <span key={index} className={`${getCharClass(index)} px-0.5`}>
-                  {char === " " ? "\u00A0" : char}
-                </span>
-              ))
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="typing-stat">
+              <div className="text-4xl font-bold text-teal-600">{stats.wpm}</div>
+              <div className="text-sm text-slate-500 mt-2">WPM</div>
+            </div>
+            <div className="typing-stat">
+              <div className="text-4xl font-bold text-emerald-600">{stats.accuracy}%</div>
+              <div className="text-sm text-slate-500 mt-2">Accuracy</div>
+            </div>
+            <div className="typing-stat">
+              <div className="text-4xl font-bold text-indigo-600">
+                {formatTime(stats.timeElapsed)}
+              </div>
+              <div className="text-sm text-slate-500 mt-2">Time</div>
+            </div>
+          </div>
+
+          <div className="typing-panel mb-8">
+            <div className="mb-6 text-2xl leading-relaxed font-mono">
+              {loadingText ? (
+                <span className="text-slate-400">Loading text...</span>
+              ) : (
+                paragraph.split("").map((char, index) => (
+                  <span key={index} className={`${getCharClass(index)} px-0.5`}>
+                    {char === " " ? "\u00A0" : char}
+                  </span>
+                ))
+              )}
+            </div>
+
+            {isComplete && (
+              <div className="bg-emerald-600 text-white p-4 rounded-lg text-center font-semibold">
+                🎉 Typing complete! Great job!
+              </div>
             )}
-          </div>
 
-          {isComplete && (
-            <div className="bg-green-600 text-white p-4 rounded-lg text-center font-semibold">
-              🎉 Typing complete! Great job!
-            </div>
-          )}
+            {submitError && (
+              <div className="bg-amber-500 text-white p-3 rounded-lg text-center font-semibold mt-3">
+                {submitError}
+              </div>
+            )}
 
-          {submitError && (
-            <div className="bg-amber-500 text-white p-3 rounded-lg text-center font-semibold mt-3">
-              {submitError}
-            </div>
-          )}
-
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onKeyDown={(e) => {
-              handleBackspace(e);
-              handleKeyPress(e);
-            }}
-            className="w-full bg-slate-600 text-white placeholder-gray-400 border-2 border-slate-500 rounded-lg p-3 focus:outline-none focus:border-blue-400"
-            placeholder="Start typing here..."
-            autoFocus
-          />
-        </div>
-
-        {/* Buttons */}
-        <div className="flex gap-4 flex-wrap">
-          <button
-            onClick={handleRestart}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
-          >
-            <RotateCcw size={20} />
-            Restart
-          </button>
-          <button
-            onClick={handleSelectText}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
-          >
-            <BookOpen size={20} />
-            Select Text
-          </button>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="mt-8">
-          <div className="flex justify-between mb-2">
-            <span className="text-gray-300 text-sm">Progress</span>
-            <span className="text-gray-300 text-sm">
-              {currentIndex}/{paragraph.length}
-            </span>
-          </div>
-          <div className="w-full bg-slate-700 rounded-full h-2">
-            <div
-              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-              style={{
-                width: paragraph.length
-                  ? `${(currentIndex / paragraph.length) * 100}%`
-                  : "0%",
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onKeyDown={(e) => {
+                handleBackspace(e);
+                handleKeyPress(e);
               }}
-            ></div>
+              className="typing-input"
+              placeholder="Start typing here..."
+              autoFocus
+            />
           </div>
-        </div>
+
+          <div className="flex gap-4 flex-wrap">
+            <button
+              onClick={handleRestart}
+              className="typing-button bg-slate-900 text-white flex items-center gap-2"
+            >
+              <RotateCcw size={20} />
+              Restart
+            </button>
+            <button
+              onClick={handleSelectText}
+              className="typing-button bg-emerald-500 text-white flex items-center gap-2"
+            >
+              <BookOpen size={20} />
+              Select Text
+            </button>
+          </div>
+
+          <div className="mt-8 typing-panel">
+            <div className="flex justify-between mb-2">
+              <span className="text-slate-500 text-sm">Progress</span>
+              <span className="text-slate-500 text-sm">
+                {currentIndex}/{paragraph.length}
+              </span>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-2">
+              <div
+                className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+                style={{
+                  width: paragraph.length
+                    ? `${(currentIndex / paragraph.length) * 100}%`
+                    : "0%",
+                }}
+              ></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
