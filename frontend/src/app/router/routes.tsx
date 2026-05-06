@@ -12,6 +12,7 @@ import DashboardPage from "../../pages/dashboard/DashboardPage";
 import TypingPage from "../../pages/typing/TypingPage";
 import ParagraphSelectPage from "../../pages/typing/ParagraphSelectPage";
 import AiTextPage from "../../pages/typing/AiTextPage";
+import TypingHistoryPage from "../../pages/typing/TypingHistoryPage";
 import AdminSubjectPage from "../../pages/admin/AdminSubjectPage";
 import AdminChapterPage from "../../pages/admin/AdminChapterPage";
 import AdminQuestionsPage from "../../pages/admin/AdminQuestionsPage";
@@ -41,6 +42,7 @@ export default function AppRoutes() {
         <Route path="/practice/typing" element={<TypingPage />} />
         <Route path="/practice/select" element={<ParagraphSelectPage />} />
         <Route path="/practice/typing/ai" element={<AiTextPage />} />
+        <Route path="/practice/typing/history" element={<TypingHistoryPage />} />
 
         {/* Admin Routes */}
         <Route path="/admin/subjects" element={<AdminSubjectPage />} />

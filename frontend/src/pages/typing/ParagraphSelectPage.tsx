@@ -129,71 +129,128 @@ export default function ParagraphSelectPage() {
     <div
       style={{
         minHeight: "100vh",
-        background: "radial-gradient(circle at 15% 20%, #cffafe 0%, #0f172a 55%, #020617 100%)",
+        background: "radial-gradient(circle at 15% 20%, #ecfeff 0%, #f8fafc 55%, #ffffff 100%)",
+        color: "#0f172a",
         fontFamily: '"Space Grotesk", "IBM Plex Sans", sans-serif',
       }}
     >
       <AppHeader />
-      <div className="min-h-screen p-4">
-        <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-12 flex flex-col gap-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <BookOpen size={32} className="text-blue-400" />
-              <div>
-                <h1 className="text-4xl font-bold text-white">Select a Text</h1>
-                <p className="text-gray-300 text-lg">
-                  Pick a text to practice or manage your own library.
-                </p>
+      <style>{`
+        .typing-wrap {
+          max-width: 1100px;
+          margin: 28px auto 60px;
+          padding: 0 20px 44px;
+        }
+        .typing-hero {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 18px;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+        .typing-panel {
+          background: #ffffff;
+          border-radius: 16px;
+          border: 1px solid #e2e8f0;
+          padding: 18px 20px;
+          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+        }
+        .typing-panel--dark {
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+          color: #f8fafc;
+          border: none;
+        }
+        .typing-input {
+          background: #f8fafc;
+          border: 1px solid #cbd5f5;
+          border-radius: 12px;
+          padding: 12px 14px;
+          color: #0f172a;
+        }
+        .typing-input:focus {
+          outline: none;
+          border-color: #14b8a6;
+          box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
+        }
+        .typing-button {
+          border-radius: 12px;
+          font-weight: 600;
+          padding: 10px 16px;
+          transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+        }
+        .typing-button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+        }
+        .text-card {
+          background: #ffffff;
+          border-radius: 16px;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+        }
+      `}</style>
+      <div className="min-h-screen">
+        <div className="typing-wrap">
+          <div className="typing-hero">
+            <div>
+              <div className="flex items-center gap-3">
+                <BookOpen size={30} className="text-teal-600" />
+                <div>
+                  <h1 className="text-4xl font-bold text-slate-900">Select a Text</h1>
+                  <p className="text-slate-600 text-lg">
+                    Pick a text to practice or manage your own library.
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => navigate("/practice/typing")}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-              >
-                Fast Type
-              </button>
-              <button
-                onClick={() => navigate("/practice/typing/ai")}
-                className="bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2"
-              >
-                <Sparkles size={18} />
-                AI Summarize
-              </button>
-              <button
-                onClick={loadTexts}
-                className="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2"
-              >
-                <RefreshCcw size={18} />
-                Refresh
-              </button>
+            <div className="typing-panel typing-panel--dark">
+              <h3 className="text-lg font-semibold mb-1">Quick actions</h3>
+              <p className="text-slate-200/80">Create, summarize, or revisit your typing history.</p>
+              <div className="flex flex-wrap gap-3 mt-4">
+                <button
+                  onClick={() => navigate("/practice/typing/history")}
+                  className="typing-button bg-white/10 text-white"
+                >
+                  History
+                </button>
+                <button
+                  onClick={() => navigate("/practice/typing/ai")}
+                  className="typing-button bg-emerald-400 text-slate-900 flex items-center gap-2"
+                >
+                  <Sparkles size={18} />
+                  AI Summarize
+                </button>
+                <button
+                  onClick={loadTexts}
+                  className="typing-button bg-white/10 text-white flex items-center gap-2"
+                >
+                  <RefreshCcw size={18} />
+                  Refresh
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Create / Edit Form */}
-        <div className="bg-slate-700 rounded-lg p-6 mb-10">
+          <div className="typing-panel mb-10">
           <div className="flex items-center gap-2 mb-4 text-white font-semibold">
             <Plus size={18} />
             {editingId ? "Update Text" : "Create Text"}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
-              className="bg-slate-600 text-white border border-slate-500 rounded-lg p-3"
+              className="typing-input"
               placeholder="Title"
               value={form.title}
               onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
             />
             <input
-              className="bg-slate-600 text-white border border-slate-500 rounded-lg p-3"
+              className="typing-input"
               placeholder="Language (english)"
               value={form.language}
               onChange={(e) => setForm((prev) => ({ ...prev, language: e.target.value }))}
             />
             <select
-              className="bg-slate-600 text-white border border-slate-500 rounded-lg p-3"
+              className="typing-input"
               value={form.difficulty}
               onChange={(e) =>
                 setForm((prev) => ({
@@ -206,7 +263,7 @@ export default function ParagraphSelectPage() {
               <option value="medium">Medium</option>
               <option value="hard">Hard</option>
             </select>
-            <label className="flex items-center gap-2 text-gray-200">
+            <label className="flex items-center gap-2 text-slate-600">
               <input
                 type="checkbox"
                 checked={form.isPublic}
@@ -216,16 +273,16 @@ export default function ParagraphSelectPage() {
             </label>
           </div>
           <textarea
-            className="w-full bg-slate-600 text-white border border-slate-500 rounded-lg p-3 mt-4 min-h-[140px]"
+            className="w-full typing-input mt-4 min-h-[140px]"
             placeholder="Text content"
             value={form.content}
             onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
           />
-          {formError && <p className="text-amber-300 mt-3">{formError}</p>}
+          {formError && <p className="text-rose-600 mt-3">{formError}</p>}
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               onClick={handleSubmit}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+              className="typing-button bg-slate-900 text-white"
             >
               {editingId ? "Save Changes" : "Create Text"}
             </button>
@@ -236,7 +293,7 @@ export default function ParagraphSelectPage() {
                   setForm(EMPTY_FORM);
                   setFormError(null);
                 }}
-                className="bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded-lg transition"
+                className="typing-button bg-slate-100 text-slate-700"
               >
                 Cancel
               </button>
@@ -244,27 +301,26 @@ export default function ParagraphSelectPage() {
           </div>
         </div>
 
-        {/* Text Sections */}
-        <div className="grid grid-cols-1 gap-10">
+          <div className="grid grid-cols-1 gap-10">
           <section>
-            <h2 className="text-2xl text-white font-semibold mb-4">My Texts</h2>
+            <h2 className="text-2xl text-slate-900 font-semibold mb-4">My Texts</h2>
             {loading ? (
-              <p className="text-gray-300">Loading...</p>
+              <p className="text-slate-600">Loading...</p>
             ) : myTexts.length === 0 ? (
-              <p className="text-gray-300">No texts yet. Create your first one above.</p>
+              <p className="text-slate-600">No texts yet. Create your first one above.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {myTexts.map((snippet) => (
                   <div
                     key={snippet.id}
-                    className={`bg-slate-700 rounded-lg overflow-hidden hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 cursor-pointer transform hover:scale-105 ${
-                      selectedId === snippet.id ? "ring-2 ring-blue-400" : ""
+                    className={`text-card overflow-hidden hover:shadow-emerald-200/60 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 ${
+                      selectedId === snippet.id ? "ring-2 ring-emerald-400" : ""
                     }`}
                     onClick={() => setSelectedId(snippet.id)}
                   >
                     <div className="p-6">
                       <div className="flex items-start justify-between mb-4">
-                        <h3 className="text-xl font-bold text-white truncate">
+                        <h3 className="text-xl font-bold text-slate-900 truncate">
                           {snippet.title}
                         </h3>
                         <span
@@ -276,11 +332,11 @@ export default function ParagraphSelectPage() {
                         </span>
                       </div>
 
-                      <p className="text-gray-300 mb-4 line-clamp-3">
+                      <p className="text-slate-600 mb-4 line-clamp-3">
                         {snippet.content}
                       </p>
 
-                      <div className="flex justify-between text-sm text-gray-400 mb-6 border-t border-gray-600 pt-4">
+                      <div className="flex justify-between text-sm text-slate-500 mb-6 border-t border-slate-200 pt-4">
                         <span>{snippet.content.split(" ").length} words</span>
                         <span>{snippet.content.length} characters</span>
                       </div>
@@ -288,14 +344,14 @@ export default function ParagraphSelectPage() {
                       <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => handleSelect(snippet)}
-                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center justify-center gap-2"
+                          className="flex-1 typing-button bg-slate-900 text-white flex items-center justify-center gap-2"
                         >
                           Start
-                          <ChevronRight size={18} />
+                          <ChevronRight size={10} />
                         </button>
                         <button
                           onClick={() => handleEdit(snippet)}
-                          className="bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-3 rounded-lg transition flex items-center gap-1"
+                          className="typing-button bg-slate-100 text-slate-700 flex items-center gap-1"
                         >
                           <Pencil size={16} />
                           Edit
@@ -303,7 +359,7 @@ export default function ParagraphSelectPage() {
                         <button
                           onClick={() => handleDelete(snippet)}
                           disabled={deletingId === snippet.id}
-                          className="bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-3 rounded-lg transition flex items-center gap-1"
+                          className="typing-button bg-rose-500 text-white flex items-center gap-1"
                         >
                           <Trash2 size={16} />
                           Delete
@@ -317,24 +373,24 @@ export default function ParagraphSelectPage() {
           </section>
 
           <section>
-            <h2 className="text-2xl text-white font-semibold mb-4">Public Texts</h2>
+            <h2 className="text-2xl text-slate-900 font-semibold mb-4">Public Texts</h2>
             {loading ? (
-              <p className="text-gray-300">Loading...</p>
+              <p className="text-slate-600">Loading...</p>
             ) : publicTexts.length === 0 ? (
-              <p className="text-gray-300">No public texts available yet.</p>
+              <p className="text-slate-600">No public texts available yet.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {publicTexts.map((snippet) => (
                   <div
                     key={snippet.id}
-                    className={`bg-slate-700 rounded-lg overflow-hidden hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 cursor-pointer transform hover:scale-105 ${
-                      selectedId === snippet.id ? "ring-2 ring-blue-400" : ""
+                    className={`text-card overflow-hidden hover:shadow-emerald-200/60 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 ${
+                      selectedId === snippet.id ? "ring-2 ring-emerald-400" : ""
                     }`}
                     onClick={() => setSelectedId(snippet.id)}
                   >
                     <div className="p-6">
                       <div className="flex items-start justify-between mb-4">
-                        <h3 className="text-xl font-bold text-white truncate">
+                        <h3 className="text-xl font-bold text-slate-900 truncate">
                           {snippet.title}
                         </h3>
                         <span
@@ -346,30 +402,30 @@ export default function ParagraphSelectPage() {
                         </span>
                       </div>
 
-                      <p className="text-gray-300 mb-4 line-clamp-3">
+                      <p className="text-slate-600 mb-4 line-clamp-3">
                         {snippet.content}
                       </p>
 
-                      <div className="flex justify-between text-sm text-gray-400 mb-6 border-t border-gray-600 pt-4">
+                      <div className="flex justify-between text-sm text-slate-500 mb-6 border-t border-slate-200 pt-4">
                         <span>{snippet.content.split(" ").length} words</span>
                         <span>{snippet.content.length} characters</span>
                       </div>
 
-                      <button
-                        onClick={() => handleSelect(snippet)}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center justify-center gap-2"
-                      >
-                        Start
-                        <ChevronRight size={18} />
-                      </button>
+                        <button
+                          onClick={() => handleSelect(snippet)}
+                          className="w-full typing-button bg-slate-900 text-white flex items-center justify-center gap-2"
+                        >
+                          Start
+                          <ChevronRight size={18} />
+                        </button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </section>
-        </div>
-        </div>
+            </div>
+          </div>
       </div>
     </div>
   );
