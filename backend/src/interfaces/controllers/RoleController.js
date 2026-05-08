@@ -20,8 +20,8 @@ class RoleController {
     this.deleteRole = deleteRole;
     this.assignPermissionToRole = assignPermissionToRole;
     this.removePermissionFromRole = removePermissionFromRole;
-    this.assignRoleToUser = assignRoleToUser;
-    this.removeRoleFromUser = removeRoleFromUser;
+    this.assignRoleToUserUseCase = assignRoleToUser;
+    this.removeRoleFromUserUseCase = removeRoleFromUser;
     this.getRolePermissions = getRolePermissions;
     this.getUserRoles = getUserRoles;
   }
@@ -102,7 +102,7 @@ class RoleController {
   async assignRoleToUser(req, res) {
     try {
       const { userId } = req.body;
-      const result = await this.assignRoleToUser.execute(userId, req.params.id);
+      const result = await this.assignRoleToUserUseCase.execute(userId, req.params.id);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -112,7 +112,7 @@ class RoleController {
   async removeRoleFromUser(req, res) {
     try {
       const { userId } = req.body;
-      const result = await this.removeRoleFromUser.execute(userId, req.params.id);
+      const result = await this.removeRoleFromUserUseCase.execute(userId, req.params.id);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });

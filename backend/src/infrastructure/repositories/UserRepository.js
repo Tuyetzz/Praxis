@@ -11,6 +11,34 @@ class UserRepository extends BaseRepository {
     super(UserModel, userMapper);
   }
 
+  async findAllWithRoles(filter = {}) {
+    const { Op } = require("sequelize");
+    const where = { isDeleted: false };
+    const search = filter.search;
+
+    if (search) {
+      where[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    const records = await this.model.findAll({
+      where,
+      include: [
+        {
+          model: RoleModel,
+          attributes: ["name"],
+          through: { attributes: [] },
+          where: { isDeleted: false },
+          required: false
+        }
+      ]
+    });
+
+    return records.map((record) => this.mapper.toDomain(record));
+  }
+
   async findByEmail(email) {
     const record = await this.model.scope(null).findOne({
       where: { email, isDeleted: false }

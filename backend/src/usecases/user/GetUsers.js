@@ -5,6 +5,9 @@ class GetUsers {
   }
 
   async execute(filters = {}) {
+    if (this.userRepository.findAllWithRoles) {
+      return await this.userRepository.findAllWithRoles(filters);
+    }
     return await this.userRepository.findAll(filters);
   }
 }

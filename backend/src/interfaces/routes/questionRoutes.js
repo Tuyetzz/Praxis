@@ -35,6 +35,10 @@ router.post('/batch', requiredPermission(PERMISSIONS.QUESTION_CREATE), (req, res
   questionController.addBatch(req, res)
 );
 
+router.post('/with-options', requiredPermission(PERMISSIONS.QUESTION_CREATE), (req, res) => 
+  questionController.createWithOptions(req, res)
+);
+
 router.post('/import', requiredPermission(PERMISSIONS.QUESTION_CREATE), upload.single('file'), (req, res) => 
   questionController.importFromFile(req, res)
 );

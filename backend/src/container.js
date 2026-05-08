@@ -46,6 +46,7 @@ const AssignRoleToUser = require('./usecases/role/AssignRoleToUser');
 const CreateChapter = require('./usecases/chapter/CreateChapter');
 const CreateOption = require('./usecases/option/CreateOption');
 const CreateQuestion = require('./usecases/question/CreateQuestion');
+const CreateQuestionWithOptions = require('./usecases/question/CreateQuestionWithOptions');
 const CreateRole = require('./usecases/role/CreateRole');
 const CreateSubject = require('./usecases/subject/CreateSubject');
 const CreateUser = require('./usecases/user/CreateUser');
@@ -149,6 +150,7 @@ container.register({
   createChapter: asClass(CreateChapter).singleton(),
   createOption: asClass(CreateOption).singleton(),
   createQuestion: asClass(CreateQuestion).singleton(),
+  createQuestionWithOptions: asClass(CreateQuestionWithOptions).singleton(),
   createRole: asClass(CreateRole).singleton(),
   createSubject: asClass(CreateSubject).singleton(),
   createUser: asClass(CreateUser).singleton(),

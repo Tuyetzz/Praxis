@@ -16,6 +16,10 @@ import TypingHistoryPage from "../../pages/typing/TypingHistoryPage";
 import AdminSubjectPage from "../../pages/admin/AdminSubjectPage";
 import AdminChapterPage from "../../pages/admin/AdminChapterPage";
 import AdminQuestionsPage from "../../pages/admin/AdminQuestionsPage";
+import AdminTypingPage from "../../pages/admin/AdminTypingPage";
+import AdminRolePermissionPage from "../../pages/admin/AdminRolePermissionPage";
+import AdminRolePermissionsPage from "../../pages/admin/AdminRolePermissionsPage";
+import AdminAccountsPage from "../../pages/admin/AdminAccountsPage";
 import FlashcardDecksPage from "../../pages/flashcards/FlashcardDecksPage";
 import FlashcardStudyPage from "../../pages/flashcards/FlashcardStudyPage";
 
@@ -45,6 +49,11 @@ export default function AppRoutes() {
         <Route path="/practice/typing/history" element={<TypingHistoryPage />} />
 
         {/* Admin Routes */}
+        <Route path="/admin" element={<Navigate to="/admin/typing" replace />} />
+        <Route path="/admin/typing" element={<AdminTypingPage />} />
+        <Route path="/admin/roles" element={<AdminRolePermissionPage />} />
+        <Route path="/admin/roles/:id/permissions" element={<AdminRolePermissionsPage />} />
+        <Route path="/admin/accounts" element={<AdminAccountsPage />} />
         <Route path="/admin/subjects" element={<AdminSubjectPage />} />
         <Route path="/admin/subjects/:id/chapters" element={<AdminChapterPage />} />
         <Route path="/admin/chapters/:id/questions" element={<AdminQuestionsPage />} />
