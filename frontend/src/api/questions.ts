@@ -25,6 +25,11 @@ export async function createQuestion(payload: Partial<Question>) {
   return res.data;
 }
 
+export async function createQuestionWithOptions(payload: Record<string, unknown>) {
+  const res = await http.post<Question>("/questions/with-options", payload);
+  return res.data;
+}
+
 // Cập nhật question
 export async function updateQuestion(id: string | number, payload: Partial<Question>) {
   const res = await http.put<Question>(`/questions/${id}`, payload);
@@ -40,5 +45,25 @@ export async function deleteQuestion(id: string | number) {
 // Tạo nhiều questions (batch)
 export async function batchCreateQuestions(payload: Partial<Question>[]) {
   const res = await http.post<Question[]>("/questions/batch", payload);
+  return res.data;
+}
+
+type ImportQuestionsParams = {
+  file: File;
+  subjectId: string;
+  chapterId: string;
+  fileType?: "kahoot" | "quizizz";
+};
+
+export async function importQuestionsFromFile(params: ImportQuestionsParams) {
+  const formData = new FormData();
+  formData.append("file", params.file);
+  formData.append("subjectId", params.subjectId);
+  formData.append("chapterId", params.chapterId);
+  if (params.fileType) {
+    formData.append("fileType", params.fileType);
+  }
+
+  const res = await http.post("/questions/import", formData);
   return res.data;
 }

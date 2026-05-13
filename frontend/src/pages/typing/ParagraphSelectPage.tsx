@@ -125,6 +125,9 @@ export default function ParagraphSelectPage() {
     }
   };
 
+  const defaultTexts = publicTexts.filter((text) => text.isDefault);
+  const sharedPublicTexts = publicTexts.filter((text) => !text.isDefault);
+
   return (
     <div
       style={{
@@ -373,14 +376,67 @@ export default function ParagraphSelectPage() {
           </section>
 
           <section>
+            <h2 className="text-2xl text-slate-900 font-semibold mb-4">Default Texts</h2>
+            {loading ? (
+              <p className="text-slate-600">Loading...</p>
+            ) : defaultTexts.length === 0 ? (
+              <p className="text-slate-600">No default texts available yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {defaultTexts.map((snippet) => (
+                  <div
+                    key={snippet.id}
+                    className={`text-card overflow-hidden hover:shadow-emerald-200/60 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 ${
+                      selectedId === snippet.id ? "ring-2 ring-emerald-400" : ""
+                    }`}
+                    onClick={() => setSelectedId(snippet.id)}
+                  >
+                    <div className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <h3 className="text-xl font-bold text-slate-900 truncate">
+                          {snippet.title}
+                        </h3>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ml-2 ${getDifficultyColor(
+                            snippet.difficulty
+                          )}`}
+                        >
+                          {snippet.difficulty}
+                        </span>
+                      </div>
+
+                      <p className="text-slate-600 mb-4 line-clamp-3">
+                        {snippet.content}
+                      </p>
+
+                      <div className="flex justify-between text-sm text-slate-500 mb-6 border-t border-slate-200 pt-4">
+                        <span>{snippet.content.split(" ").length} words</span>
+                        <span>{snippet.content.length} characters</span>
+                      </div>
+
+                        <button
+                          onClick={() => handleSelect(snippet)}
+                          className="w-full typing-button bg-slate-900 text-white flex items-center justify-center gap-2"
+                        >
+                          Start
+                          <ChevronRight size={18} />
+                        </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section>
             <h2 className="text-2xl text-slate-900 font-semibold mb-4">Public Texts</h2>
             {loading ? (
               <p className="text-slate-600">Loading...</p>
-            ) : publicTexts.length === 0 ? (
+            ) : sharedPublicTexts.length === 0 ? (
               <p className="text-slate-600">No public texts available yet.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {publicTexts.map((snippet) => (
+                {sharedPublicTexts.map((snippet) => (
                   <div
                     key={snippet.id}
                     className={`text-card overflow-hidden hover:shadow-emerald-200/60 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 ${

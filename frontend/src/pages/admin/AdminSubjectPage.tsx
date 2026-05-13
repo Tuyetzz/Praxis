@@ -1,55 +1,44 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Edit2, Trash2, ChevronRight } from "lucide-react";
-
-interface Subject {
-  id: number;
-  name: string;
-  description: string;
-  chapterCount: number;
-}
+import AdminLayout from "./AdminLayout";
+import { createSubject, deleteSubject, getSubjects, updateSubject } from "../../api/subjects";
+import type { Subject } from "../../types/subject";
 
 export default function AdminSubjectPage() {
   const navigate = useNavigate();
-  const [subjects, setSubjects] = useState<Subject[]>([
-    {
-      id: 1,
-      name: "Mathematics",
-      description: "Basic to advanced math concepts",
-      chapterCount: 12,
-    },
-    {
-      id: 2,
-      name: "Physics",
-      description: "Classical and modern physics",
-      chapterCount: 10,
-    },
-    {
-      id: 3,
-      name: "Chemistry",
-      description: "Organic and inorganic chemistry",
-      chapterCount: 8,
-    },
-    {
-      id: 4,
-      name: "Biology",
-      description: "Cell biology and ecology",
-      chapterCount: 9,
-    },
-  ]);
-
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ name: "", description: "" });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({ name: "", slug: "", order: 1 });
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getSubjects();
+      setSubjects(data);
+    } catch {
+      setError("Unable to load subjects.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const handleOpenModal = (subject?: Subject) => {
     if (subject) {
-      setFormData({ name: subject.name, description: subject.description });
+      setFormData({ name: subject.name, slug: subject.slug, order: subject.order ?? 1 });
       setEditingId(subject.id);
       setIsEditing(true);
     } else {
-      setFormData({ name: "", description: "" });
+      setFormData({ name: "", slug: "", order: 1 });
       setIsEditing(false);
     }
     setIsModalOpen(true);
@@ -57,11 +46,11 @@ export default function AdminSubjectPage() {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setFormData({ name: "", description: "" });
+    setFormData({ name: "", slug: "", order: 1 });
     setEditingId(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
@@ -69,115 +58,107 @@ export default function AdminSubjectPage() {
       return;
     }
 
-    if (isEditing && editingId) {
-      setSubjects((prev) =>
-        prev.map((s) =>
-          s.id === editingId
-            ? { ...s, name: formData.name, description: formData.description }
-            : s
-        )
-      );
-    } else {
-      const newSubject: Subject = {
-        id: Math.max(...subjects.map((s) => s.id), 0) + 1,
-        name: formData.name,
-        description: formData.description,
-        chapterCount: 0,
-      };
-      setSubjects((prev) => [...prev, newSubject]);
-    }
-
-    handleCloseModal();
-  };
-
-  const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this subject?")) {
-      setSubjects((prev) => prev.filter((s) => s.id !== id));
+    try {
+      if (isEditing && editingId) {
+        await updateSubject(editingId, {
+          name: formData.name.trim(),
+          slug: formData.slug.trim(),
+          order: Number(formData.order) || 1,
+        });
+      } else {
+        await createSubject({
+          name: formData.name.trim(),
+          slug: formData.slug.trim(),
+          order: Number(formData.order) || 1,
+        });
+      }
+      handleCloseModal();
+      await loadData();
+    } catch {
+      setError("Unable to save subject.");
     }
   };
 
-  const handleNavigate = (subjectId: number) => {
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this subject?")) return;
+    setError(null);
+    try {
+      await deleteSubject(id);
+      await loadData();
+    } catch {
+      setError("Unable to delete subject.");
+    }
+  };
+
+  const handleNavigate = (subjectId: string) => {
     navigate(`/admin/subjects/${subjectId}/chapters`);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Subjects</h1>
-            <p className="text-gray-300">Manage all subjects and their chapters</p>
+    <AdminLayout
+      title="Subjects"
+      subtitle="Manage all subjects and their chapters."
+      actions={
+        <button className="admin-button admin-button--primary" onClick={() => handleOpenModal()}>
+          <Plus size={18} style={{ marginRight: 6 }} />
+          Add Subject
+        </button>
+      }
+    >
+      {error && <div className="admin-panel" style={{ color: "#b91c1c" }}>{error}</div>}
+      <div className="admin-panel">
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "28px 0", color: "#64748b" }}>
+            Loading subjects...
           </div>
-          <button
-            onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
-          >
-            <Plus size={20} />
-            Add Subject
-          </button>
-        </div>
-
-        {/* Subjects Table */}
-        <div className="bg-slate-700 rounded-lg overflow-hidden shadow-lg">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-600 border-b border-slate-500">
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table className="admin-table">
+              <thead>
                 <tr>
-                  <th className="px-6 py-4 text-left text-white font-semibold">
-                    Subject Name
-                  </th>
-                  <th className="px-6 py-4 text-left text-white font-semibold">
-                    Description
-                  </th>
-                  <th className="px-6 py-4 text-center text-white font-semibold">
-                    Chapters
-                  </th>
-                  <th className="px-6 py-4 text-center text-white font-semibold">
-                    Actions
-                  </th>
+                  <th>Subject Name</th>
+                  <th>Slug</th>
+                  <th>Order</th>
+                  <th style={{ textAlign: "center" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {subjects.map((subject, index) => (
-                  <tr
-                    key={subject.id}
-                    className={`border-b border-slate-600 hover:bg-slate-600 transition ${
-                      index % 2 === 0 ? "bg-slate-700" : "bg-slate-750"
-                    }`}
-                  >
-                    <td className="px-6 py-4">
+                {subjects.map((subject) => (
+                  <tr key={subject.id}>
+                    <td>
                       <button
                         onClick={() => handleNavigate(subject.id)}
-                        className="text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1 hover:underline"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          color: "#0f766e",
+                          fontWeight: 600,
+                        }}
                       >
                         {subject.name}
                         <ChevronRight size={16} />
                       </button>
                     </td>
-                    <td className="px-6 py-4 text-gray-300">
-                      {subject.description}
+                    <td>{subject.slug}</td>
+                    <td>
+                      <span className="admin-pill">{subject.order}</span>
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                        {subject.chapterCount}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex gap-3 justify-center">
+                    <td>
+                      <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
                         <button
                           onClick={() => handleOpenModal(subject)}
-                          className="text-yellow-400 hover:text-yellow-300 transition p-2"
-                          title="Edit"
+                          className="admin-button admin-button--muted"
                         >
-                          <Edit2 size={18} />
+                          <Edit2 size={16} style={{ marginRight: 6 }} />
+                          Edit
                         </button>
                         <button
                           onClick={() => handleDelete(subject.id)}
-                          className="text-red-400 hover:text-red-300 transition p-2"
-                          title="Delete"
+                          className="admin-button admin-button--danger"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 size={16} style={{ marginRight: 6 }} />
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -186,82 +167,88 @@ export default function AdminSubjectPage() {
               </tbody>
             </table>
           </div>
-
-          {subjects.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-400 text-lg">No subjects found</p>
-              <p className="text-gray-500 text-sm mt-2">
-                Click "Add Subject" to create one
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Modal */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-slate-700 rounded-lg shadow-lg max-w-md w-full p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">
-                {isEditing ? "Edit Subject" : "Add New Subject"}
-              </h2>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-gray-300 font-semibold mb-2">
-                    Subject Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        name: e.target.value,
-                      }))
-                    }
-                    placeholder="e.g., Mathematics"
-                    className="w-full bg-slate-600 text-white border-2 border-slate-500 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-300 font-semibold mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    placeholder="Brief description of the subject"
-                    rows={4}
-                    className="w-full bg-slate-600 text-white border-2 border-slate-500 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-400"
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded-lg transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-                  >
-                    {isEditing ? "Update" : "Create"}
-                  </button>
-                </div>
-              </form>
-            </div>
+        )}
+        {!loading && subjects.length === 0 && (
+          <div style={{ textAlign: "center", padding: "28px 0", color: "#64748b" }}>
+            No subjects found. Click "Add Subject" to create one.
           </div>
         )}
       </div>
-    </div>
+
+      {isModalOpen && (
+        <div className="admin-modal-backdrop">
+          <div className="admin-modal">
+            <h2 style={{ marginTop: 0 }}>{isEditing ? "Edit Subject" : "Add New Subject"}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label style={{ display: "block", fontWeight: 600, marginBottom: 8 }}>
+                  Subject Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
+                  }
+                  placeholder="e.g., Mathematics"
+                  className="admin-input"
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontWeight: 600, marginBottom: 8 }}>
+                  Slug
+                </label>
+                <input
+                  type="text"
+                  value={formData.slug}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      slug: e.target.value,
+                    }))
+                  }
+                  placeholder="e.g., mathematics"
+                  className="admin-input"
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontWeight: 600, marginBottom: 8 }}>
+                  Order
+                </label>
+                <input
+                  type="number"
+                  value={formData.order}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      order: Number(e.target.value) || 1,
+                    }))
+                  }
+                  className="admin-input"
+                  style={{ width: "100%" }}
+                  min={1}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <button type="button" onClick={handleCloseModal} className="admin-button admin-button--muted" style={{ flex: 1 }}>
+                  Cancel
+                </button>
+                <button type="submit" className="admin-button admin-button--primary" style={{ flex: 1 }}>
+                  {isEditing ? "Update" : "Create"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </AdminLayout>
   );
 }

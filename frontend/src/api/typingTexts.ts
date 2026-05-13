@@ -19,6 +19,7 @@ export type CreateTypingTextPayload = Pick<
   TypingText,
   "title" | "content" | "difficulty" | "language" | "isPublic"
 > & {
+  isDefault?: boolean;
   sourceType?: string;
 };
 

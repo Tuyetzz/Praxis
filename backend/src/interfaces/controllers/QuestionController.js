@@ -2,6 +2,7 @@
 class QuestionController {
   constructor({
     createQuestion,
+    createQuestionWithOptions,
     addBatchQuestions,
     getQuestions,
     getOneQuestion,
@@ -13,6 +14,7 @@ class QuestionController {
     importQuestionsFromFile
   }) {
     this.createQuestion = createQuestion;
+    this.createQuestionWithOptions = createQuestionWithOptions;
     this.addBatchQuestions = addBatchQuestions;
     this.getQuestions = getQuestions;
     this.getOneQuestion = getOneQuestion;
@@ -26,6 +28,15 @@ class QuestionController {
   async create(req, res) {
     try {
       const result = await this.createQuestion.execute(req.body);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+
+  async createWithOptions(req, res) {
+    try {
+      const result = await this.createQuestionWithOptions.execute(req.body);
       res.status(201).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
