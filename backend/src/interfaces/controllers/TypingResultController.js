@@ -4,13 +4,15 @@ class TypingResultController {
     getMyTypingResults,
     getTypingResultsByText,
     getTypingLeaderboard,
-    getOneTypingResult
+    getOneTypingResult,
+    hardDeleteTypingResult
   }) {
     this.createTypingResult = createTypingResult;
     this.getMyTypingResults = getMyTypingResults;
     this.getTypingResultsByText = getTypingResultsByText;
     this.getTypingLeaderboard = getTypingLeaderboard;
     this.getOneTypingResult = getOneTypingResult;
+    this.hardDeleteTypingResult = hardDeleteTypingResult;
   }
 
   async create(req, res) {
@@ -69,6 +71,21 @@ class TypingResultController {
       const result = await this.getOneTypingResult.execute({
         resultId: req.params.id,
         requestUserId
+      });
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+  }
+
+  async hardDelete(req, res) {
+    try {
+      const requestUserId = req.user?.id;
+      const requestUserRoles = req.user?.roles || [];
+      const result = await this.hardDeleteTypingResult.execute({
+        resultId: req.params.id,
+        requestUserId,
+        requestUserRoles
       });
       return res.status(200).json(result);
     } catch (error) {

@@ -28,6 +28,10 @@ router.put('/:id', requiredPermission(PERMISSIONS.SUBJECT_UPDATE), (req, res) =>
   subjectController.update(req, res)
 );
 
+router.patch('/:id/restore', requiredPermission(PERMISSIONS.SUBJECT_UPDATE), (req, res) => 
+  subjectController.restore(req, res)
+);
+
 router.delete('/:id', requiredPermission(PERMISSIONS.SUBJECT_DELETE), (req, res) => 
   subjectController.delete(req, res)
 );

@@ -31,6 +31,14 @@ router.put('/:id', requiredPermission(PERMISSIONS.TYPING_TEXT_UPDATE), (req, res
   typingTextController.update(req, res)
 );
 
+router.patch('/:id/restore', requiredPermission(PERMISSIONS.TYPING_TEXT_UPDATE), (req, res) =>
+  typingTextController.restore(req, res)
+);
+
+router.delete('/:id/hard', requiredPermission(PERMISSIONS.TYPING_TEXT_DELETE), (req, res) =>
+  typingTextController.hardDelete(req, res)
+);
+
 router.delete('/:id', requiredPermission(PERMISSIONS.TYPING_TEXT_DELETE), (req, res) =>
   typingTextController.delete(req, res)
 );

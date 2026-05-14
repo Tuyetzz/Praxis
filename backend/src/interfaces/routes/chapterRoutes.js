@@ -37,6 +37,10 @@ router.put('/:id', requiredPermission(PERMISSIONS.CHAPTER_UPDATE), (req, res) =>
   chapterController.update(req, res)
 );
 
+router.patch('/:id/restore', requiredPermission(PERMISSIONS.CHAPTER_UPDATE), (req, res) => 
+  chapterController.restore(req, res)
+);
+
 router.delete('/:id', requiredPermission(PERMISSIONS.CHAPTER_DELETE), (req, res) => 
   chapterController.delete(req, res)
 );

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
-import { BookOpen, KeyRound, Type, Users } from "lucide-react";
+import { BookOpen, FileText, KeyRound, Type, Users } from "lucide-react";
 import AppHeader from "../../components/AppHeader";
 
 type AdminLayoutProps = {
@@ -13,6 +13,7 @@ type AdminLayoutProps = {
 const NAV_ITEMS = [
   { label: "Typing", to: "/admin/typing", icon: Type },
   { label: "Quiz", to: "/admin/subjects", icon: BookOpen },
+  { label: "Attempts", to: "/admin/attempts", icon: FileText },
   { label: "Roles", to: "/admin/roles", icon: KeyRound },
   { label: "Accounts", to: "/admin/accounts", icon: Users },
 ];

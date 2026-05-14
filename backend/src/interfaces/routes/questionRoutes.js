@@ -51,6 +51,10 @@ router.put('/:id', requiredPermission(PERMISSIONS.QUESTION_UPDATE), (req, res) =
   questionController.update(req, res)
 );
 
+router.patch('/:id/restore', requiredPermission(PERMISSIONS.QUESTION_UPDATE), (req, res) => 
+  questionController.restore(req, res)
+);
+
 router.delete('/:id', requiredPermission(PERMISSIONS.QUESTION_DELETE), (req, res) => 
   questionController.delete(req, res)
 );

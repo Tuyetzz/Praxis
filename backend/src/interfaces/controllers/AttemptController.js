@@ -1,12 +1,25 @@
 // src/interfaces/controllers/AttemptController.js
 class AttemptController {
-  constructor({ startAttempt, getAttempt, getAttemptQuestions, saveAnswer, submitAttempt, getAttemptGrade }) {
+  constructor({
+    startAttempt,
+    getAttempt,
+    getAttemptQuestions,
+    saveAnswer,
+    submitAttempt,
+    getAttemptGrade,
+    hardDeleteAttempt,
+    getMyAttempts,
+    getAttempts
+  }) {
     this.startAttemptUsecase = startAttempt;
     this.getAttemptUsecase = getAttempt;
     this.getAttemptQuestionsUsecase = getAttemptQuestions;
     this.saveAnswerUsecase = saveAnswer;
     this.submitAttemptUsecase = submitAttempt;
     this.getAttemptGradeUsecase = getAttemptGrade;
+    this.hardDeleteAttemptUsecase = hardDeleteAttempt;
+    this.getMyAttemptsUsecase = getMyAttempts;
+    this.getAttemptsUsecase = getAttempts;
   }
 
   async start(req, res) {
@@ -25,6 +38,26 @@ class AttemptController {
   async getOne(req, res) {
     try {
       const result = await this.getAttemptUsecase.execute(req.params.id);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+  }
+
+  async getMine(req, res) {
+    try {
+      const userId = req.user?.id;
+      const result = await this.getMyAttemptsUsecase.execute(req.query, userId);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+  }
+
+  async getAll(req, res) {
+    try {
+      const roles = req.user?.roles || [];
+      const result = await this.getAttemptsUsecase.execute(req.query, roles);
       return res.status(200).json(result);
     } catch (error) {
       return res.status(400).json({ message: error.message });
@@ -78,6 +111,21 @@ class AttemptController {
       const result = await this.getAttemptGradeUsecase.execute({
         attemptId,
         userId,
+      });
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+  }
+
+  async hardDelete(req, res) {
+    try {
+      const requestUserId = req.user?.id;
+      const requestUserRoles = req.user?.roles || [];
+      const result = await this.hardDeleteAttemptUsecase.execute({
+        attemptId: req.params.id,
+        requestUserId,
+        requestUserRoles
       });
       return res.status(200).json(result);
     } catch (error) {

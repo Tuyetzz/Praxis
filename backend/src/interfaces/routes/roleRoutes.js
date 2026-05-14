@@ -20,6 +20,8 @@ router.get('/:id', requiredPermission(PERMISSIONS.ROLE_MANAGE), (req, res) => ro
 
 router.put('/:id', requiredPermission(PERMISSIONS.ROLE_MANAGE), (req, res) => roleController.update(req, res));
 
+router.patch('/:id/restore', requiredPermission(PERMISSIONS.ROLE_MANAGE), (req, res) => roleController.restore(req, res));
+
 router.delete('/:id', requiredPermission(PERMISSIONS.ROLE_MANAGE), (req, res) => roleController.delete(req, res));
 
 // Role Permissions management

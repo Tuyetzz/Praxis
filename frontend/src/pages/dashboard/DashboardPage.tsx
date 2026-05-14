@@ -127,6 +127,14 @@ export default function DashboardPage() {
           </div>
 
           <div className="action-card">
+            <h3 className="action-title">Quiz History</h3>
+            <p className="action-text">Review your quiz attempts and clean old sessions.</p>
+            <Link className="action-link" to="/attempts/history">
+              View attempt history →
+            </Link>
+          </div>
+
+          <div className="action-card">
             <h3 className="action-title">Flashcards</h3>
             <p className="action-text">Manage decks and study cards with flip mode.</p>
             <Link className="action-link" to="/flashcard-decks">

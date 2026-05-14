@@ -5,7 +5,14 @@ class GetOptions {
   }
 
   async execute(filters = {}) {
-    return await this.optionRepository.findAll(filters);
+    const { includeDeleted, onlyDeleted, ...where } = filters || {};
+    const includeDeletedFlag = includeDeleted === true || includeDeleted === 'true' || includeDeleted === '1';
+    const onlyDeletedFlag = onlyDeleted === true || onlyDeleted === 'true' || onlyDeleted === '1';
+
+    return await this.optionRepository.findAll(where, {
+      includeDeleted: includeDeletedFlag,
+      onlyDeleted: onlyDeletedFlag
+    });
   }
 }
 

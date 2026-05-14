@@ -8,30 +8,27 @@ class QuestionRepository extends BaseRepository {
     super(QuestionModel, questionMapper);
   }
 
-  async findBySubject(subjectId) {
+  async findBySubject(subjectId, options = {}) {
     const records = await this.model.findAll({
-      where: { subjectId, isDeleted: false }
+      where: this._applyDeletedFilter({ subjectId }, options)
     });
     return records.map(record => this.mapper.toDomain(record));
   }
 
-  async findByChapter(chapterId) {
+  async findByChapter(chapterId, options = {}) {
     const records = await this.model.findAll({
-      where: { chapterId, isDeleted: false }
+      where: this._applyDeletedFilter({ chapterId }, options)
     });
     return records.map(record => this.mapper.toDomain(record));
   }
 
-  async findByIds(questionIds = []) {
+  async findByIds(questionIds = [], options = {}) {
     if (!Array.isArray(questionIds) || questionIds.length === 0) {
       return [];
     }
     const { Op } = require("sequelize");
     const records = await this.model.findAll({
-      where: {
-        id: { [Op.in]: questionIds },
-        isDeleted: false
-      }
+      where: this._applyDeletedFilter({ id: { [Op.in]: questionIds } }, options)
     });
     return records.map(record => this.mapper.toDomain(record));
   }

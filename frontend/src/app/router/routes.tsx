@@ -8,6 +8,7 @@ import RegisterPage from "../../pages/auth/RegisterPage";
 import ProtectedRoute from "./ProtectedRoute";
 import AttemptDetailPage from "../../pages/quiz/attempts/AttemptDetailPage";
 import AttemptResultPage from "../../pages/quiz/attempts/AttemptResultPage";
+import AttemptHistoryPage from "../../pages/quiz/attempts/AttemptHistoryPage";
 import DashboardPage from "../../pages/dashboard/DashboardPage";
 import TypingPage from "../../pages/typing/TypingPage";
 import ParagraphSelectPage from "../../pages/typing/ParagraphSelectPage";
@@ -20,6 +21,7 @@ import AdminTypingPage from "../../pages/admin/AdminTypingPage";
 import AdminRolePermissionPage from "../../pages/admin/AdminRolePermissionPage";
 import AdminRolePermissionsPage from "../../pages/admin/AdminRolePermissionsPage";
 import AdminAccountsPage from "../../pages/admin/AdminAccountsPage";
+import AdminAttemptHistoryPage from "../../pages/admin/AdminAttemptHistoryPage";
 import FlashcardDecksPage from "../../pages/flashcards/FlashcardDecksPage";
 import FlashcardStudyPage from "../../pages/flashcards/FlashcardStudyPage";
 
@@ -37,6 +39,7 @@ export default function AppRoutes() {
         <Route path="/subjects/:id/chapters/:chapterId/config" element={<ExamConfigPage />} />
         <Route path="/attempts/:id" element={<AttemptDetailPage />} />
         <Route path="/attempts/:id/result" element={<AttemptResultPage />} />
+        <Route path="/attempts/history" element={<AttemptHistoryPage />} />
 
         {/* Flashcard Routes */}
         <Route path="/flashcard-decks" element={<FlashcardDecksPage />} />
@@ -54,6 +57,7 @@ export default function AppRoutes() {
         <Route path="/admin/roles" element={<AdminRolePermissionPage />} />
         <Route path="/admin/roles/:id/permissions" element={<AdminRolePermissionsPage />} />
         <Route path="/admin/accounts" element={<AdminAccountsPage />} />
+        <Route path="/admin/attempts" element={<AdminAttemptHistoryPage />} />
         <Route path="/admin/subjects" element={<AdminSubjectPage />} />
         <Route path="/admin/subjects/:id/chapters" element={<AdminChapterPage />} />
         <Route path="/admin/chapters/:id/questions" element={<AdminQuestionsPage />} />

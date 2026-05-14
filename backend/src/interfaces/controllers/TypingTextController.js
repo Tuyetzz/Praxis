@@ -6,7 +6,9 @@ class TypingTextController {
     getMyTypingTexts,
     getOneTypingText,
     updateTypingText,
-    deleteTypingText
+    deleteTypingText,
+    restoreTypingText,
+    hardDeleteTypingText
   }) {
     this.createTypingText = createTypingText;
     this.getTypingTexts = getTypingTexts;
@@ -15,6 +17,8 @@ class TypingTextController {
     this.getOneTypingText = getOneTypingText;
     this.updateTypingText = updateTypingText;
     this.deleteTypingText = deleteTypingText;
+    this.restoreTypingText = restoreTypingText;
+    this.hardDeleteTypingText = hardDeleteTypingText;
   }
 
   async create(req, res) {
@@ -93,6 +97,30 @@ class TypingTextController {
         authorId
       });
       return res.status(204).send();
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+  }
+
+  async restore(req, res) {
+    try {
+      const result = await this.restoreTypingText.execute(req.params.id);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+  }
+
+  async hardDelete(req, res) {
+    try {
+      const requestUserId = req.user?.id;
+      const requestUserRoles = req.user?.roles || [];
+      const result = await this.hardDeleteTypingText.execute({
+        textId: req.params.id,
+        requestUserId,
+        requestUserRoles
+      });
+      return res.status(200).json(result);
     } catch (error) {
       return res.status(400).json({ message: error.message });
     }

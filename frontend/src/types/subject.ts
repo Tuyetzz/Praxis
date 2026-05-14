@@ -4,4 +4,5 @@ export interface Subject {
   slug: string;
   order: number;
   createdAt: string; // BE trả về timestamp
+  isDeleted?: boolean;
 }

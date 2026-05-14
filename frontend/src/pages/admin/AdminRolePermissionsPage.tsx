@@ -110,8 +110,8 @@ export default function AdminRolePermissionsPage() {
       }
     });
 
-    return Array.from(map.values()).
-      map((group) => {
+    return Array.from(map.values())
+      .map((group) => {
         const ordered = [...group.permissions].sort((a, b) => {
           const aParsed = parsePermission(a);
           const bParsed = parsePermission(b);

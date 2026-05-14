@@ -9,35 +9,32 @@ class ChapterRepository extends BaseRepository {
     super(ChapterModel, chapterMapper);
   }
 
-  async findBySubject(subjectId) {
+  async findBySubject(subjectId, options = {}) {
     const records = await this.model.findAll({
-      where: { subjectId, isDeleted: false },
+      where: this._applyDeletedFilter({ subjectId }, options),
       order: [["order", "ASC"]]
     });
     return records.map(record => this.mapper.toDomain(record));
   }
 
-  async findBySubjectAndOrder(subjectId, order) {
+  async findBySubjectAndOrder(subjectId, order, options = {}) {
     const record = await this.model.findOne({
-      where: { subjectId, order, isDeleted: false }
+      where: this._applyDeletedFilter({ subjectId, order }, options)
     });
     return record ? this.mapper.toDomain(record) : null;
   }
 
-  async existsBySubjectAndId(subjectId, id) {
+  async existsBySubjectAndId(subjectId, id, options = {}) {
     const count = await this.model.count({
-      where: { subjectId, id, isDeleted: false }
+      where: this._applyDeletedFilter({ subjectId, id }, options)
     });
     return count > 0;
   }
 
-  async countQuestionsByChapterId(chapterId) {
+  async countQuestionsByChapterId(chapterId, options = {}) {
     try {
       const count = await QuestionModel.count({
-        where: { 
-          chapterId: chapterId,
-          isDeleted: false 
-        }
+        where: this._applyDeletedFilter({ chapterId: chapterId }, options)
       });
       return count;
     } catch (error) {

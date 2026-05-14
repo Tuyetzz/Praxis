@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Edit2, Trash2, ChevronRight } from "lucide-react";
 import AdminLayout from "./AdminLayout";
-import { createSubject, deleteSubject, getSubjects, updateSubject } from "../../api/subjects";
+import { createSubject, deleteSubject, getSubjects, restoreSubject, updateSubject } from "../../api/subjects";
 import type { Subject } from "../../types/subject";
 
 export default function AdminSubjectPage() {
@@ -10,6 +10,7 @@ export default function AdminSubjectPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -19,7 +20,7 @@ export default function AdminSubjectPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getSubjects();
+      const data = await getSubjects(showDeleted ? { includeDeleted: true } : undefined);
       setSubjects(data);
     } catch {
       setError("Unable to load subjects.");
@@ -30,7 +31,7 @@ export default function AdminSubjectPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [showDeleted]);
 
   const handleOpenModal = (subject?: Subject) => {
     if (subject) {
@@ -90,6 +91,17 @@ export default function AdminSubjectPage() {
     }
   };
 
+  const handleRestore = async (id: string) => {
+    if (!confirm("Restore this subject?")) return;
+    setError(null);
+    try {
+      await restoreSubject(id);
+      await loadData();
+    } catch {
+      setError("Unable to restore subject.");
+    }
+  };
+
   const handleNavigate = (subjectId: string) => {
     navigate(`/admin/subjects/${subjectId}/chapters`);
   };
@@ -99,10 +111,18 @@ export default function AdminSubjectPage() {
       title="Subjects"
       subtitle="Manage all subjects and their chapters."
       actions={
-        <button className="admin-button admin-button--primary" onClick={() => handleOpenModal()}>
-          <Plus size={18} style={{ marginRight: 6 }} />
-          Add Subject
-        </button>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button className="admin-button admin-button--primary" onClick={() => handleOpenModal()}>
+            <Plus size={18} style={{ marginRight: 6 }} />
+            Add Subject
+          </button>
+          <button
+            className="admin-button admin-button--muted"
+            onClick={() => setShowDeleted((prev) => !prev)}
+          >
+            {showDeleted ? "Hide Deleted" : "Show Deleted"}
+          </button>
+        </div>
       }
     >
       {error && <div className="admin-panel" style={{ color: "#b91c1c" }}>{error}</div>}
@@ -124,7 +144,7 @@ export default function AdminSubjectPage() {
               </thead>
               <tbody>
                 {subjects.map((subject) => (
-                  <tr key={subject.id}>
+                  <tr key={subject.id} style={{ opacity: subject.isDeleted ? 0.6 : 1 }}>
                     <td>
                       <button
                         onClick={() => handleNavigate(subject.id)}
@@ -139,6 +159,11 @@ export default function AdminSubjectPage() {
                         {subject.name}
                         <ChevronRight size={16} />
                       </button>
+                      {subject.isDeleted && (
+                        <span className="admin-tag" style={{ marginLeft: 8 }}>
+                          Deleted
+                        </span>
+                      )}
                     </td>
                     <td>{subject.slug}</td>
                     <td>
@@ -146,20 +171,31 @@ export default function AdminSubjectPage() {
                     </td>
                     <td>
                       <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-                        <button
-                          onClick={() => handleOpenModal(subject)}
-                          className="admin-button admin-button--muted"
-                        >
-                          <Edit2 size={16} style={{ marginRight: 6 }} />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(subject.id)}
-                          className="admin-button admin-button--danger"
-                        >
-                          <Trash2 size={16} style={{ marginRight: 6 }} />
-                          Delete
-                        </button>
+                        {subject.isDeleted ? (
+                          <button
+                            onClick={() => handleRestore(subject.id)}
+                            className="admin-button admin-button--muted"
+                          >
+                            Restore
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleOpenModal(subject)}
+                              className="admin-button admin-button--muted"
+                            >
+                              <Edit2 size={16} style={{ marginRight: 6 }} />
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(subject.id)}
+                              className="admin-button admin-button--danger"
+                            >
+                              <Trash2 size={16} style={{ marginRight: 6 }} />
+                              Delete
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

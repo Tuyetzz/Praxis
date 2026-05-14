@@ -10,7 +10,7 @@ app.use(httpLogger);
 
 app.use(cors({ origin: "http://localhost:5173" })); 
 
-app.use("/api", rateLimiter);
+// app.use("/api", rateLimiter);
 app.use("/api", require("./interfaces/routes"));
 
 app.get("/", (req, res) => res.send("API running 🚀"));

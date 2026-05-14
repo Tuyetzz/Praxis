@@ -8,9 +8,9 @@ class SubjectRepository extends BaseRepository {
     super(SubjectModel, subjectMapper);
   }
 
-  async findBySlug(slug) {
+  async findBySlug(slug, options = {}) {
     const record = await this.model.findOne({
-      where: { slug }
+      where: this._applyDeletedFilter({ slug }, options)
     });
     return record ? this.mapper.toDomain(record) : null;
   }

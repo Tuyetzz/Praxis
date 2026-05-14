@@ -2,8 +2,11 @@ import { http } from "./http";
 import type { Chapter } from "../types/chapter";
 
 // GET /chapters?subjectId=...
-export async function getChaptersBySubject(subjectId: string | number): Promise<Chapter[]> {
-  const res = await http.get(`/chapters/subject/${subjectId}`);
+export async function getChaptersBySubject(
+  subjectId: string | number,
+  params?: Record<string, string | number | boolean>
+): Promise<Chapter[]> {
+  const res = await http.get(`/chapters/subject/${subjectId}`, { params });
   return res.data;
 }
 
@@ -28,6 +31,10 @@ export async function updateChapter(
 
 export async function deleteChapter(id: string | number): Promise<void> {
   await http.delete(`/chapters/${id}`);
+}
+
+export async function restoreChapter(id: string | number): Promise<void> {
+  await http.patch(`/chapters/${id}/restore`);
 }
 
 export async function getChapterQuestionCount(id: string | number): Promise<{ chapterId: string; totalQuestions: number }> {

@@ -10,8 +10,12 @@ class SearchChapter {
       limit = 10,
       search = null,
       subjectId = null,
-      order = 'order'
+      order = 'order',
+      includeDeleted,
+      onlyDeleted
     } = params;
+    const includeDeletedFlag = includeDeleted === true || includeDeleted === 'true' || includeDeleted === '1';
+    const onlyDeletedFlag = onlyDeleted === true || onlyDeleted === 'true' || onlyDeleted === '1';
 
     // Validate pagination params
     const pageNum = Math.max(1, parseInt(page) || 1);
@@ -40,7 +44,9 @@ class SearchChapter {
       search,
       searchFields: ['name'],
       order: orderBy,
-      where
+      where,
+      includeDeleted: includeDeletedFlag,
+      onlyDeleted: onlyDeletedFlag
     });
   }
 }

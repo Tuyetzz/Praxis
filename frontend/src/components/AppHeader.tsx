@@ -32,7 +32,8 @@ export default function AppHeader() {
         {user && (
           <>
             <Link to="/dashboard">Dashboard</Link>
-            <Link to="/subjects">Subjects</Link>
+            <Link to="/subjects">Quiz</Link>
+            <Link to="/attempts/history">Quiz history</Link>
             <Link to="/flashcard-decks">Flashcards</Link>
             <Link to="/practice/select">Typing</Link>
             <Link to="/admin/subjects">Admin</Link>

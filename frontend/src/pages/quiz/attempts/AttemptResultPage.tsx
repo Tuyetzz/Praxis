@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getAttemptGrade, type AttemptGradeResponse } from "../../../api/attempts";
+import { getAttemptGrade, hardDeleteAttempt, type AttemptGradeResponse } from "../../../api/attempts";
 import AppHeader from "../../../components/AppHeader";
 
 export default function AttemptResultPage() {
@@ -50,6 +50,17 @@ export default function AttemptResultPage() {
   }, [attemptId]);
 
   if (loading) return <div style={{ padding: 20 }}>Đang tải kết quả...</div>;
+
+  async function handleDeleteAttempt() {
+    if (!attemptId) return;
+    if (!window.confirm("Xoa vinh vien lich su bai thi nay?")) return;
+    try {
+      await hardDeleteAttempt(attemptId);
+      navigate("/dashboard", { replace: true });
+    } catch {
+      setError("Khong xoa duoc lich su bai thi.");
+    }
+  }
 
   function formatAnswer(answer: AttemptGradeResponse["detailedAnswers"][number]["selectedAnswer"]) {
     if (!answer) return "-";
@@ -169,9 +180,18 @@ export default function AttemptResultPage() {
         )}
 
         <div style={{ marginTop: 18 }}>
-          <button className="result-button" onClick={() => navigate("/dashboard")}>
-            Back to homepage
-          </button>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <button className="result-button" onClick={() => navigate("/dashboard")}>
+              Back to homepage
+            </button>
+            <button
+              className="result-button"
+              style={{ background: "#ef4444" }}
+              onClick={handleDeleteAttempt}
+            >
+              Delete attempt
+            </button>
+          </div>
         </div>
       </main>
     </div>

@@ -3,8 +3,8 @@ import { http } from "./http";
 import type { Question } from "../types/question";
 
 // Lấy tất cả questions
-export async function getAllQuestions() {
-  const res = await http.get<Question[]>("/questions");
+export async function getAllQuestions(params?: Record<string, string | number | boolean>) {
+  const res = await http.get<Question[]>("/questions", { params });
   return res.data;
 }
 
@@ -14,8 +14,11 @@ export async function getQuestionById(id: string | number) {
   return res.data;
 }
 
-export async function getQuestionsByChapter(chapterId: string): Promise<Question[]> {
-  const res = await http.get<Question[]>(`/questions/chapter/${chapterId}`);
+export async function getQuestionsByChapter(
+  chapterId: string,
+  params?: Record<string, string | number | boolean>
+): Promise<Question[]> {
+  const res = await http.get<Question[]>(`/questions/chapter/${chapterId}`, { params });
   return res.data;
 }
 
@@ -39,6 +42,12 @@ export async function updateQuestion(id: string | number, payload: Partial<Quest
 // Xóa question
 export async function deleteQuestion(id: string | number) {
   const res = await http.delete<{ success: boolean }>(`/questions/${id}`);
+  return res.data;
+}
+
+// Khôi phục question
+export async function restoreQuestion(id: string | number) {
+  const res = await http.patch<{ success: boolean }>(`/questions/${id}/restore`);
   return res.data;
 }
 

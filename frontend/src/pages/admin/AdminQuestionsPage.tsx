@@ -15,9 +15,10 @@ import {
   createQuestionWithOptions,
   deleteQuestion,
   getQuestionsByChapter,
+  restoreQuestion,
   updateQuestion,
 } from "../../api/questions";
-import { createOption, deleteOption, getOptionsByQuestion, updateOption } from "../../api/options";
+import { createOption, deleteOption, getOptionsByQuestion, restoreOption, updateOption } from "../../api/options";
 import type { QuestionType } from "../../types/question";
 import type { Option } from "../../types/options";
 
@@ -32,6 +33,7 @@ type QuestionItem = {
   text: string;
   type: QuestionFormType;
   options: OptionForm[];
+  isDeleted?: boolean;
 };
 
 export default function AdminQuestionsPage() {
@@ -42,6 +44,7 @@ export default function AdminQuestionsPage() {
   const [subjectId, setSubjectId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -65,16 +68,17 @@ export default function AdminQuestionsPage() {
     setLoading(true);
     setError(null);
     try {
+      const listParams = showDeleted ? { includeDeleted: true } : undefined;
       const [chapterData, questionData] = await Promise.all([
         getChapterById(chapterId),
-        getQuestionsByChapter(chapterId),
+        getQuestionsByChapter(chapterId, listParams),
       ]);
       setChapterName(chapterData.name || "Chapter");
       setSubjectId(chapterData.subjectId || null);
 
       const questionsWithOptions = await Promise.all(
         questionData.map(async (question) => {
-          const options = await getOptionsByQuestion(question.id);
+          const options = await getOptionsByQuestion(question.id, listParams);
           return {
             id: question.id,
             text: question.text,
@@ -83,6 +87,7 @@ export default function AdminQuestionsPage() {
               ...option,
               id: option.id,
             })),
+            isDeleted: question.isDeleted,
           } as QuestionItem;
         })
       );
@@ -96,7 +101,7 @@ export default function AdminQuestionsPage() {
 
   useEffect(() => {
     loadData();
-  }, [chapterId]);
+  }, [chapterId, showDeleted]);
 
   const handleOpenModal = (question?: QuestionItem) => {
     if (question) {
@@ -269,6 +274,28 @@ export default function AdminQuestionsPage() {
     }
   };
 
+  const handleRestoreQuestion = async (id: string) => {
+    if (!confirm("Restore this question?")) return;
+    setError(null);
+    try {
+      await restoreQuestion(id);
+      await loadData();
+    } catch {
+      setError("Unable to restore question.");
+    }
+  };
+
+  const handleRestoreOption = async (id: string) => {
+    if (!confirm("Restore this option?")) return;
+    setError(null);
+    try {
+      await restoreOption(id);
+      await loadData();
+    } catch {
+      setError("Unable to restore option.");
+    }
+  };
+
   const getQuestionTypeLabel = (type: QuestionType) => {
     switch (type) {
       case "single":
@@ -288,6 +315,12 @@ export default function AdminQuestionsPage() {
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button className="admin-button admin-button--muted" onClick={() => setIsImportExportOpen(true)}>
             Import / Export
+          </button>
+          <button
+            className="admin-button admin-button--muted"
+            onClick={() => setShowDeleted((prev) => !prev)}
+          >
+            {showDeleted ? "Hide Deleted" : "Show Deleted"}
           </button>
           <button className="admin-button admin-button--primary" onClick={() => handleOpenModal()}>
             <Plus size={18} style={{ marginRight: 6 }} />
@@ -329,12 +362,13 @@ export default function AdminQuestionsPage() {
           </div>
         ) : (
           questions.map((question) => (
-            <div key={question.id} className="admin-panel">
+            <div key={question.id} className="admin-panel" style={{ opacity: question.isDeleted ? 0.6 : 1 }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                     <span className="admin-tag">{getQuestionTypeLabel(question.type)}</span>
                     <span style={{ color: "#94a3b8", fontSize: 13 }}>Q#{question.id}</span>
+                    {question.isDeleted && <span className="admin-tag">Deleted</span>}
                   </div>
                   <div style={{ fontWeight: 600, fontSize: 17, marginBottom: 12 }}>{question.text}</div>
 
@@ -347,30 +381,60 @@ export default function AdminQuestionsPage() {
                           gap: 10,
                           padding: 10,
                           borderRadius: 12,
-                          border: `1px solid ${option.isCorrect ? "#16a34a" : "#e2e8f0"}`,
-                          background: option.isCorrect ? "#f0fdf4" : "#f8fafc",
+                          border: `1px solid ${option.isDeleted ? "#f59e0b" : option.isCorrect ? "#16a34a" : "#e2e8f0"}`,
+                          background: option.isDeleted
+                            ? "#fff7ed"
+                            : option.isCorrect
+                              ? "#f0fdf4"
+                              : "#f8fafc",
                         }}
                       >
                         <input type="checkbox" checked={option.isCorrect} readOnly disabled style={{ marginTop: 4 }} />
-                        <div>
-                          <div style={{ fontWeight: 600, color: option.isCorrect ? "#16a34a" : "#475569" }}>
+                        <div style={{ flex: 1 }}>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              color: option.isDeleted ? "#b45309" : option.isCorrect ? "#16a34a" : "#475569",
+                            }}
+                          >
                             {option.text}
                           </div>
+                          {option.isDeleted && (
+                            <span className="admin-tag" style={{ marginTop: 6 }}>
+                              Deleted
+                            </span>
+                          )}
                         </div>
+                        {option.isDeleted && (
+                          <button
+                            className="admin-button admin-button--muted"
+                            onClick={() => handleRestoreOption(option.id)}
+                          >
+                            Restore
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <button className="admin-button admin-button--muted" onClick={() => handleOpenModal(question)}>
-                    <Edit2 size={16} style={{ marginRight: 6 }} />
-                    Edit
-                  </button>
-                  <button className="admin-button admin-button--danger" onClick={() => handleDelete(question.id)}>
-                    <Trash2 size={16} style={{ marginRight: 6 }} />
-                    Delete
-                  </button>
+                  {question.isDeleted ? (
+                    <button className="admin-button admin-button--muted" onClick={() => handleRestoreQuestion(question.id)}>
+                      Restore
+                    </button>
+                  ) : (
+                    <>
+                      <button className="admin-button admin-button--muted" onClick={() => handleOpenModal(question)}>
+                        <Edit2 size={16} style={{ marginRight: 6 }} />
+                        Edit
+                      </button>
+                      <button className="admin-button admin-button--danger" onClick={() => handleDelete(question.id)}>
+                        <Trash2 size={16} style={{ marginRight: 6 }} />
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

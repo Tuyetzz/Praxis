@@ -2,8 +2,8 @@ import { http } from "./http";
 import type { Subject } from "../types/subject";
 
 // Lấy toàn bộ subjects
-export async function getSubjects(): Promise<Subject[]> {
-  const res = await http.get("/subjects");
+export async function getSubjects(params?: Record<string, string | number | boolean>): Promise<Subject[]> {
+  const res = await http.get("/subjects", { params });
   return res.data;
 }
 
@@ -31,4 +31,9 @@ export async function updateSubject(
 // Xoá subject
 export async function deleteSubject(id: string | number): Promise<void> {
   await http.delete(`/subjects/${id}`);
+}
+
+// Khôi phục subject
+export async function restoreSubject(id: string | number): Promise<void> {
+  await http.patch(`/subjects/${id}/restore`);
 }

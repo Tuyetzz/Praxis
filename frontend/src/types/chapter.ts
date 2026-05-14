@@ -4,4 +4,5 @@ export interface Chapter {
   name: string;
   order: number;
   createdAt: string;
+  isDeleted?: boolean;
 }

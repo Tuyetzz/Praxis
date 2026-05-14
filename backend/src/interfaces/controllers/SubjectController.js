@@ -6,7 +6,8 @@ class SubjectController {
     getOneSubject,
     updateSubject,
     deleteSubject,
-    searchSubject
+    searchSubject,
+    restoreSubject
   }) {
     this.createSubject = createSubject;
     this.getSubjects = getSubjects;
@@ -14,6 +15,7 @@ class SubjectController {
     this.updateSubject = updateSubject;
     this.deleteSubject = deleteSubject;
     this.searchSubject = searchSubject;
+    this.restoreSubject = restoreSubject;
   }
   async create(req, res) {
     try {
@@ -64,6 +66,15 @@ class SubjectController {
     try {
       await this.deleteSubject.execute(req.params.id);
       res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+
+  async restore(req, res) {
+    try {
+      const result = await this.restoreSubject.execute(req.params.id);
+      res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }

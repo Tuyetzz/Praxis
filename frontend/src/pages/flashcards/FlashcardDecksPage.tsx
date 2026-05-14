@@ -266,8 +266,8 @@ export default function FlashcardDecksPage() {
                   <button
                     className="deck-button deck-button--primary"
                     onClick={() => navigate(`/flashcard-decks/${deck.id}`)}
-                  >
-                    Mo deck
+                  > 
+                    Open deck
                   </button>
                 </div>
               ))}

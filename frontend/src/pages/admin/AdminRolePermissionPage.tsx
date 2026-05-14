@@ -6,6 +6,7 @@ import {
   createRole,
   deleteRole,
   getRoles,
+  restoreRole,
   updateRole,
   type Role,
 } from "../../api/roles";
@@ -28,12 +29,13 @@ export default function AdminRolePermissionPage() {
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<RoleForm>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showDeleted, setShowDeleted] = useState(false);
 
   async function loadData() {
     setLoading(true);
     setError(null);
     try {
-      const rolesData = await getRoles();
+      const rolesData = await getRoles(showDeleted ? { includeDeleted: true } : undefined);
       setRoles(rolesData);
     } catch {
       setError("Unable to load roles.");
@@ -44,7 +46,7 @@ export default function AdminRolePermissionPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [showDeleted]);
 
   const handleEdit = (role: Role) => {
     setEditingId(role.id);
@@ -62,6 +64,17 @@ export default function AdminRolePermissionPage() {
       await loadData();
     } catch {
       setError("Unable to delete role.");
+    }
+  };
+
+  const handleRestore = async (role: Role) => {
+    if (!window.confirm(`Restore role "${role.name}"?`)) return;
+    setError(null);
+    try {
+      await restoreRole(role.id);
+      await loadData();
+    } catch {
+      setError("Unable to restore role.");
     }
   };
 
@@ -93,6 +106,14 @@ export default function AdminRolePermissionPage() {
     <AdminLayout
       title="Roles"
       subtitle="Create and manage roles."
+      actions={
+        <button
+          className="admin-button admin-button--muted"
+          onClick={() => setShowDeleted((prev) => !prev)}
+        >
+          {showDeleted ? "Hide Deleted" : "Show Deleted"}
+        </button>
+      }
     >
       {error && <div className="admin-panel" style={{ color: "#b91c1c" }}>{error}</div>}
 
@@ -149,6 +170,7 @@ export default function AdminRolePermissionPage() {
                     display: "grid",
                     gap: 6,
                     background: "#ffffff",
+                    opacity: role.isDeleted ? 0.6 : 1,
                   }}
                 >
                   <button
@@ -158,21 +180,30 @@ export default function AdminRolePermissionPage() {
                     {role.name}
                   </button>
                   <div style={{ color: "#64748b", fontSize: 14 }}>{role.description || "No description"}</div>
+                  {role.isDeleted && <span className="admin-tag">Deleted</span>}
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button className="admin-button admin-button--muted" onClick={() => handleEdit(role)}>
-                      <Pencil size={14} style={{ marginRight: 6 }} />
-                      Edit
-                    </button>
-                    <button className="admin-button admin-button--danger" onClick={() => handleDelete(role)}>
-                      <Trash2 size={14} style={{ marginRight: 6 }} />
-                      Delete
-                    </button>
-                    <button
-                      className="admin-button admin-button--primary"
-                      onClick={() => navigate(`/admin/roles/${role.id}/permissions`)}
-                    >
-                      Permissions
-                    </button>
+                    {role.isDeleted ? (
+                      <button className="admin-button admin-button--muted" onClick={() => handleRestore(role)}>
+                        Restore
+                      </button>
+                    ) : (
+                      <>
+                        <button className="admin-button admin-button--muted" onClick={() => handleEdit(role)}>
+                          <Pencil size={14} style={{ marginRight: 6 }} />
+                          Edit
+                        </button>
+                        <button className="admin-button admin-button--danger" onClick={() => handleDelete(role)}>
+                          <Trash2 size={14} style={{ marginRight: 6 }} />
+                          Delete
+                        </button>
+                        <button
+                          className="admin-button admin-button--primary"
+                          onClick={() => navigate(`/admin/roles/${role.id}/permissions`)}
+                        >
+                          Permissions
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}

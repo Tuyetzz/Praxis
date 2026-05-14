@@ -58,3 +58,11 @@ export async function updateTypingText(id: string, payload: UpdateTypingTextPayl
 export async function deleteTypingText(id: string) {
   await http.delete(`/typing-texts/${id}`);
 }
+
+export async function hardDeleteTypingText(id: string) {
+  await http.delete(`/typing-texts/${id}/hard`);
+}
+
+export async function restoreTypingText(id: string) {
+  await http.patch(`/typing-texts/${id}/restore`);
+}

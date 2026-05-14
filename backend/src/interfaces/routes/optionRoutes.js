@@ -29,6 +29,10 @@ router.put('/:id', requiredPermission(PERMISSIONS.QUESTION_UPDATE), (req, res) =
   optionController.update(req, res)
 );
 
+router.patch('/:id/restore', requiredPermission(PERMISSIONS.QUESTION_UPDATE), (req, res) => 
+  optionController.restore(req, res)
+);
+
 router.delete('/:id', requiredPermission(PERMISSIONS.QUESTION_DELETE), (req, res) => 
   optionController.delete(req, res)
 );
