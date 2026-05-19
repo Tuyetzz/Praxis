@@ -9,4 +9,5 @@ export interface Question {
   points?: number;
   createdAt?: string;
   options?: Option[];
+  isDeleted?: boolean;
 }

@@ -56,6 +56,12 @@ const DeleteQuestion = require('./usecases/question/DeleteQuestion');
 const DeleteRole = require('./usecases/role/DeleteRole');
 const DeleteSubject = require('./usecases/subject/DeleteSubject');
 const DeleteUser = require('./usecases/user/DeleteUser');
+const RestoreChapter = require('./usecases/chapter/RestoreChapter');
+const RestoreOption = require('./usecases/option/RestoreOption');
+const RestoreQuestion = require('./usecases/question/RestoreQuestion');
+const RestoreRole = require('./usecases/role/RestoreRole');
+const RestoreSubject = require('./usecases/subject/RestoreSubject');
+const RestoreTypingText = require('./usecases/typingText/RestoreTypingText');
 const GetChapters = require('./usecases/chapter/GetChapters');
 const GetChaptersBySubject = require('./usecases/chapter/GetChaptersBySubject');
 const GetChapterQuestionCount = require('./usecases/chapter/GetChapterQuestionCount');
@@ -110,7 +116,12 @@ const GetOneFlashcard = require('./usecases/flashcard/GetOneFlashcard');
 const UpdateFlashcard = require('./usecases/flashcard/UpdateFlashcard');
 const DeleteFlashcard = require('./usecases/flashcard/DeleteFlashcard');
 const CreateTypingText = require('./usecases/typingText/CreateTypingText');
+const HardDeleteAttempt = require('./usecases/attempt/HardDeleteAttempt');
+const HardDeleteTypingResult = require('./usecases/typingResult/HardDeleteTypingResult');
+const HardDeleteTypingText = require('./usecases/typingText/HardDeleteTypingText');
+const GetAttempts = require('./usecases/attempt/GetAttempts');
 const GetTypingTexts = require('./usecases/typingText/GetTypingTexts');
+const GetMyAttempts = require('./usecases/attempt/GetMyAttempts');
 const GetPublicTypingTexts = require('./usecases/typingText/GetPublicTypingTexts');
 const GetMyTypingTexts = require('./usecases/typingText/GetMyTypingTexts');
 const GetOneTypingText = require('./usecases/typingText/GetOneTypingText');
@@ -160,6 +171,12 @@ container.register({
   deleteRole: asClass(DeleteRole).singleton(),
   deleteSubject: asClass(DeleteSubject).singleton(),
   deleteUser: asClass(DeleteUser).singleton(),
+  restoreChapter: asClass(RestoreChapter).singleton(),
+  restoreOption: asClass(RestoreOption).singleton(),
+  restoreQuestion: asClass(RestoreQuestion).singleton(),
+  restoreRole: asClass(RestoreRole).singleton(),
+  restoreSubject: asClass(RestoreSubject).singleton(),
+  restoreTypingText: asClass(RestoreTypingText).singleton(),
   getChapters: asClass(GetChapters).singleton(),
   getChaptersBySubject: asClass(GetChaptersBySubject).singleton(),
   getChapterQuestionCount: asClass(GetChapterQuestionCount).singleton(),
@@ -209,7 +226,12 @@ container.register({
   updateFlashcardDeck: asClass(UpdateFlashcardDeck).singleton(),
   deleteFlashcardDeck: asClass(DeleteFlashcardDeck).singleton(),
   createFlashcard: asClass(CreateFlashcard).singleton(),
+  hardDeleteAttempt: asClass(HardDeleteAttempt).scoped(),
+  hardDeleteTypingResult: asClass(HardDeleteTypingResult).singleton(),
+  hardDeleteTypingText: asClass(HardDeleteTypingText).scoped(),
+  getAttempts: asClass(GetAttempts).singleton(),
   getFlashcardsByDeck: asClass(GetFlashcardsByDeck).singleton(),
+  getMyAttempts: asClass(GetMyAttempts).singleton(),
   getOneFlashcard: asClass(GetOneFlashcard).singleton(),
   updateFlashcard: asClass(UpdateFlashcard).singleton(),
   deleteFlashcard: asClass(DeleteFlashcard).singleton(),

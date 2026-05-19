@@ -24,6 +24,7 @@ const PERMISSIONS = Object.freeze({
   ATTEMPT_VIEW: "attempt:view",
   ATTEMPT_CREATE: "attempt:create",
   ATTEMPT_SUBMIT: "attempt:submit",
+  ATTEMPT_DELETE: "attempt:delete",
 
   FLASHCARD_DECK_VIEW: "flashcard_deck:view",
   FLASHCARD_DECK_CREATE: "flashcard_deck:create",
@@ -42,6 +43,7 @@ const PERMISSIONS = Object.freeze({
 
   TYPING_RESULT_VIEW: "typing_result:view",
   TYPING_RESULT_CREATE: "typing_result:create",
+  TYPING_RESULT_DELETE: "typing_result:delete",
 
   ROLE_MANAGE: "role:manage",
   PERMISSION_MANAGE: "permission:manage"

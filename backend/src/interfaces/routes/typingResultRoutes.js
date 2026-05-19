@@ -23,6 +23,10 @@ router.get('/:id', requiredPermission(PERMISSIONS.TYPING_RESULT_VIEW), (req, res
   typingResultController.getOne(req, res)
 );
 
+router.delete('/:id/hard', requiredPermission(PERMISSIONS.TYPING_RESULT_DELETE), (req, res) =>
+  typingResultController.hardDelete(req, res)
+);
+
 router.post('/', requiredPermission(PERMISSIONS.TYPING_RESULT_CREATE), (req, res) =>
   typingResultController.create(req, res)
 );

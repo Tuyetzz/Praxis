@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
-import { getMyTypingResults } from "../../api/typingResults";
+import { getMyTypingResults, hardDeleteTypingResult } from "../../api/typingResults";
 import type { TypingResult } from "../../types/typingResult";
 
 function formatDate(value?: string) {
@@ -35,7 +35,7 @@ export default function TypingHistoryPage() {
         if (!active) return;
         setResults(data);
       } catch {
-        if (active) setError("Khong tai duoc lich su go phim.");
+        if (active) setError("Cant load typing history.");
       } finally {
         if (active) setLoading(false);
       }
@@ -57,7 +57,18 @@ export default function TypingHistoryPage() {
     };
   }, [results]);
 
-  if (loading) return <div style={{ padding: 20 }}>Dang tai lich su...</div>;
+  async function handleDelete(resultId?: string) {
+    if (!resultId) return;
+    if (!window.confirm("Permanently delete this typing history?")) return;
+    try {
+      await hardDeleteTypingResult(resultId);
+      setResults((prev) => prev.filter((item) => item.id !== resultId));
+    } catch {
+      setError("Cant delete typing history.");
+    }
+  }
+
+  if (loading) return <div style={{ padding: 20 }}>Loading history...</div>;
 
   return (
     <div
@@ -152,13 +163,13 @@ export default function TypingHistoryPage() {
       <main className="history-wrap">
         <div className="history-hero">
           <div>
-            <h1 className="history-title">Lich su go phim</h1>
-            <p className="history-subtitle">Tong hop ket qua go phim cua ban.</p>
+            <h1 className="history-title">Typing History</h1>
+            <p className="history-subtitle">Overview of your typing results.</p>
           </div>
           <div className="history-panel">
             <div style={{ fontWeight: 600, fontSize: 16 }}>Total progress</div>
             <div style={{ color: "rgba(248, 250, 252, 0.7)" }}>
-              Theo doi toc do va do chinh xac qua tung buoi.
+              Track your speed and accuracy over time.
             </div>
           </div>
         </div>
@@ -202,9 +213,18 @@ export default function TypingHistoryPage() {
               ) : (
                 <div style={{ marginTop: 10, color: "#94a3b8" }}>No error tags recorded.</div>
               )}
+              <div style={{ marginTop: 12 }}>
+                <button
+                  className="history-button"
+                  style={{ background: "#ef4444" }}
+                  onClick={() => handleDelete(item.id)}
+                >
+                  Delete forever
+                </button>
+              </div>
             </article>
           ))}
-          {results.length === 0 && <div>Chua co lich su go phim.</div>}
+          {results.length === 0 && <div>No typing history available.</div>}
         </section>
 
         <div style={{ marginTop: 18 }}>

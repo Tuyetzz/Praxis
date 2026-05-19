@@ -12,4 +12,5 @@ export interface TypingText {
   sourceType?: string;
   createdAt?: string;
   updatedAt?: string;
+  isDeleted?: boolean;
 }

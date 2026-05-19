@@ -25,6 +25,15 @@ export type CreateTypingTextPayload = Pick<
 
 export type UpdateTypingTextPayload = Partial<CreateTypingTextPayload>;
 
+export type SummarizeTypingTextPayload = {
+  baseUrl: string;
+  text: string;
+};
+
+export type SummarizeTypingTextResponse = {
+  summary: string;
+};
+
 export async function getTypingTexts(params?: Record<string, string | number>) {
   const { data } = await http.get("/typing-texts", { params });
   return unwrapData<TypingText[]>(data);
@@ -50,6 +59,11 @@ export async function createTypingText(payload: CreateTypingTextPayload) {
   return unwrapData<TypingText>(data);
 }
 
+export async function summarizeTypingText(payload: SummarizeTypingTextPayload) {
+  const { data } = await http.post("/typing-texts/summarize", payload);
+  return unwrapData<SummarizeTypingTextResponse>(data);
+}
+
 export async function updateTypingText(id: string, payload: UpdateTypingTextPayload) {
   const { data } = await http.put(`/typing-texts/${id}`, payload);
   return unwrapData<TypingText>(data);
@@ -57,4 +71,12 @@ export async function updateTypingText(id: string, payload: UpdateTypingTextPayl
 
 export async function deleteTypingText(id: string) {
   await http.delete(`/typing-texts/${id}`);
+}
+
+export async function hardDeleteTypingText(id: string) {
+  await http.delete(`/typing-texts/${id}/hard`);
+}
+
+export async function restoreTypingText(id: string) {
+  await http.patch(`/typing-texts/${id}/restore`);
 }

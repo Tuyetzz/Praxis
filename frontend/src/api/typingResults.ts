@@ -24,3 +24,7 @@ export async function getMyTypingResults(): Promise<TypingResult[]> {
   const { data } = await http.get("/typing-results/mine");
   return unwrapData<TypingResult[]>(data);
 }
+
+export async function hardDeleteTypingResult(resultId: string) {
+  await http.delete(`/typing-results/${resultId}/hard`);
+}

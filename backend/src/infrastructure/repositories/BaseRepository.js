@@ -5,18 +5,41 @@ class BaseRepository {
     this.mapper = mapper;
   }
 
-  async findAll(filter = {}) {
-    const records = await this.model.findAll({ 
-      where: { ...filter, isDeleted: false } 
+  _applyDeletedFilter(where = {}, options = {}) {
+    const includeDeleted = options.includeDeleted ?? where.includeDeleted ?? false;
+    const onlyDeleted = options.onlyDeleted ?? where.onlyDeleted ?? false;
+    const finalWhere = { ...where };
+
+    delete finalWhere.includeDeleted;
+    delete finalWhere.onlyDeleted;
+
+    if (onlyDeleted) {
+      finalWhere.isDeleted = true;
+    } else if (!includeDeleted) {
+      finalWhere.isDeleted = false;
+    }
+
+    return finalWhere;
+  }
+
+  async findAll(filter = {}, options = {}) {
+    const finalWhere = this._applyDeletedFilter(filter, options);
+    const records = await this.model.findAll({
+      where: finalWhere
     });
     return records.map(record => this.mapper.toDomain(record));
   }
 
-  async findById(id) {
-    const record = await this.model.findOne({ 
-      where: { id, isDeleted: false } 
+  async findById(id, options = {}) {
+    const finalWhere = this._applyDeletedFilter({ id }, options);
+    const record = await this.model.findOne({
+      where: finalWhere
     });
     return record ? this.mapper.toDomain(record) : null;
+  }
+
+  async findByIdIncludingDeleted(id) {
+    return this.findById(id, { includeDeleted: true });
   }
 
   async create(data, userId = null, options = {}) {
@@ -38,6 +61,18 @@ class BaseRepository {
     return await this.model.update({ isDeleted: true }, { where: { id } });
   }
 
+  async restore(id) {
+    return await this.model.update({ isDeleted: false }, { where: { id } });
+  }
+
+  async hardDelete(id, options = {}) {
+    return await this.model.destroy({ where: { id }, ...options });
+  }
+
+  async hardDeleteWhere(where = {}, options = {}) {
+    return await this.model.destroy({ where, ...options });
+  }
+
   async findWithPagination(options = {}) {
     const {
       limit = 10,
@@ -47,11 +82,12 @@ class BaseRepository {
       order = [["createdAt", "DESC"]],
       where = {},
       include = [],
-      attributes = undefined
+      attributes = undefined,
+      includeDeleted = false,
+      onlyDeleted = false
     } = options;
 
-    // Add soft-delete filter by default
-    const finalWhere = { ...where, isDeleted: false };
+    const finalWhere = this._applyDeletedFilter(where, { includeDeleted, onlyDeleted });
 
     // If search is provided, add OR conditions for search fields
     if (search && searchFields.length > 0) {

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Plus, Edit2, Trash2, ChevronRight, ChevronLeft } from "lucide-react";
 import AdminLayout from "./AdminLayout";
-import { createChapter, deleteChapter, getChaptersBySubject, updateChapter } from "../../api/chapters";
+import { createChapter, deleteChapter, getChaptersBySubject, restoreChapter, updateChapter } from "../../api/chapters";
 import { getSubjectById } from "../../api/subjects";
 import type { Chapter } from "../../types/chapter";
 
@@ -13,6 +13,7 @@ export default function AdminChapterPage() {
   const [subjectName, setSubjectName] = useState("...");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export default function AdminChapterPage() {
     setError(null);
     try {
       const [chapterData, subjectData] = await Promise.all([
-        getChaptersBySubject(subjectId),
+        getChaptersBySubject(subjectId, showDeleted ? { includeDeleted: true } : undefined),
         getSubjectById(subjectId).catch(() => null)
       ]);
       setChapters(chapterData);
@@ -38,7 +39,7 @@ export default function AdminChapterPage() {
 
   useEffect(() => {
     loadData();
-  }, [subjectId]);
+  }, [subjectId, showDeleted]);
 
   const handleOpenModal = (chapter?: Chapter) => {
     if (chapter) {
@@ -103,6 +104,17 @@ export default function AdminChapterPage() {
     }
   };
 
+  const handleRestore = async (id: string) => {
+    if (!confirm("Restore this chapter?")) return;
+    setError(null);
+    try {
+      await restoreChapter(id);
+      await loadData();
+    } catch {
+      setError("Unable to restore chapter.");
+    }
+  };
+
   const handleNavigateToQuestions = (chapterId: string) => {
     navigate(`/admin/chapters/${chapterId}/questions`);
   };
@@ -112,10 +124,18 @@ export default function AdminChapterPage() {
       title="Chapters"
       subtitle={`Manage chapters for ${subjectName}.`}
       actions={
-        <button className="admin-button admin-button--primary" onClick={() => handleOpenModal()}>
-          <Plus size={18} style={{ marginRight: 6 }} />
-          Add Chapter
-        </button>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button className="admin-button admin-button--primary" onClick={() => handleOpenModal()}>
+            <Plus size={18} style={{ marginRight: 6 }} />
+            Add Chapter
+          </button>
+          <button
+            className="admin-button admin-button--muted"
+            onClick={() => setShowDeleted((prev) => !prev)}
+          >
+            {showDeleted ? "Hide Deleted" : "Show Deleted"}
+          </button>
+        </div>
       }
     >
       {error && <div className="admin-panel" style={{ color: "#b91c1c" }}>{error}</div>}
@@ -148,7 +168,7 @@ export default function AdminChapterPage() {
               </thead>
               <tbody>
                 {chapters.map((chapter) => (
-                  <tr key={chapter.id}>
+                  <tr key={chapter.id} style={{ opacity: chapter.isDeleted ? 0.6 : 1 }}>
                     <td>
                       <button
                         onClick={() => handleNavigateToQuestions(chapter.id)}
@@ -163,26 +183,42 @@ export default function AdminChapterPage() {
                         {chapter.name}
                         <ChevronRight size={16} />
                       </button>
+                      {chapter.isDeleted && (
+                        <span className="admin-tag" style={{ marginLeft: 8 }}>
+                          Deleted
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span className="admin-pill">{chapter.order}</span>
                     </td>
                     <td>
                       <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-                        <button
-                          onClick={() => handleOpenModal(chapter)}
-                          className="admin-button admin-button--muted"
-                        >
-                          <Edit2 size={16} style={{ marginRight: 6 }} />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(chapter.id)}
-                          className="admin-button admin-button--danger"
-                        >
-                          <Trash2 size={16} style={{ marginRight: 6 }} />
-                          Delete
-                        </button>
+                        {chapter.isDeleted ? (
+                          <button
+                            onClick={() => handleRestore(chapter.id)}
+                            className="admin-button admin-button--muted"
+                          >
+                            Restore
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleOpenModal(chapter)}
+                              className="admin-button admin-button--muted"
+                            >
+                              <Edit2 size={16} style={{ marginRight: 6 }} />
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(chapter.id)}
+                              className="admin-button admin-button--danger"
+                            >
+                              <Trash2 size={16} style={{ marginRight: 6 }} />
+                              Delete
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

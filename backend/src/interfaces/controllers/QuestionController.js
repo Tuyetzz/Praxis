@@ -11,7 +11,8 @@ class QuestionController {
     searchQuestion,
     getQuestionsBySubject,
     getQuestionsByChapter,
-    importQuestionsFromFile
+    importQuestionsFromFile,
+    restoreQuestion
   }) {
     this.createQuestion = createQuestion;
     this.createQuestionWithOptions = createQuestionWithOptions;
@@ -24,6 +25,7 @@ class QuestionController {
     this.getQuestionsBySubject = getQuestionsBySubject;
     this.getQuestionsByChapter = getQuestionsByChapter;
     this.importQuestionsFromFile = importQuestionsFromFile;
+    this.restoreQuestion = restoreQuestion;
   }
   async create(req, res) {
     try {
@@ -72,7 +74,7 @@ class QuestionController {
 
   async getBySubject(req, res) {
     try {
-      const result = await this.getQuestionsBySubject.execute(req.params.subjectId);
+      const result = await this.getQuestionsBySubject.execute(req.params.subjectId, req.query);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -81,7 +83,7 @@ class QuestionController {
 
   async getByChapter(req, res) {
     try {
-      const result = await this.getQuestionsByChapter.execute(req.params.chapterId);
+      const result = await this.getQuestionsByChapter.execute(req.params.chapterId, req.query);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -101,6 +103,15 @@ class QuestionController {
     try {
       await this.deleteQuestion.execute(req.params.id);
       res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+
+  async restore(req, res) {
+    try {
+      const result = await this.restoreQuestion.execute(req.params.id);
+      res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }

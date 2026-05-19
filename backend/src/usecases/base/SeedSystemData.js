@@ -53,6 +53,28 @@ class SeedSystemData {
         await superadminRole.update({ isDeleted: false }, { transaction });
       }
 
+      // Step 2b: Ensure base roles exist (or restore if soft-deleted).
+      const baseRoles = ["admin", "teacher", "student"];
+      for (const roleName of baseRoles) {
+        let role = await RoleModel.findOne({
+          where: { name: roleName },
+          transaction
+        });
+
+        if (!role) {
+          await RoleModel.create(
+            {
+              name: roleName,
+              description: `System ${roleName} role`,
+              isDeleted: false
+            },
+            { transaction }
+          );
+        } else if (role.isDeleted) {
+          await role.update({ isDeleted: false }, { transaction });
+        }
+      }
+
       // Step 3: Bind all permissions to superadmin in role_permissions table.
       const rolePermissions = allPermissions.map((permission) => ({
         roleId: superadminRole.id,

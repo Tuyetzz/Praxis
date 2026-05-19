@@ -35,6 +35,10 @@ class TypingResultRepository extends BaseRepository {
 
     return records.map((record) => this.mapper.toDomain(record));
   }
+
+  async hardDeleteByTextId(textId, options = {}) {
+    return await this.hardDeleteWhere({ textId }, options);
+  }
 }
 
 module.exports = TypingResultRepository;

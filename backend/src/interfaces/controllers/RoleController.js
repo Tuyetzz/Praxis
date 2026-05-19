@@ -6,6 +6,7 @@ class RoleController {
     getOneRole,
     updateRole,
     deleteRole,
+    restoreRole,
     assignPermissionToRole,
     removePermissionFromRole,
     assignRoleToUser,
@@ -18,6 +19,7 @@ class RoleController {
     this.getOneRole = getOneRole;
     this.updateRole = updateRole;
     this.deleteRole = deleteRole;
+    this.restoreRole = restoreRole;
     this.assignPermissionToRole = assignPermissionToRole;
     this.removePermissionFromRole = removePermissionFromRole;
     this.assignRoleToUserUseCase = assignRoleToUser;
@@ -65,6 +67,15 @@ class RoleController {
     try {
       await this.deleteRole.execute(req.params.id);
       res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+
+  async restore(req, res) {
+    try {
+      const result = await this.restoreRole.execute(req.params.id);
+      res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }

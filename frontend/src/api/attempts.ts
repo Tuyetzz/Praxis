@@ -94,6 +94,14 @@ export type AttemptGradeResponse = {
   }>;
 };
 
+export type AttemptHistoryResponse = {
+  data: Attempt[];
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
+  itemsPerPage: number;
+};
+
 export async function getAttempt(attemptId: string): Promise<Attempt> {
   const res = await http.get(`/attempts/${attemptId}`);
   return res.data;
@@ -120,4 +128,18 @@ export async function submitAttempt(attemptId: string): Promise<SubmitAttemptRes
 export async function getAttemptGrade(attemptId: string): Promise<AttemptGradeResponse> {
   const res = await http.get<AttemptGradeResponse>(`/attempts/${attemptId}/grade`);
   return res.data;
+}
+
+export async function getMyAttempts(params?: Record<string, string | number | boolean>): Promise<AttemptHistoryResponse> {
+  const res = await http.get<AttemptHistoryResponse>("/attempts/mine", { params });
+  return res.data;
+}
+
+export async function getAllAttempts(params?: Record<string, string | number | boolean>): Promise<AttemptHistoryResponse> {
+  const res = await http.get<AttemptHistoryResponse>("/attempts", { params });
+  return res.data;
+}
+
+export async function hardDeleteAttempt(attemptId: string): Promise<void> {
+  await http.delete(`/attempts/${attemptId}/hard`);
 }

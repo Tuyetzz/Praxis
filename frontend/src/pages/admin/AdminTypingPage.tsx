@@ -6,6 +6,8 @@ import {
 	createTypingText,
 	deleteTypingText,
 	getTypingTexts,
+	hardDeleteTypingText,
+	restoreTypingText,
 	updateTypingText,
 } from "../../api/typingTexts";
 
@@ -48,12 +50,13 @@ export default function AdminTypingPage() {
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [showDeleted, setShowDeleted] = useState(false);
 
 	async function loadTexts() {
 		setLoading(true);
 		setError(null);
 		try {
-			const data = await getTypingTexts();
+				const data = await getTypingTexts(showDeleted ? { includeDeleted: true } : undefined);
 			setTexts(data);
 		} catch {
 			setError("Unable to load typing texts.");
@@ -65,7 +68,7 @@ export default function AdminTypingPage() {
 
 	useEffect(() => {
 		loadTexts();
-	}, []);
+	}, [showDeleted]);
 
 	const defaultTexts = useMemo(() => texts.filter((t) => t.isDefault), [texts]);
 	const otherTexts = useMemo(() => texts.filter((t) => !t.isDefault), [texts]);
@@ -93,6 +96,34 @@ export default function AdminTypingPage() {
 			await loadTexts();
 		} catch {
 			setError("Unable to delete the selected text.");
+		} finally {
+			setDeletingId(null);
+		}
+	};
+
+	const handleRestore = async (text: TypingText) => {
+		if (!window.confirm(`Restore "${text.title}"?`)) return;
+		setDeletingId(text.id);
+		setError(null);
+		try {
+			await restoreTypingText(text.id);
+			await loadTexts();
+		} catch {
+			setError("Unable to restore the selected text.");
+		} finally {
+			setDeletingId(null);
+		}
+	};
+
+	const handleHardDelete = async (text: TypingText) => {
+		if (!window.confirm(`Delete forever "${text.title}"? This cannot be undone.`)) return;
+		setDeletingId(text.id);
+		setError(null);
+		try {
+			await hardDeleteTypingText(text.id);
+			await loadTexts();
+		} catch {
+			setError("Unable to permanently delete the selected text.");
 		} finally {
 			setDeletingId(null);
 		}
@@ -137,6 +168,12 @@ export default function AdminTypingPage() {
 					<button className="admin-button admin-button--muted" onClick={loadTexts}>
 						<RefreshCcw size={16} style={{ marginRight: 6 }} />
 						Refresh
+					</button>
+					<button
+						className="admin-button admin-button--muted"
+						onClick={() => setShowDeleted((prev) => !prev)}
+					>
+						{showDeleted ? "Hide Deleted" : "Show Deleted"}
 					</button>
 					<button className="admin-button admin-button--primary" onClick={handleReset}>
 						<Plus size={16} style={{ marginRight: 6 }} />
@@ -240,7 +277,7 @@ export default function AdminTypingPage() {
 				) : (
 					<div style={{ display: "grid", gap: 12, marginTop: 12 }}>
 						{defaultTexts.map((text) => (
-							<div key={text.id} className="admin-panel" style={{ padding: 16 }}>
+							<div key={text.id} className="admin-panel" style={{ padding: 16, opacity: text.isDeleted ? 0.6 : 1 }}>
 								<div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
 									<div>
 										<div style={{ fontWeight: 600, fontSize: 16 }}>{text.title}</div>
@@ -252,21 +289,41 @@ export default function AdminTypingPage() {
 										<span className="admin-tag">{getDifficultyLabel(text.difficulty)}</span>
 										{text.isPublic && <span className="admin-tag">Public</span>}
 										<span className="admin-tag">{text.sourceType || "manual"}</span>
+										{text.isDeleted && <span className="admin-tag">Deleted</span>}
 									</div>
 								</div>
 								<div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-									<button className="admin-button admin-button--muted" onClick={() => handleEdit(text)}>
-										<Pencil size={14} style={{ marginRight: 6 }} />
-										Edit
-									</button>
-									<button
-										className="admin-button admin-button--danger"
-										onClick={() => handleDelete(text)}
-										disabled={deletingId === text.id}
-									>
-										<Trash2 size={14} style={{ marginRight: 6 }} />
-										Delete
-									</button>
+									{text.isDeleted ? (
+										<button
+											className="admin-button admin-button--muted"
+											onClick={() => handleRestore(text)}
+											disabled={deletingId === text.id}
+										>
+											Restore
+										</button>
+									) : (
+										<>
+											<button className="admin-button admin-button--muted" onClick={() => handleEdit(text)}>
+												<Pencil size={14} style={{ marginRight: 6 }} />
+												Edit
+											</button>
+											<button
+												className="admin-button admin-button--danger"
+												onClick={() => handleDelete(text)}
+												disabled={deletingId === text.id}
+											>
+												<Trash2 size={14} style={{ marginRight: 6 }} />
+												Delete
+											</button>
+											<button
+												className="admin-button admin-button--danger"
+												onClick={() => handleHardDelete(text)}
+												disabled={deletingId === text.id}
+											>
+												Delete forever
+											</button>
+										</>
+									)}
 								</div>
 							</div>
 						))}
@@ -286,7 +343,7 @@ export default function AdminTypingPage() {
 				) : (
 					<div style={{ display: "grid", gap: 12, marginTop: 12 }}>
 						{otherTexts.map((text) => (
-							<div key={text.id} className="admin-panel" style={{ padding: 16 }}>
+							<div key={text.id} className="admin-panel" style={{ padding: 16, opacity: text.isDeleted ? 0.6 : 1 }}>
 								<div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
 									<div>
 										<div style={{ fontWeight: 600, fontSize: 16 }}>{text.title}</div>
@@ -299,21 +356,41 @@ export default function AdminTypingPage() {
 										{text.isPublic && <span className="admin-tag">Public</span>}
 										{text.isDefault && <span className="admin-tag">Default</span>}
 										<span className="admin-tag">{text.sourceType || "manual"}</span>
+										{text.isDeleted && <span className="admin-tag">Deleted</span>}
 									</div>
 								</div>
 								<div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-									<button className="admin-button admin-button--muted" onClick={() => handleEdit(text)}>
-										<Pencil size={14} style={{ marginRight: 6 }} />
-										Edit
-									</button>
-									<button
-										className="admin-button admin-button--danger"
-										onClick={() => handleDelete(text)}
-										disabled={deletingId === text.id}
-									>
-										<Trash2 size={14} style={{ marginRight: 6 }} />
-										Delete
-									</button>
+									{text.isDeleted ? (
+										<button
+											className="admin-button admin-button--muted"
+											onClick={() => handleRestore(text)}
+											disabled={deletingId === text.id}
+										>
+											Restore
+										</button>
+									) : (
+										<>
+											<button className="admin-button admin-button--muted" onClick={() => handleEdit(text)}>
+												<Pencil size={14} style={{ marginRight: 6 }} />
+												Edit
+											</button>
+											<button
+												className="admin-button admin-button--danger"
+												onClick={() => handleDelete(text)}
+												disabled={deletingId === text.id}
+											>
+												<Trash2 size={14} style={{ marginRight: 6 }} />
+												Delete
+											</button>
+											<button
+												className="admin-button admin-button--danger"
+												onClick={() => handleHardDelete(text)}
+												disabled={deletingId === text.id}
+											>
+												Delete forever
+											</button>
+										</>
+									)}
 								</div>
 							</div>
 						))}

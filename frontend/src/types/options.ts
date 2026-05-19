@@ -3,4 +3,5 @@ export interface Option {
   text: string;
   isCorrect: boolean;
   order: number;
+  isDeleted?: boolean;
 }

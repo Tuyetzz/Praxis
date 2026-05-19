@@ -6,7 +6,8 @@ class OptionController {
     getOneOption,
     updateOption,
     deleteOption,
-    getOptionsByQuestion
+    getOptionsByQuestion,
+    restoreOption
   }) {
     this.createOption = createOption;
     this.getOptions = getOptions;
@@ -14,6 +15,7 @@ class OptionController {
     this.updateOption = updateOption;
     this.deleteOption = deleteOption;
     this.getOptionsByQuestion = getOptionsByQuestion;
+    this.restoreOption = restoreOption;
   }
 
   async create(req, res) {
@@ -45,7 +47,7 @@ class OptionController {
 
   async getByQuestion(req, res) {
     try {
-      const result = await this.getOptionsByQuestion.execute(req.params.questionId);
+      const result = await this.getOptionsByQuestion.execute(req.params.questionId, req.query);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -65,6 +67,15 @@ class OptionController {
     try {
       await this.deleteOption.execute(req.params.id);
       res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+
+  async restore(req, res) {
+    try {
+      const result = await this.restoreOption.execute(req.params.id);
+      res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }

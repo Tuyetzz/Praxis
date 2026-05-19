@@ -1,13 +1,15 @@
 
 class RegisterUser {
-  constructor({ userRepository, hashPassword }) {
+  constructor({ userRepository, roleRepository, userRoleRepository, hashPassword }) {
     this.userRepository = userRepository;
+    this.roleRepository = roleRepository;
+    this.userRoleRepository = userRoleRepository;
     this.hashPassword = hashPassword;
   }
 
   async execute({ name, email, password }) {
     const existing = await this.userRepository.findByEmail(email);
-    if (existing) throw new Error("Email đã được sử dụng.");
+    if (existing) throw new Error("Email has already been used.");
 
     const passwordHash = await this.hashPassword(password);
 
@@ -17,6 +19,13 @@ class RegisterUser {
       passwordHash,
       status: 'active' 
     });
+
+    const studentRole = await this.roleRepository.findByName("student");
+    if (!studentRole) {
+      throw new Error("Default role 'student' not found.");
+    }
+
+    await this.userRoleRepository.assignRoleToUser(newUser.id, studentRole.id);
 
     return {
       id: newUser.id,

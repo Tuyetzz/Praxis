@@ -36,6 +36,10 @@ class AttemptQuestionRepository extends BaseRepository {
     });
     return records.map(record => this.mapper.toDomain(record));
   }
+
+  async hardDeleteByAttemptId(attemptId, options = {}) {
+    return await this.hardDeleteWhere({ attemptId }, options);
+  }
 }
 
 module.exports = AttemptQuestionRepository;

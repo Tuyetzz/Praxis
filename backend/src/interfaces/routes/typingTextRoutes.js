@@ -15,6 +15,10 @@ router.get('/public', requiredPermission(PERMISSIONS.TYPING_TEXT_VIEW), (req, re
   typingTextController.getPublic(req, res)
 );
 
+router.post('/summarize', requiredPermission(PERMISSIONS.TYPING_TEXT_VIEW), (req, res) =>
+  typingTextController.summarize(req, res)
+);
+
 router.get('/', requiredPermission(PERMISSIONS.TYPING_TEXT_VIEW), (req, res) =>
   typingTextController.getAll(req, res)
 );
@@ -29,6 +33,14 @@ router.post('/', requiredPermission(PERMISSIONS.TYPING_TEXT_CREATE), (req, res) 
 
 router.put('/:id', requiredPermission(PERMISSIONS.TYPING_TEXT_UPDATE), (req, res) =>
   typingTextController.update(req, res)
+);
+
+router.patch('/:id/restore', requiredPermission(PERMISSIONS.TYPING_TEXT_UPDATE), (req, res) =>
+  typingTextController.restore(req, res)
+);
+
+router.delete('/:id/hard', requiredPermission(PERMISSIONS.TYPING_TEXT_DELETE), (req, res) =>
+  typingTextController.hardDelete(req, res)
 );
 
 router.delete('/:id', requiredPermission(PERMISSIONS.TYPING_TEXT_DELETE), (req, res) =>

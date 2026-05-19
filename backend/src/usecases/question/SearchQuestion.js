@@ -13,8 +13,12 @@ class SearchQuestion {
       chapterId = null,
       type = null,
       difficulty = null,
-      order = 'newest'
+      order = 'newest',
+      includeDeleted,
+      onlyDeleted
     } = params;
+    const includeDeletedFlag = includeDeleted === true || includeDeleted === 'true' || includeDeleted === '1';
+    const onlyDeletedFlag = onlyDeleted === true || onlyDeleted === 'true' || onlyDeleted === '1';
 
     // Validate pagination params
     const pageNum = Math.max(1, parseInt(page) || 1);
@@ -45,7 +49,9 @@ class SearchQuestion {
       limit: limitNum,
       offset,
       order: orderBy,
-      where
+      where,
+      includeDeleted: includeDeletedFlag,
+      onlyDeleted: onlyDeletedFlag
     });
   }
 }

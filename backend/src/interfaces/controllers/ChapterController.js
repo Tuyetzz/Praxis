@@ -8,7 +8,8 @@ class ChapterController {
     getChapterQuestionCount,
     updateChapter,
     deleteChapter,
-    searchChapter
+    searchChapter,
+    restoreChapter
   }) {
     this.createChapter = createChapter;
     this.getChapters = getChapters;
@@ -18,6 +19,7 @@ class ChapterController {
     this.updateChapter = updateChapter;
     this.deleteChapter = deleteChapter;
     this.searchChapter = searchChapter;
+    this.restoreChapter = restoreChapter;
   }
 
   async create(req, res) {
@@ -58,7 +60,7 @@ class ChapterController {
 
   async getBySubject(req, res) {
     try {
-      const result = await this.getChaptersBySubject.execute(req.params.subjectId);
+      const result = await this.getChaptersBySubject.execute(req.params.subjectId, req.query);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -87,6 +89,15 @@ class ChapterController {
     try {
       await this.deleteChapter.execute(req.params.id);
       res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+
+  async restore(req, res) {
+    try {
+      const result = await this.restoreChapter.execute(req.params.id);
+      res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }

@@ -23,10 +23,11 @@ export type Role = {
   id: string;
   name: string;
   description?: string;
+  isDeleted?: boolean;
 };
 
-export async function getRoles() {
-  const { data } = await http.get("/roles");
+export async function getRoles(params?: Record<string, string | number | boolean>) {
+  const { data } = await http.get("/roles", { params });
   return unwrapData<Role[]>(data);
 }
 
@@ -42,6 +43,10 @@ export async function updateRole(id: string, payload: RolePayload) {
 
 export async function deleteRole(id: string) {
   await http.delete(`/roles/${id}`);
+}
+
+export async function restoreRole(id: string) {
+  await http.patch(`/roles/${id}/restore`);
 }
 
 export async function getRolePermissions(roleId: string) {
