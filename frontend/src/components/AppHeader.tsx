@@ -4,6 +4,10 @@ import { useAuth } from "../app/providers/AuthProvider";
 export default function AppHeader() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const isAdmin = Boolean(
+    user?.role === "admin" ||
+      user?.roles?.some((role) => role === "admin" || role === "superadmin")
+  );
 
   async function handleLogout() {
     await logout();
@@ -36,7 +40,7 @@ export default function AppHeader() {
             <Link to="/attempts/history">Quiz history</Link>
             <Link to="/flashcard-decks">Flashcards</Link>
             <Link to="/practice/select">Typing</Link>
-            <Link to="/admin/subjects">Admin</Link>
+            {isAdmin && <Link to="/admin/subjects">Admin</Link>}
           </>
         )}
       </div>

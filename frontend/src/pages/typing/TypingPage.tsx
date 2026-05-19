@@ -90,6 +90,7 @@ export default function TypingPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = useRef<number | null>(null);
+  const submitLockRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -205,6 +206,7 @@ export default function TypingPage() {
     setHasSubmitted(false);
     setCompletedAt(null);
     startedAtRef.current = null;
+    submitLockRef.current = false;
     setStats({
       wpm: 0,
       accuracy: 100,
@@ -252,6 +254,8 @@ export default function TypingPage() {
   useEffect(() => {
     if (!isComplete || hasSubmitted) return;
     if (!activeText || activeText.id.startsWith("local-")) return;
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
 
     const durationSeconds = Math.max(1, stats.timeElapsed);
     const minutes = durationSeconds / 60;

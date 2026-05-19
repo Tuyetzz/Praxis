@@ -15,6 +15,10 @@ router.get('/public', requiredPermission(PERMISSIONS.TYPING_TEXT_VIEW), (req, re
   typingTextController.getPublic(req, res)
 );
 
+router.post('/summarize', requiredPermission(PERMISSIONS.TYPING_TEXT_VIEW), (req, res) =>
+  typingTextController.summarize(req, res)
+);
+
 router.get('/', requiredPermission(PERMISSIONS.TYPING_TEXT_VIEW), (req, res) =>
   typingTextController.getAll(req, res)
 );

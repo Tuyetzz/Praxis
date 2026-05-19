@@ -21,17 +21,38 @@ export default function AttemptHistoryPage() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [submittedTotal, setSubmittedTotal] = useState(0);
+  const [reloadKey, setReloadKey] = useState(0);
+  const limit = 10;
 
   useEffect(() => {
     let active = true;
 
-    async function loadAttempts() {
+    async function loadAttempts(pageNumber: number) {
       setLoading(true);
       setError(null);
       try {
-        const res = await getMyAttempts();
+        const [pageRes, submittedRes, gradedRes] = await Promise.all([
+          getMyAttempts({ page: pageNumber, limit }),
+          getMyAttempts({ page: 1, limit: 1, status: "submitted" }),
+          getMyAttempts({ page: 1, limit: 1, status: "graded" }),
+        ]);
         if (!active) return;
-        setAttempts(res.data || []);
+        const nextAttempts = pageRes.data || [];
+        const nextTotalPages = pageRes.totalPages || 1;
+
+        if (nextAttempts.length === 0 && pageNumber > 1) {
+          setPage(pageNumber - 1);
+          return;
+        }
+
+        setAttempts(nextAttempts);
+        setTotalItems(pageRes.totalItems || 0);
+        setTotalPages(nextTotalPages);
+        setSubmittedTotal((submittedRes.totalItems || 0) + (gradedRes.totalItems || 0));
       } catch {
         if (active) setError("Khong tai duoc lich su bai thi.");
       } finally {
@@ -39,23 +60,22 @@ export default function AttemptHistoryPage() {
       }
     }
 
-    loadAttempts();
+    loadAttempts(page);
     return () => {
       active = false;
     };
-  }, []);
+  }, [page, reloadKey]);
 
   const summary = useMemo(() => {
-    const total = attempts.length;
-    const submitted = attempts.filter((item) => item.status === "submitted" || item.status === "graded").length;
-    return { total, submitted };
-  }, [attempts]);
+    return { total: totalItems, submitted: submittedTotal };
+  }, [submittedTotal, totalItems]);
 
   async function handleDelete(attemptId: string) {
     if (!window.confirm("Xoa vinh vien lich su bai thi nay?")) return;
     try {
       await hardDeleteAttempt(attemptId);
-      setAttempts((prev) => prev.filter((item) => item.id !== attemptId));
+      setError(null);
+      setReloadKey((prev) => prev + 1);
     } catch {
       setError("Khong xoa duoc lich su bai thi.");
     }
@@ -199,6 +219,27 @@ export default function AttemptHistoryPage() {
           ))}
           {attempts.length === 0 && <div>Chua co lich su bai thi.</div>}
         </section>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 18 }}>
+          <span style={{ color: "#64748b" }}>
+            Trang {page} / {totalPages}
+          </span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className="attempt-button"
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={page <= 1 || loading}
+            >
+              Truoc
+            </button>
+            <button
+              className="attempt-button"
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={page >= totalPages || loading}
+            >
+              Tiep
+            </button>
+          </div>
+        </div>
       </main>
     </div>
   );

@@ -19,13 +19,34 @@ export default function AdminAttemptHistoryPage() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [submittedTotal, setSubmittedTotal] = useState(0);
+  const limit = 10;
 
-  const loadData = async () => {
+  const loadData = async (pageNumber: number) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await getAllAttempts();
-      setAttempts(res.data || []);
+      const [pageRes, submittedRes, gradedRes] = await Promise.all([
+        getAllAttempts({ page: pageNumber, limit }),
+        getAllAttempts({ page: 1, limit: 1, status: "submitted" }),
+        getAllAttempts({ page: 1, limit: 1, status: "graded" }),
+      ]);
+
+      const nextAttempts = pageRes.data || [];
+      const nextTotalPages = pageRes.totalPages || 1;
+
+      if (nextAttempts.length === 0 && pageNumber > 1) {
+        setPage(pageNumber - 1);
+        return;
+      }
+
+      setAttempts(nextAttempts);
+      setTotalItems(pageRes.totalItems || 0);
+      setTotalPages(nextTotalPages);
+      setSubmittedTotal((submittedRes.totalItems || 0) + (gradedRes.totalItems || 0));
     } catch {
       setError("Unable to load attempt history.");
     } finally {
@@ -34,21 +55,19 @@ export default function AdminAttemptHistoryPage() {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData(page);
+  }, [page]);
 
   const summary = useMemo(() => {
-    const total = attempts.length;
-    const submitted = attempts.filter((item) => item.status === "submitted" || item.status === "graded").length;
-    return { total, submitted };
-  }, [attempts]);
+    return { total: totalItems, submitted: submittedTotal };
+  }, [submittedTotal, totalItems]);
 
   const handleDelete = async (attemptId: string) => {
     if (!window.confirm("Delete this attempt forever?")) return;
     setError(null);
     try {
       await hardDeleteAttempt(attemptId);
-      setAttempts((prev) => prev.filter((item) => item.id !== attemptId));
+      await loadData(page);
     } catch {
       setError("Unable to delete the attempt.");
     }
@@ -115,6 +134,27 @@ export default function AdminAttemptHistoryPage() {
             </table>
           </div>
         )}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
+          <span style={{ color: "#64748b" }}>
+            Page {page} of {totalPages}
+          </span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className="admin-button admin-button--muted"
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={page <= 1 || loading}
+            >
+              Prev
+            </button>
+            <button
+              className="admin-button admin-button--muted"
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={page >= totalPages || loading}
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
     </AdminLayout>
   );

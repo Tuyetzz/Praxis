@@ -1,20 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createTypingText } from "../../api/typingTexts";
+import { createTypingText, summarizeTypingText } from "../../api/typingTexts";
 import type { TypingTextDifficulty } from "../../types/typingText";
 import AppHeader from "../../components/AppHeader";
-
-function summarizeText(text: string) {
-  const trimmed = text.trim();
-  if (!trimmed) return "";
-  const sentences = trimmed.split(/(?<=[.!?])\s+/).slice(0, 3).join(" ");
-  return sentences || trimmed.slice(0, 300);
-}
 
 export default function AiTextPage() {
   const navigate = useNavigate();
   const [inputMode, setInputMode] = useState<"text" | "file">("text");
   const [title, setTitle] = useState("");
+  const [aiBaseUrl, setAiBaseUrl] = useState("");
   const [inputText, setInputText] = useState("");
   const [summary, setSummary] = useState("");
   const [difficulty, setDifficulty] = useState<TypingTextDifficulty>("medium");
@@ -23,11 +17,38 @@ export default function AiTextPage() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
 
-  const handleSummarize = () => {
+  const handleSummarize = async () => {
     if (inputMode !== "text") return;
-    const nextSummary = summarizeText(inputText);
-    setSummary(nextSummary);
+    const textValue = inputText.trim();
+    if (!textValue) {
+      setError("Please paste text before summarizing.");
+      return;
+    }
+
+    if (!aiBaseUrl.trim()) {
+      setError("Please paste your ngrok base URL before summarizing.");
+      return;
+    }
+
+    setError(null);
+    setSummarizing(true);
+    try {
+      const data = await summarizeTypingText({
+        baseUrl: aiBaseUrl.trim(),
+        text: textValue,
+      });
+      const nextSummary = data.summary ?? "";
+      if (!nextSummary) {
+        throw new Error("Missing summary");
+      }
+      setSummary(nextSummary);
+    } catch {
+      setError("Unable to generate summary from the AI service.");
+    } finally {
+      setSummarizing(false);
+    }
   };
 
   const handleSave = async () => {
@@ -141,6 +162,12 @@ export default function AiTextPage() {
               />
               <input
                 className="ai-input"
+                placeholder="Ngrok base URL (https://xxxx.ngrok-free.app)"
+                value={aiBaseUrl}
+                onChange={(e) => setAiBaseUrl(e.target.value)}
+              />
+              <input
+                className="ai-input"
                 placeholder="Language (english)"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
@@ -214,9 +241,10 @@ export default function AiTextPage() {
               <div className="mt-4 flex gap-3">
                 <button
                   onClick={handleSummarize}
-                  className="ai-button bg-slate-900 text-white"
+                  disabled={summarizing}
+                  className="ai-button bg-slate-900 text-white disabled:opacity-60"
                 >
-                  Summarize
+                  {summarizing ? "Summarizing..." : "Summarize"}
                 </button>
                 <button
                   onClick={() => {
