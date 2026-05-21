@@ -8,6 +8,7 @@ const { hashPassword } = require("../../infrastructure/utils/auth_helper");
 
 class SeedSystemData {
   async execute() {
+    await sequelize.sync({ alter: false });
     const transaction = await sequelize.transaction();
 
     try {
