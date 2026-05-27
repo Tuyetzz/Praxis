@@ -1,62 +1,87 @@
 // src/infrastructure/cache/redisClient.js
 
-// I'm simulating Redis memory using a Javascript map 
-// I'll switch to real Redis when i have more time to set it up and test it properly
-// For now, this allows me to implement caching logic without blocking development on other features.
+const { createClient } = require("redis");
+const logger = require("../utils/logger");
 
-const memoryStorage = new Map();
-const timeouts = new Map();
-const logger = require('../utils/logger');
+const redisHost = process.env.REDIS_HOST || "127.0.0.1";
+const redisPort = process.env.REDIS_PORT || "6379";
+const redisUrl = `redis://${redisHost}:${redisPort}`;
+
+const client = createClient({ url: redisUrl });
+let isConnected = false;
+let connectPromise = null;
+
+const resetConnectionState = () => {
+  isConnected = false;
+  connectPromise = null;
+};
+
+client.on("error", (err) => {
+  logger.error(`[Redis] Error: ${err.message}`);
+});
+
+client.on("end", () => {
+  resetConnectionState();
+  logger.warn("[Redis] Connection ended.");
+});
+
+client.on("reconnecting", () => {
+  resetConnectionState();
+  logger.warn("[Redis] Reconnecting...");
+});
+
+const ensureConnected = async () => {
+  if (isConnected) {
+    return;
+  }
+  if (!connectPromise) {
+    connectPromise = (async () => {
+      try {
+        await client.connect();
+        isConnected = true;
+      } catch (err) {
+        resetConnectionState();
+        throw err;
+      }
+    })();
+  }
+  await connectPromise;
+};
 
 const redisClient = {
   async get(key) {
-    logger.info(`[Cache-Map] Getting key: ${key}`);
-    console.log("abc");
-    return memoryStorage.get(key) || null;
+    await ensureConnected();
+    logger.info(`[Redis] GET ${key}`);
+    return client.get(key);
   },
 
   async set(key, value, mode, duration) {
-    logger.info(`[Cache-Map] Setting key: ${key} (TTL: ${duration}s)`);
+    await ensureConnected();
+    logger.info(`[Redis] SET ${key} (TTL: ${duration || 0}s)`);
 
-    if (timeouts.has(key)) {
-      clearTimeout(timeouts.get(key));
-      timeouts.delete(key);
+    if (mode === "EX" && duration) {
+      return client.set(key, value, { EX: duration });
     }
 
-    memoryStorage.set(key, value);
-    
-    if (mode === 'EX' && duration) {
-      const timeoutId = setTimeout(() => {
-        memoryStorage.delete(key);
-        timeouts.delete(key); 
-        logger.info(`[Cache-Map] Key expired and deleted: ${key}`);
-      }, duration * 1000);
-
-      timeouts.set(key, timeoutId);
-    }
+    return client.set(key, value);
   },
 
   async del(key) {
-    logger.info(`[Cache-Map] Deleting key: ${key}`);
-    if (timeouts.has(key)) {
-      clearTimeout(timeouts.get(key));
-      timeouts.delete(key);
-    }
-    return memoryStorage.delete(key);
+    await ensureConnected();
+    logger.info(`[Redis] DEL ${key}`);
+    return client.del(key);
   },
 
   async delPattern(pattern) {
-    logger.info(`[Cache-Map] Deleting keys with pattern: ${pattern}`);
-    const regex = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);
-    let deletedCount = 0;
-    for (const key of memoryStorage.keys()) {
-      if (regex.test(key)) {
-        await this.del(key);
-        deletedCount++;
-      }
+    await ensureConnected();
+    logger.info(`[Redis] DEL pattern ${pattern}`);
+
+    const keys = await client.keys(pattern);
+    if (keys.length === 0) {
+      return 0;
     }
-    logger.info(`[Cache-Map] Deleted ${deletedCount} keys with pattern: ${pattern}`);
-    return deletedCount;
+
+    return client.del(keys);
   }
 };
 
