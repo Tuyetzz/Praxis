@@ -4,18 +4,32 @@ services:
   mysql:
     image: mysql:8.0
     container_name: tracnghiem_mysql_dev
+    env_file:
+      - ./.env
     environment:
-      MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: examdb
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-examdb}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   backend:
     build:
@@ -23,8 +37,10 @@ services:
       dockerfile: Dockerfile
     container_name: tracnghiem_backend_dev
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - ./backend/.env.dev
     command: sh -c "npm run seed:system && npm run dev"
@@ -32,7 +48,7 @@ services:
       - "5000:5000"
     volumes:
       - ./backend:/app
-      - /app/node_modules
+      - backend_node_modules:/app/node_modules
 
   frontend:
     build:
@@ -45,7 +61,9 @@ services:
       - "5173:5173"
     volumes:
       - ./frontend:/app
-      - /app/node_modules
+      - frontend_node_modules:/app/node_modules
 
 volumes:
   mysql_data:
+  backend_node_modules:
+  frontend_node_modules:

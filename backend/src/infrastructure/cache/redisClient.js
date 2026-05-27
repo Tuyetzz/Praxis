@@ -11,8 +11,23 @@ const client = createClient({ url: redisUrl });
 let isConnected = false;
 let connectPromise = null;
 
+const resetConnectionState = () => {
+  isConnected = false;
+  connectPromise = null;
+};
+
 client.on("error", (err) => {
   logger.error(`[Redis] Error: ${err.message}`);
+});
+
+client.on("end", () => {
+  resetConnectionState();
+  logger.warn("[Redis] Connection ended.");
+});
+
+client.on("reconnecting", () => {
+  resetConnectionState();
+  logger.warn("[Redis] Reconnecting...");
 });
 
 const ensureConnected = async () => {
@@ -20,10 +35,17 @@ const ensureConnected = async () => {
     return;
   }
   if (!connectPromise) {
-    connectPromise = client.connect();
+    connectPromise = (async () => {
+      try {
+        await client.connect();
+        isConnected = true;
+      } catch (err) {
+        resetConnectionState();
+        throw err;
+      }
+    })();
   }
   await connectPromise;
-  isConnected = true;
 };
 
 const redisClient = {
