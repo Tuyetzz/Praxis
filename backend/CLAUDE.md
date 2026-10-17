@@ -1,24 +1,24 @@
 # Backend — QuizWeb
 
-API server cho app luyện thi trắc nghiệm (quiz + flashcard + typing).
-Express 5 · Sequelize 6 + MySQL · Redis · Awilix DI · JWT · CommonJS (KHÔNG dùng ESM/`import`).
+API server for the quiz practice app (quiz + flashcards + typing).
+Express 5 · Sequelize 6 + MySQL · Redis · Awilix DI · JWT · CommonJS (NOT ESM/`import`).
 
-Tài liệu liên quan:
-- `README.md` — ghi chú của tác giả: cách chạy, format body/response của các API chính.
-- `ARCHITECTURE.md` — kiến trúc, data model, danh sách endpoint đầy đủ (kèm permission), nghiệp vụ, known issues.
+Related docs:
+- `README.md` — author's notes: how to run, request/response shape of the main APIs.
+- `ARCHITECTURE.md` — architecture, data model, full endpoint list (with permissions), business rules, known issues.
 
-## Lệnh
+## Commands
 
 ```bash
 npm run dev            # nodemon src/server.js
 npm run start          # node src/server.js
-npm run seed:system    # seed permission + role hệ thống + superadmin (idempotent)
-docker compose up --build   # từ thư mục gốc repo: mysql + redis + backend + frontend
+npm run seed:system    # seed permissions + system roles + superadmin (idempotent)
+docker compose up --build   # from the repo root: mysql + redis + backend + frontend
 ```
 
-Không có test, không có lint script. Không có thư mục migrations.
+No tests, no lint script. No migrations directory.
 
-## Kiến trúc — 4 tầng, đi theo đúng chiều này
+## Architecture — 4 layers, follow this direction
 
 ```
 interfaces (routes → controllers)  →  usecases  →  domain (entities/constants)
@@ -26,56 +26,56 @@ interfaces (routes → controllers)  →  usecases  →  domain (entities/consta
                                    infrastructure (repositories → mappers → models)
 ```
 
-Đăng ký dependency trong `src/container.js` (Awilix), resolve theo tên camelCase.
-**Thêm repository/usecase/controller mới mà quên đăng ký ở `container.js` là lỗi phổ biến nhất.**
+Register dependencies in `src/container.js` (Awilix), resolve by camelCase name.
+**Forgetting to register a new repository/usecase/controller in `container.js` is the most common mistake.**
 
-Quy tắc viết code:
+Coding rules:
 
-- **1 usecase = 1 class = 1 hành động**, method `execute()`. Không gọi usecase này từ usecase khác.
-- **Controller không chứa nghiệp vụ**: chỉ đọc `req`, gọi đúng 1 usecase, trả `res`. Mọi controller tự `try/catch` (không có global error handler).
-- **Validate trong usecase và trong constructor của entity** (`entity.validate()`), không viết middleware validation.
-- **Mọi truy vấn DB phải đi qua repository**, không gọi Sequelize model trực tiếp từ usecase/controller.
-- Model kế thừa `BaseModel`, repository kế thừa `BaseRepository`, mapper kế thừa `BaseMapper`, entity kế thừa `BaseEntity` — dùng lại các method có sẵn (`findWithPagination`, `softDelete`, `restore`, `hardDelete`, `_applyDeletedFilter`).
-- **Ghi nhiều bảng → dùng `unitOfWork`**: `await this.unitOfWork.start()` → truyền `this.unitOfWork.getTx()` vào repository → `commit()` / `rollback()` trong `catch`. Usecase có transaction phải đăng ký `.scoped()` trong container (giống `submitAttempt`).
-- **Xoá mềm là mặc định** (`DELETE /:id`); restore bằng `PATCH /:id/restore`; chỉ attempts / typing-texts / typing-results có hard delete. `BaseRepository` tự lọc `isDeleted = false`.
-- `createdBy`/`updatedBy` được `BaseModel` tự set từ `AsyncLocalStorage` (do `contextMiddleware` nạp) — không cần set tay.
+- **1 usecase = 1 class = 1 action**, method `execute()`. Never call one usecase from another.
+- **Controllers hold no business logic**: read `req`, call exactly one usecase, return `res`. Every controller does its own `try/catch` (there is no global error handler).
+- **Validate inside the usecase and in the entity constructor** (`entity.validate()`) — do not add validation middleware.
+- **Every DB query goes through a repository**; never call a Sequelize model directly from a usecase/controller.
+- Models extend `BaseModel`, repositories extend `BaseRepository`, mappers extend `BaseMapper`, entities extend `BaseEntity` — reuse what's provided (`findWithPagination`, `softDelete`, `restore`, `hardDelete`, `_applyDeletedFilter`).
+- **Writing to multiple tables → use `unitOfWork`**: `await this.unitOfWork.start()` → pass `this.unitOfWork.getTx()` into the repository → `commit()` / `rollback()` in `catch`. Usecases using transactions must be registered `.scoped()` in the container (like `submitAttempt`).
+- **Soft delete is the default** (`DELETE /:id`); restore with `PATCH /:id/restore`; only attempts / typing-texts / typing-results support hard delete. `BaseRepository` filters `isDeleted = false` automatically.
+- `createdBy`/`updatedBy` are set automatically by `BaseModel` from `AsyncLocalStorage` (populated by `contextMiddleware`) — don't set them by hand.
 
-## Route & phân quyền
+## Routes & authorization
 
-- Router ở `src/interfaces/routes/index.js`: `/auth` mount **trước** `authMiddleware` (public), tất cả router còn lại nằm **sau** `authMiddleware` + `contextMiddleware`.
-- Mỗi route gắn `requiredPermission('<slug>')`. Slug khai báo ở `src/domain/constants/permissions.js` (dạng `resource:action`, ví dụ `question:create`). Thêm slug mới thì phải chạy lại `npm run seed:system` để ghi vào DB.
-- Superadmin bypass mọi permission. Quyền của user được cache trong Redis ở key `user_permissions:<userId>` (TTL 600s) — **khi sửa role/permission phải xoá cache** (`redisClient.delPattern('user_permissions:*')` hoặc `del` theo user).
-- `requiredRole()` có sẵn nhưng chưa dùng; check role admin/superadmin hiện nằm trong usecase.
+- Router lives in `src/interfaces/routes/index.js`: `/auth` is mounted **before** `authMiddleware` (public), every other router sits **after** `authMiddleware` + `contextMiddleware`.
+- Every route attaches `requiredPermission('<slug>')`. Slugs are declared in `src/domain/constants/permissions.js` (`resource:action`, e.g. `question:create`). Adding a new slug requires re-running `npm run seed:system` to write it to the DB.
+- Superadmin bypasses every permission check. A user's permissions are cached in Redis under `user_permissions:<userId>` (TTL 600s) — **clear the cache when you change roles/permissions** (`redisClient.delPattern('user_permissions:*')` or `del` for a single user).
+- `requiredRole()` exists but is unused; admin/superadmin checks currently live inside usecases.
 
-## Response & lỗi
+## Responses & errors
 
-- `/api/auth/*` trả envelope `{ success, message?, data? }`; các resource khác trả thẳng payload của usecase, lỗi là `{ message }`.
-- Status: `200` đọc/update · `201` tạo · `204` xoá mềm · `200 { success: true }` cho hard delete.
-- Lỗi nghiệp vụ ném `new Error("...")` trong usecase; controller bắt và trả về (thường là 400).
+- `/api/auth/*` returns an envelope `{ success, message?, data? }`; other resources return the usecase payload directly, and errors are `{ message }`.
+- Status codes: `200` read/update · `201` create · `204` soft delete · `200 { success: true }` for hard delete.
+- Business errors are thrown as `new Error("...")` inside the usecase; the controller catches and returns them (usually 400).
 
-## Lưu ý khi sửa code
+## Things to watch when editing
 
-- `sequelize.sync({ alter: false })` lúc boot — **đổi cột trong model KHÔNG tự cập nhật DB đang có**. Phải `ALTER TABLE` tay hoặc `docker compose down -v` rồi seed lại.
-- CORS hard-code `http://localhost:5173` trong `src/app.js`; `rateLimiter` đang bị comment.
-- Import câu hỏi chỉ nhận file ≤ 5MB qua multer `memoryStorage`; lỗi multer không đi qua try/catch của controller nên trả HTML thay vì JSON.
-- `POST /api/typing-texts/summarize` gọi service AI bên ngoài qua `baseUrl` do client gửi (chỉ cho phép host `ngrok-free.app` / `ngrok.io`) — cẩn thận khi động vào.
-- `audit_logs` và `LocalStorageService`/`S3StorageService` mới chỉ có khung, chưa dùng.
-- Comment trong code viết tiếng Việt hoặc tiếng Anh đều gặp; giữ nguyên văn phong của file đang sửa.
+- `sequelize.sync({ alter: false })` runs at boot — **changing a column in a model does NOT update an existing DB**. You must `ALTER TABLE` by hand or `docker compose down -v` and re-seed.
+- CORS is hard-coded to `http://localhost:5173` in `src/app.js`; `rateLimiter` is commented out.
+- Question import accepts files up to 5MB via multer `memoryStorage`; multer errors bypass the controller's try/catch, so they return HTML instead of JSON.
+- `POST /api/typing-texts/summarize` calls an external AI service using a client-supplied `baseUrl` (only hosts under `ngrok-free.app` / `ngrok.io` are allowed) — be careful when touching this.
+- `audit_logs` and `LocalStorageService`/`S3StorageService` are scaffolding only, not wired up.
+- Comments in the code are a mix of Vietnamese and English; keep the style of the file you're editing.
 
-## Bản đồ file
+## File map
 
-| Cần gì | Ở đâu |
+| What you need | Where |
 |---|---|
-| Thêm/sửa endpoint | `interfaces/routes/`, `interfaces/controllers/` |
-| Nghiệp vụ | `usecases/<feature>/` |
-| Bảng & cột | `infrastructure/database/models/`, association ở `models/index.js` |
-| Query DB | `infrastructure/repositories/` |
+| Add/edit an endpoint | `interfaces/routes/`, `interfaces/controllers/` |
+| Business logic | `usecases/<feature>/` |
+| Tables & columns | `infrastructure/database/models/`, associations in `models/index.js` |
+| DB queries | `infrastructure/repositories/` |
 | Map model ↔ entity | `infrastructure/mappers/` |
-| Enum, permission slug | `domain/constants/` |
+| Enums, permission slugs | `domain/constants/` |
 | Auth/JWT/bcrypt | `interfaces/middlewares/authMiddleware.js`, `infrastructure/utils/auth_helper.js` |
-| Transaction | `infrastructure/unitOfWork/SequelizeUnitOfWork.js` |
-| Job định kỳ | `infrastructure/jobs/autoSubmitAttempts.js` |
+| Transactions | `infrastructure/unitOfWork/SequelizeUnitOfWork.js` |
+| Scheduled jobs | `infrastructure/jobs/autoSubmitAttempts.js` |
 | Seed | `usecases/base/SeedSystemData.js` |
-| Đăng ký DI | `src/container.js` |
+| DI registration | `src/container.js` |
 
-Skill `add-api-endpoint` (`.claude/skills/add-api-endpoint/`) có checklist từng bước khi thêm một resource mới.
+The `add-api-endpoint` skill (`.claude/skills/add-api-endpoint/`) has a step-by-step checklist for adding a new resource.

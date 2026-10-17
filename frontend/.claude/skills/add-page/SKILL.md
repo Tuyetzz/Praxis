@@ -1,48 +1,48 @@
 ---
 name: add-page
-description: Thêm một trang mới cho frontend QuizWeb theo đúng pattern hiện có (API module → type → page component → route), gồm cả trang CRUD trong khu admin. Dùng khi cần tạo màn hình mới, thêm trang admin, hoặc thêm route cho tính năng mới.
+description: Add a new page to the QuizWeb frontend following the existing pattern (API module → type → page component → route), including CRUD screens in the admin area. Use when creating a new screen, adding an admin page, or adding a route for a new feature.
 ---
 
-# Thêm một trang mới (frontend QuizWeb)
+# Adding a new page (QuizWeb frontend)
 
-Trước khi viết, **đọc một trang tương tự đã có và bắt chước**:
+Before writing anything, **read a similar existing page and copy it**:
 
-| Loại trang | File mẫu |
+| Page type | Reference file |
 |---|---|
-| Trang học sinh, có fetch + list | `src/pages/quiz/subjects/SubjectsPage.tsx` |
-| Trang có CRUD + modal + soft delete | `src/pages/admin/AdminSubjectPage.tsx` |
-| Trang phức tạp (state máy trạng thái, autosave) | `src/pages/quiz/attempts/AttemptDetailPage.tsx` |
-| Trang trong khu admin | `src/pages/admin/AdminChapterPage.tsx` (dùng `AdminLayout`) |
+| Student page with fetch + list | `src/pages/quiz/subjects/SubjectsPage.tsx` |
+| Page with CRUD + modal + soft delete | `src/pages/admin/AdminSubjectPage.tsx` |
+| Complex page (state machine, autosave) | `src/pages/quiz/attempts/AttemptDetailPage.tsx` |
+| Admin-area page | `src/pages/admin/AdminChapterPage.tsx` (uses `AdminLayout`) |
 
-Nhắc lại 3 ràng buộc của codebase:
-- **Không dùng react-query** — fetch thủ công bằng `useEffect`/`useState`.
-- Import **đường dẫn tương đối**, không dùng `@/`.
-- Page tự chứa: tự render `<AppHeader />`, tự nhúng `<style>`; trang admin dùng `AdminLayout`.
+Three constraints of this codebase to keep in mind:
+- **No react-query** — fetch manually with `useEffect`/`useState`.
+- **Relative imports** — the `@/` alias does not work.
+- Pages are self-contained and built from the UI kit: use `PageShell` for student pages, `AdminLayout` for admin pages. **Do not add runtime `<style>` blocks** (see the note at the end).
 
 ## Checklist
 
 ```
-- [ ] 1. Thêm hàm API vào src/api/<resource>.ts
-- [ ] 2. Thêm/sửa type trong src/types/<resource>.ts
-- [ ] 3. Tạo page trong src/pages/<nhóm>/<Tên>Page.tsx (default export)
-- [ ] 4. Khai route trong src/app/router/routes.tsx
-- [ ] 5. Thêm link điều hướng (AppHeader / Dashboard / sidebar AdminLayout)
+- [ ] 1. Add API functions to src/api/<resource>.ts
+- [ ] 2. Add/update types in src/types/<resource>.ts
+- [ ] 3. Create the page at src/pages/<group>/<Name>Page.tsx (default export)
+- [ ] 4. Declare the route in src/app/router/routes.tsx
+- [ ] 5. Add a navigation link (AppHeader / Dashboard / AdminLayout sidebar)
 - [ ] 6. npm run build && npm run lint
 ```
 
 ## 1. API — `src/api/<resource>.ts`
 
-Giữ đúng file theo resource, không tạo file mới nếu đã có. Hai kiểu response:
+Keep one file per resource; don't create a new file if one exists. Two response styles:
 
 ```ts
-// Backend trả thẳng payload (subjects, chapters, questions, options, attempts, flashcards...)
+// Backend returns the payload directly (subjects, chapters, questions, options, attempts, flashcards...)
 export async function getSubjects(): Promise<Subject[]> {
   const res = await http.get("/subjects");
   return res.data;
 }
 
-// Backend trả envelope { success, message, data } (auth, users, roles, permissions, typing*)
-// → dùng helper unwrapData cục bộ đã có sẵn trong file đó
+// Backend returns the envelope { success, message, data } (auth, users, roles, permissions, typing*)
+// → use the local unwrapData helper already defined in that file
 export async function getRoles(): Promise<Role[]> {
   const res = await http.get("/roles");
   return unwrapData<Role[]>(res.data);
@@ -53,28 +53,34 @@ export async function getRoles(): Promise<Role[]> {
 
 ```ts
 export interface Post {
-  id: string;              // id luôn là string
+  id: string;              // id is always a string
   title: string;
-  isDeleted?: boolean;     // có nếu backend xoá mềm
+  isDeleted?: boolean;     // present when the backend soft-deletes
   createdAt?: string;
   updatedAt?: string;
 }
 ```
 
-## 3. Page — `src/pages/<nhóm>/<Tên>Page.tsx`
+## 3. Page — `src/pages/<group>/<Name>Page.tsx`
+
+Build it from the UI kit and `PageShell` (tokens, no hard-coded colors):
 
 ```tsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import AppHeader from "../../components/AppHeader";
+import PageShell from "../../components/PageShell";
+import Card from "../../components/ui/Card";
+import Alert from "../../components/ui/Alert";
+import Button from "../../components/ui/Button";
+import { LoadingState, EmptyState, ErrorState } from "../../components/ui/States";
 import { getPosts } from "../../api/posts";
 import type { Post } from "../../types/post";
 
-export default function PostsPage() {          // default export — routes.tsx import kiểu này
+export default function PostsPage() {          // default export — that's how routes.tsx imports it
   const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -84,7 +90,7 @@ export default function PostsPage() {          // default export — routes.tsx 
     setLoading(true);
     try {
       setPosts(await getPosts());
-      setError("");
+      setError(null);
     } catch (e) {
       setError(getErrorMessage(e));
     } finally {
@@ -93,21 +99,22 @@ export default function PostsPage() {          // default export — routes.tsx 
   }
 
   return (
-    <>
-      <AppHeader />
-      <main style={{ maxWidth: 1100, margin: "0 auto", padding: 24 }}>
-        {loading && <p>Đang tải...</p>}
-        {error && <p style={{ color: "#dc2626" }}>{error}</p>}
-        {posts.map((post) => (
-          <div key={post.id} className="panel" onClick={() => navigate(`/posts/${post.id}`)}>
-            {post.title}
-          </div>
-        ))}
-      </main>
-      <style>{`
-        .panel { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-      `}</style>
-    </>
+    <PageShell width="lg" title="Posts" subtitle="Everything you've written.">
+      {error && <Alert tone="danger" className="mb-4">{error}</Alert>}
+      {loading && <LoadingState label="Loading posts..." />}
+      {!loading && posts.length === 0 && (
+        <EmptyState title="No posts yet" description="Create your first one to get started." />
+      )}
+      {!loading && posts.length > 0 && (
+        <div className="grid gap-3">
+          {posts.map((post) => (
+            <Card key={post.id} interactive onClick={() => navigate(`/posts/${post.id}`)}>
+              {post.title}
+            </Card>
+          ))}
+        </div>
+      )}
+    </PageShell>
   );
 }
 
@@ -116,15 +123,15 @@ function getErrorMessage(e: unknown) {
     const res = (e as { response?: { data?: { message?: string } } }).response;
     if (res?.data?.message) return res.data.message;
   }
-  return "Có lỗi xảy ra, thử lại sau.";
+  return "Something went wrong. Please try again.";
 }
 ```
 
-Sau khi mutate (tạo/sửa/xoá) thì gọi lại `loadData()` — hoặc dùng `const [reloadKey, setReloadKey] = useState(0)` và cho `useEffect` phụ thuộc `reloadKey` (cách `AttemptHistoryPage` đang làm).
+Always render the three states (loading / empty / error) — don't leave a blank screen. After a mutation (create/update/delete) re-run `loadData()`, or use `const [reloadKey, setReloadKey] = useState(0)` and make the `useEffect` depend on `reloadKey` (the approach `AttemptHistoryPage` uses).
 
-## 4. Trang admin
+## 4. Admin page
 
-Dùng `AdminLayout` (nhớ: mọi class `admin-*` chỉ có ở đó):
+Use `AdminLayout`. The `admin-*` classes are defined in `src/index.css` under `@layer components`, so they follow the theme automatically:
 
 ```tsx
 import AdminLayout from "./AdminLayout";
@@ -132,15 +139,19 @@ import AdminLayout from "./AdminLayout";
 return (
   <AdminLayout
     title="Posts"
-    subtitle="Quản lý bài viết"
-    actions={<button className="admin-btn" onClick={openCreate}>Thêm</button>}
+    subtitle="Manage all posts."
+    actions={<button className="admin-button admin-button--primary">Add post</button>}
   >
-    {/* bảng + modal, dùng class admin-table / admin-modal / admin-btn */}
+    <div className="admin-panel">
+      {/* table using admin-table, modal using admin-modal / admin-modal-backdrop */}
+    </div>
   </AdminLayout>
 );
 ```
 
-Với danh sách có xoá mềm: thêm toggle `showDeleted` → gọi API với `{ includeDeleted: true }`, và render nút Restore cho bản ghi `isDeleted`.
+**A page or modal using `admin-*` classes must be rendered inside `AdminLayout`** — those styles are what make it look right.
+
+For lists with soft delete: add a `showDeleted` toggle → call the API with `{ includeDeleted: true }`, and render a Restore button for records where `isDeleted`.
 
 ## 5. Route — `src/app/router/routes.tsx`
 
@@ -152,16 +163,17 @@ Với danh sách có xoá mềm: thêm toggle `showDeleted` → gọi API với 
 </Route>
 ```
 
-Nhớ `import PostsPage from "../pages/.../PostsPage";` ở đầu file. Route public thì đặt ngoài nhánh `ProtectedRoute`.
+Remember the `import PostsPage from "../pages/.../PostsPage";` at the top of the file. Public routes go outside the `ProtectedRoute` branch.
 
-## 6. Điều hướng
+## 6. Navigation
 
-- Trang học sinh: thêm link ở `src/components/AppHeader.tsx` (nav chính) hoặc card trong `src/pages/dashboard/DashboardPage.tsx`.
-- Trang admin: thêm vào mảng `NAV_ITEMS` trong `src/pages/admin/AdminLayout.tsx`.
+- Student pages: add a link in `src/components/AppHeader.tsx` (`NAV_LINKS`) or a card in `src/pages/dashboard/DashboardPage.tsx`.
+- Admin pages: add an entry to the `NAV_ITEMS` array in `src/pages/admin/AdminLayout.tsx`.
 
-## Lưu ý
+## Notes
 
-- **UI không phân quyền**: `ProtectedRoute` chỉ kiểm tra đăng nhập, `/admin/*` ai gõ URL cũng vào được. Nếu trang admin cần bảo vệ thật thì phải siết ở backend (permission slug).
-- Nếu trang cần gọi API mới của backend mà chưa có → viết API backend trước, xem skill `add-api-endpoint` bên `backend/.claude/skills/`.
-- Đừng đổi 3 key localStorage (`accessToken`, `refreshToken`, `authUser`) — `http.ts` và `AuthProvider` phụ thuộc vào đúng tên này.
-- Copy trong UI đang trộn Việt/Anh; theo ngôn ngữ của nhóm trang bạn đang thêm vào (trang học sinh thường tiếng Việt, trang admin thường tiếng Anh).
+- **The UI does not enforce permissions**: `ProtectedRoute` only checks login, so anyone can reach `/admin/*` by URL. If an admin page holds sensitive data, it must be locked down on the backend (permission slug).
+- If the page needs a backend endpoint that doesn't exist yet → build the backend API first, see the `add-api-endpoint` skill in `backend/.claude/skills/`.
+- Don't rename or remove the 3 localStorage keys (`accessToken`, `refreshToken`, `authUser`) — `http.ts` and `AuthProvider` depend on those exact names.
+- Copy in the UI is mixed Vietnamese/English; match the group you're adding to (student-facing screens lean Vietnamese, admin screens lean English).
+- **Never write `@apply` inside a `<style>` tag in a component.** `@apply` is resolved at build time; in a runtime `<style>` it reaches the browser as-is and does nothing, silently breaking the styling. Shared classes go in `src/index.css` under `@layer components`.

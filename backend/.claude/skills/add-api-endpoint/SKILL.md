@@ -1,11 +1,11 @@
 ---
 name: add-api-endpoint
-description: Thêm một resource/endpoint mới cho backend QuizWeb theo đúng kiến trúc 4 tầng (entity → model → mapper → repository → usecase → controller → route → container). Dùng khi cần tạo CRUD mới, thêm usecase cho resource đã có, hoặc thêm route mới vào resource sẵn có.
+description: Add a new resource/endpoint to the QuizWeb backend following the 4-layer architecture (entity → model → mapper → repository → usecase → controller → route → container). Use when creating new CRUD, adding a usecase to an existing resource, or adding a route to an existing resource.
 ---
 
-# Thêm API endpoint mới (backend QuizWeb)
+# Adding a new API endpoint (QuizWeb backend)
 
-Mục tiêu: giữ đúng kiến trúc 4 tầng và các quy ước đang có. Trước khi viết, đọc 1 resource tương tự đã hoàn chỉnh để bắt chước — **`Subject` là ví dụ gọn và đầy đủ nhất**:
+Goal: keep the 4-layer architecture and existing conventions intact. Before writing anything, read one complete resource and copy it — **`Subject` is the smallest complete example**:
 
 ```
 domain/entities/Subject.js
@@ -20,17 +20,17 @@ interfaces/routes/subjectRoutes.js
 ## Checklist
 
 ```
-- [ ] 1. Xác định resource + các permission slug cần dùng
+- [ ] 1. Decide the resource + which permission slugs it needs
 - [ ] 2. domain/entities/<Name>.js
-- [ ] 3. infrastructure/database/models/<Name>Model.js  (+ association trong models/index.js)
+- [ ] 3. infrastructure/database/models/<Name>Model.js  (+ association in models/index.js)
 - [ ] 4. infrastructure/mappers/<Name>Mapper.js
 - [ ] 5. infrastructure/repositories/<Name>Repository.js
-- [ ] 6. usecases/<feature>/<Action>.js  (mỗi hành động 1 file)
+- [ ] 6. usecases/<feature>/<Action>.js  (one file per action)
 - [ ] 7. interfaces/controllers/<Name>Controller.js
-- [ ] 8. interfaces/routes/<name>Routes.js  (+ mount trong routes/index.js)
-- [ ] 9. Đăng ký repository + usecase + controller trong src/container.js
-- [ ] 10. Seed lại nếu có permission slug mới
-- [ ] 11. Chạy thử và kiểm tra response
+- [ ] 8. interfaces/routes/<name>Routes.js  (+ mount in routes/index.js)
+- [ ] 9. Register repository + usecase + controller in src/container.js
+- [ ] 10. Re-seed if you added a permission slug
+- [ ] 11. Run it and check the response
 ```
 
 ## 1. Entity — `domain/entities/<Name>.js`
@@ -49,7 +49,7 @@ class Post extends BaseEntity {
 
   validate() {
     if (!this.title || this.title.trim() === "") {
-      throw new Error("Tiêu đề không được để trống.");
+      throw new Error("Title cannot be empty.");
     }
   }
 }
@@ -57,7 +57,7 @@ class Post extends BaseEntity {
 module.exports = Post;
 ```
 
-Entity là nơi đặt validate + logic nhỏ (ví dụ `ResultSummary.getAccuracyPercentage()`).
+The entity is where validation and small domain logic live (e.g. `ResultSummary.getAccuracyPercentage()`).
 
 ## 2. Model — `infrastructure/database/models/<Name>Model.js`
 
@@ -81,8 +81,8 @@ PostModel.init({
 module.exports = PostModel;
 ```
 
-- **Không khai báo lại** `id` / `createdBy` / `updatedBy` / `isDeleted` — `BaseModel` đã có.
-- Thêm association vào `infrastructure/database/models/index.js` (theo nhóm, kèm `onDelete` phù hợp) và export model ở cuối file đó.
+- **Do not re-declare** `id` / `createdBy` / `updatedBy` / `isDeleted` — `BaseModel` already provides them.
+- Add the association in `infrastructure/database/models/index.js` (grouped with related models, with a sensible `onDelete`) and export the model at the end of that file.
 
 ## 3. Mapper — `infrastructure/mappers/<Name>Mapper.js`
 
@@ -96,10 +96,10 @@ class PostMapper extends BaseMapper {
   }
 }
 
-module.exports = new PostMapper();   // export instance, không phải class
+module.exports = new PostMapper();   // export an instance, not the class
 ```
 
-Chỉ override `toDomain` / `toPersistence` khi cần đổi tên field hoặc gộp/bóc tách dữ liệu.
+Only override `toDomain` / `toPersistence` when you need to rename fields or reshape data.
 
 ## 4. Repository — `infrastructure/repositories/<Name>Repository.js`
 
@@ -121,18 +121,18 @@ class PostRepository extends BaseRepository {
   }
 }
 
-module.exports = PostRepository;   // export class (container sẽ khởi tạo)
+module.exports = PostRepository;   // export the class (the container instantiates it)
 ```
 
-- Dùng `this._applyDeletedFilter(where, options)` cho mọi query tự viết, để tôn trọng `isDeleted` / `includeDeleted` / `onlyDeleted`.
-- Luôn `this.mapper.toDomain(record)` trước khi trả về — không trả Sequelize instance ra ngoài tầng này.
-- Có sẵn: `findAll`, `findById`, `create`, `update`, `softDelete`, `restore`, `hardDelete`, `hardDeleteWhere`, `findWithPagination`.
+- Use `this._applyDeletedFilter(where, options)` in every hand-written query so `isDeleted` / `includeDeleted` / `onlyDeleted` are respected.
+- Always run `this.mapper.toDomain(record)` before returning — never leak a Sequelize instance out of this layer.
+- Inherited for free: `findAll`, `findById`, `create`, `update`, `softDelete`, `restore`, `hardDelete`, `hardDeleteWhere`, `findWithPagination`.
 
 ## 5. Usecase — `usecases/<feature>/<Action>.js`
 
 ```js
 class CreatePost {
-  constructor({ postRepository, redisClient }) {   // inject theo tên đăng ký trong container
+  constructor({ postRepository, redisClient }) {   // injected by the name registered in the container
     this.postRepository = postRepository;
     this.redisClient = redisClient;
   }
@@ -149,8 +149,8 @@ class CreatePost {
 module.exports = CreatePost;
 ```
 
-- 1 file = 1 hành động = 1 method `execute()`. Không gọi usecase từ usecase khác.
-- Ghi nhiều bảng → bọc `unitOfWork`:
+- One file = one action = one `execute()` method. Never call a usecase from another usecase.
+- Writing to multiple tables → wrap in `unitOfWork`:
 
 ```js
 await this.unitOfWork.start();
@@ -164,7 +164,7 @@ try {
 }
 ```
 
-- Nếu usecase cần "trạng thái riêng cho từng request" (unitOfWork, transaction) thì đăng ký `.scoped()` trong container, không dùng `.singleton()`.
+- If a usecase needs per-request state (unitOfWork, transaction), register it `.scoped()` in the container, not `.singleton()`.
 
 ## 6. Controller — `interfaces/controllers/<Name>Controller.js`
 
@@ -197,7 +197,7 @@ class PostController {
 module.exports = PostController;
 ```
 
-Không có global error handler → **mỗi method phải tự try/catch**. `req.user = { id, roles }` do `authMiddleware` set sẵn.
+There is no global error handler → **every method must do its own try/catch**. `req.user = { id, roles }` is set by `authMiddleware`.
 
 ## 7. Route — `interfaces/routes/<name>Routes.js`
 
@@ -221,14 +221,14 @@ router.post('/', requiredPermission(PERMISSIONS.POST_CREATE), (req, res) =>
 module.exports = router;
 ```
 
-- Dùng hằng trong `PERMISSIONS`, không hard-code chuỗi slug.
-- Thứ tự route: các path tĩnh (`/search`, `/mine`) phải khai báo **trước** `/:id`.
-- Mount vào `interfaces/routes/index.js`; nhớ `/auth` phải nằm trước `authMiddleware`, mọi router khác nằm sau.
-- Có upload file → dùng `upload.single('file')` từ `interfaces/middlewares/uploadMiddleware`.
+- Use the `PERMISSIONS` constants; never hard-code a slug string.
+- Route order matters: static paths (`/search`, `/mine`) must be declared **before** `/:id`.
+- Mount it in `interfaces/routes/index.js`; remember `/auth` must come before `authMiddleware`, every other router after.
+- File upload → use `upload.single('file')` from `interfaces/middlewares/uploadMiddleware`.
 
 ## 8. Container — `src/container.js`
 
-Thêm 3 nhóm dòng (giữ đúng thứ tự import → register):
+Add three groups of lines (keeping the import → register order):
 
 ```js
 const PostRepository = require('./infrastructure/repositories/PostRepository');
@@ -244,32 +244,32 @@ container.register({
 });
 ```
 
-## 9. Permission slug mới
+## 9. New permission slug
 
-Thêm vào `src/domain/constants/permissions.js` rồi chạy:
+Add it to `src/domain/constants/permissions.js`, then run:
 
 ```bash
 npm run seed:system
 ```
 
-Seed là idempotent (upsert permission, restore role nếu bị xoá mềm) — chạy lại không hỏng dữ liệu.
+The seed is idempotent (upserts permissions, restores soft-deleted roles) — re-running it won't corrupt data.
 
-## 10. Kiểm tra
+## 10. Verify
 
 ```bash
 npm run dev
 curl -H "Authorization: Bearer <accessToken>" http://localhost:5000/api/posts
 ```
 
-- User thường cần được gán permission qua `/api/roles/:id/permissions`; nếu vừa đổi quyền mà vẫn bị 403 → cache Redis `user_permissions:<userId>` chưa bị xoá (TTL 600s), xoá key hoặc gọi API gán/gỡ quyền để nó tự xoá.
-- Lỗi `AwilixResolutionError` = quên đăng ký ở `container.js`.
+- A regular user needs the permission granted via `/api/roles/:id/permissions`; if you just changed permissions and still get 403, the Redis cache `user_permissions:<userId>` hasn't been cleared (TTL 600s) — delete the key or call the assign/remove API so it clears itself.
+- An `AwilixResolutionError` means you forgot to register something in `container.js`.
 
-## Lỗi thường gặp
+## Common failures
 
-| Triệu chứng | Nguyên nhân |
+| Symptom | Cause |
 |---|---|
-| `Could not resolve 'xController'` | Chưa đăng ký trong `container.js` |
-| Route mới luôn 404 | Chưa mount trong `routes/index.js`, hoặc bị `/:id` bắt trước |
-| Sửa cột trong model mà DB không đổi | `sequelize.sync({ alter: false })` — phải `ALTER TABLE` tay hoặc xoá volume |
-| Trả về cả bản ghi đã xoá mềm | Query tự viết thiếu `this._applyDeletedFilter()` |
-| Transaction treo / commit nhầm sang request khác | Usecase dùng `unitOfWork` nhưng đăng ký `.singleton()` thay vì `.scoped()` |
+| `Could not resolve 'xController'` | Not registered in `container.js` |
+| New route always 404s | Not mounted in `routes/index.js`, or shadowed by an earlier `/:id` |
+| Changed a model column but the DB didn't change | `sequelize.sync({ alter: false })` — you must `ALTER TABLE` by hand or drop the volume |
+| Soft-deleted records come back in results | Hand-written query missing `this._applyDeletedFilter()` |
+| Transaction hangs / commits into another request | Usecase uses `unitOfWork` but is registered `.singleton()` instead of `.scoped()` |
