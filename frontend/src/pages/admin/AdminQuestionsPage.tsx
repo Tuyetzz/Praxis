@@ -304,6 +304,10 @@ export default function AdminQuestionsPage() {
         return "Multiple Choice";
       case "true_false":
         return "True/False";
+      case "fill_blank":
+        return "Fill in the Blank";
+      default:
+        return type;
     }
   };
 
@@ -518,7 +522,7 @@ export default function AdminQuestionsPage() {
               <div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                   <label style={{ fontWeight: 600 }}>Options</label>
-                  {formData.type !== "trueFalse" && (
+                  {formData.type !== "true_false" && (
                     <button type="button" onClick={handleAddOption} className="admin-button admin-button--muted">
                       <Plus size={16} style={{ marginRight: 6 }} />
                       Add Option
@@ -540,11 +544,11 @@ export default function AdminQuestionsPage() {
                           value={option.text}
                           onChange={(e) => handleOptionChange(option.id, "text", e.target.value)}
                           placeholder={`Option ${index + 1}`}
-                          disabled={formData.type === "trueFalse"}
+                          disabled={formData.type === "true_false"}
                           className="admin-input"
                           style={{ flex: 1 }}
                         />
-                        {formData.type !== "trueFalse" && formData.options.length > 2 && (
+                        {formData.type !== "true_false" && formData.options.length > 2 && (
                           <button type="button" onClick={() => handleRemoveOption(option.id)} className="admin-button admin-button--muted">
                             <X size={16} />
                           </button>

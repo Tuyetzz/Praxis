@@ -34,7 +34,7 @@ export type SummarizeTypingTextResponse = {
   summary: string;
 };
 
-export async function getTypingTexts(params?: Record<string, string | number>) {
+export async function getTypingTexts(params?: Record<string, string | number | boolean>) {
   const { data } = await http.get("/typing-texts", { params });
   return unwrapData<TypingText[]>(data);
 }

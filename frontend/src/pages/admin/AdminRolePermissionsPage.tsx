@@ -167,48 +167,8 @@ export default function AdminRolePermissionsPage() {
         </div>
       }
     >
-      <style>{`
-        .permission-row {
-          display: grid;
-          grid-template-columns: minmax(160px, 220px) 1fr;
-          gap: 12px;
-          align-items: center;
-          padding: 12px 0;
-          border-bottom: 1px solid #e2e8f0;
-        }
-        .permission-row:last-child {
-          border-bottom: none;
-        }
-        .permission-actions {
-          display: flex;
-          gap: 10px;
-          overflow-x: auto;
-          padding-bottom: 6px;
-        }
-        .permission-actions::-webkit-scrollbar {
-          height: 6px;
-        }
-        .permission-actions::-webkit-scrollbar-thumb {
-          background: rgba(148, 163, 184, 0.6);
-          border-radius: 999px;
-        }
-        .permission-toggle {
-          border-radius: 999px;
-          padding: 8px 14px;
-          border: 1px solid #e2e8f0;
-          background: #ffffff;
-          font-weight: 600;
-          white-space: nowrap;
-        }
-        .permission-toggle--active {
-          background: #0f172a;
-          border-color: #0f172a;
-          color: #ffffff;
-        }
-      `}</style>
 
       {error && <div className="admin-panel" style={{ color: "#b91c1c" }}>{error}</div>}
-
       {!roleId ? (
         <div className="admin-panel">
           <p style={{ color: "#64748b" }}>Select a role to manage permissions.</p>

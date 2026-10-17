@@ -24,6 +24,7 @@ import AdminAccountsPage from "../../pages/admin/AdminAccountsPage";
 import AdminAttemptHistoryPage from "../../pages/admin/AdminAttemptHistoryPage";
 import FlashcardDecksPage from "../../pages/flashcards/FlashcardDecksPage";
 import FlashcardStudyPage from "../../pages/flashcards/FlashcardStudyPage";
+import AiQuizPage from "../../pages/quiz/ai/AiQuizPage";
 
 export default function AppRoutes() {
   return (
@@ -37,6 +38,7 @@ export default function AppRoutes() {
         <Route path="/subjects" element={<SubjectsPage />} />
         <Route path="/subjects/:id/chapters" element={<ChaptersPage />} />
         <Route path="/subjects/:id/chapters/:chapterId/config" element={<ExamConfigPage />} />
+        <Route path="/ai/quiz" element={<AiQuizPage />} />
         <Route path="/attempts/:id" element={<AttemptDetailPage />} />
         <Route path="/attempts/:id/result" element={<AttemptResultPage />} />
         <Route path="/attempts/history" element={<AttemptHistoryPage />} />

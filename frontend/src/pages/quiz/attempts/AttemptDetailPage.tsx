@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ChevronLeft, ChevronRight, Flag, Send } from "lucide-react";
 import {
   getAttempt,
   saveAttemptAnswer,
@@ -10,7 +11,13 @@ import { getAttemptQuestions } from "../../../api/attemptsQuestion";
 import type { Attempt } from "../../../types/attempt";
 import type { Option } from "../../../types/options";
 import type { Question } from "../../../types/question";
-import AppHeader from "../../../components/AppHeader";
+import PageShell from "../../../components/PageShell";
+import Card from "../../../components/ui/Card";
+import Alert from "../../../components/ui/Alert";
+import Badge from "../../../components/ui/Badge";
+import Button from "../../../components/ui/Button";
+import { LoadingState } from "../../../components/ui/States";
+import { Checkbox, Input, Radio } from "../../../components/ui/Field";
 
 type QuestionWithOptions = Question & { options: Option[] };
 
@@ -19,6 +26,16 @@ type LocalAnswer = {
   value: string;
   flagged: boolean;
 };
+
+const EMPTY_ANSWER: LocalAnswer = { selectedOptionIds: [], value: "", flagged: false };
+
+const STATUS_TONE = {
+  in_progress: "primary",
+  graded: "success",
+  submitted: "success",
+  expired: "warning",
+  draft: "neutral",
+} as const;
 
 function parsePagingRange(input: unknown, maxLength: number): { from: number; to: number } {
   if (typeof input === "string") {
@@ -41,6 +58,17 @@ function parsePagingRange(input: unknown, maxLength: number): { from: number; to
   return { from: 1, to: maxLength };
 }
 
+function extractErrorMessage(e: unknown, fallback: string): string {
+  if (
+    typeof e === "object" &&
+    e &&
+    "response" in e &&
+    typeof (e as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
+  ) {
+    return (e as { response?: { data?: { message?: string } } }).response?.data?.message || fallback;
+  }
+  return fallback;
+}
 
 export default function AttemptDetailPage() {
   const { id } = useParams();
@@ -50,7 +78,9 @@ export default function AttemptDetailPage() {
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [questions, setQuestions] = useState<QuestionWithOptions[]>([]);
   const [answersByQuestionId, setAnswersByQuestionId] = useState<Record<string, LocalAnswer>>({});
-  const [correctAnswersByQuestionId, setCorrectAnswersByQuestionId] = useState<Record<string, string[]>>({});
+  const [correctAnswersByQuestionId, setCorrectAnswersByQuestionId] = useState<
+    Record<string, string[]>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,11 +96,10 @@ export default function AttemptDetailPage() {
   );
   const questionNumberOffset = pagingRange.from - 1;
 
-  const orderedQuestions = useMemo(() => questions, [questions]);
   const pagedQuestions = useMemo(() => {
     const start = currentPage * questionsPerPage;
-    return orderedQuestions.slice(start, start + questionsPerPage);
-  }, [currentPage, orderedQuestions, questionsPerPage]);
+    return questions.slice(start, start + questionsPerPage);
+  }, [currentPage, questions, questionsPerPage]);
 
   const readOnly = attempt?.status !== "in_progress";
   const showCorrectAnswers = Boolean(attempt?.settings?.showAnswerAfterSelect);
@@ -80,7 +109,7 @@ export default function AttemptDetailPage() {
 
     async function loadAttemptData() {
       if (!attemptId) {
-        setError("Thiếu attempt id.");
+        setError("Missing attempt id.");
         setLoading(false);
         return;
       }
@@ -104,23 +133,11 @@ export default function AttemptDetailPage() {
           .map((aq) => aq.question)
           .filter(Boolean) as Question[];
 
-        const withOptions = selectedQuestions.map((q) => ({
-          ...q,
-          options: q.options ?? [],
-        }));
-
         if (!alive) return;
-        setQuestions(withOptions);
+        setQuestions(selectedQuestions.map((q) => ({ ...q, options: q.options ?? [] })));
         setCurrentPage(0);
       } catch (e: unknown) {
-        const message =
-          typeof e === "object" &&
-          e &&
-          "response" in e &&
-          typeof (e as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
-            ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
-            : "Không tải được attempt.";
-        if (alive) setError(message || "Không tải được attempt.");
+        if (alive) setError(extractErrorMessage(e, "Could not load this attempt."));
       } finally {
         if (alive) setLoading(false);
       }
@@ -135,78 +152,43 @@ export default function AttemptDetailPage() {
   async function persistAnswer(questionId: string, next: LocalAnswer) {
     if (readOnly) return;
 
-    const payload: SaveAnswerPayload = {
-      questionId,
-      flagged: next.flagged,
-    };
-
-    if (next.selectedOptionIds.length > 0) {
-      payload.selectedOptionIds = next.selectedOptionIds;
-    }
-
-    if (next.value.trim()) {
-      payload.value = next.value;
-    }
+    const payload: SaveAnswerPayload = { questionId, flagged: next.flagged };
+    if (next.selectedOptionIds.length > 0) payload.selectedOptionIds = next.selectedOptionIds;
+    if (next.value.trim()) payload.value = next.value;
 
     try {
       const res = await saveAttemptAnswer(attemptId, payload);
-      setAnswersByQuestionId((prev) => ({
-        ...prev,
-        [questionId]: next,
-      }));
-      if (showCorrectAnswers && res.correctAnswers) {
+      setAnswersByQuestionId((prev) => ({ ...prev, [questionId]: next }));
+      const correct = res.correctAnswers;
+      if (showCorrectAnswers && correct) {
         setCorrectAnswersByQuestionId((prev) => ({
           ...prev,
-          [questionId]: res.correctAnswers.map((answer) => answer.text),
+          [questionId]: correct.map((answer) => answer.text),
         }));
       }
       setError(null);
     } catch (e: unknown) {
-      const message =
-        typeof e === "object" &&
-        e &&
-        "response" in e &&
-        typeof (e as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
-          ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
-          : "Không lưu được đáp án.";
-      setError(message || "Không lưu được đáp án.");
+      setError(extractErrorMessage(e, "Could not save your answer."));
     }
   }
 
   async function onPickSingle(questionId: string, optionId: string) {
-    const prev = answersByQuestionId[questionId] || { selectedOptionIds: [], value: "", flagged: false };
-    const next: LocalAnswer = {
-      ...prev,
-      selectedOptionIds: [optionId],
-      value: "",
-    };
-    await persistAnswer(questionId, next);
+    const prev = answersByQuestionId[questionId] || EMPTY_ANSWER;
+    await persistAnswer(questionId, { ...prev, selectedOptionIds: [optionId], value: "" });
   }
 
   async function onToggleMultiple(questionId: string, optionId: string) {
-    const prev = answersByQuestionId[questionId] || { selectedOptionIds: [], value: "", flagged: false };
+    const prev = answersByQuestionId[questionId] || EMPTY_ANSWER;
     const set = new Set(prev.selectedOptionIds);
     if (set.has(optionId)) set.delete(optionId);
     else set.add(optionId);
-
-    const next: LocalAnswer = {
-      ...prev,
-      selectedOptionIds: [...set],
-      value: "",
-    };
-
-    await persistAnswer(questionId, next);
+    await persistAnswer(questionId, { ...prev, selectedOptionIds: [...set], value: "" });
   }
 
-  async function onChangeFillBlank(questionId: string, value: string) {
-    const prev = answersByQuestionId[questionId] || { selectedOptionIds: [], value: "", flagged: false };
-    const next: LocalAnswer = {
-      ...prev,
-      selectedOptionIds: [],
-      value,
-    };
-
-    setAnswersByQuestionId((old) => ({ ...old, [questionId]: next }));
+  function onChangeFillBlank(questionId: string, value: string) {
+    const prev = answersByQuestionId[questionId] || EMPTY_ANSWER;
+    // Kept local on change; persisted on blur so we don't fire a request per keystroke.
+    setAnswersByQuestionId((old) => ({ ...old, [questionId]: { ...prev, selectedOptionIds: [], value } }));
   }
 
   async function onBlurFillBlank(questionId: string) {
@@ -216,9 +198,8 @@ export default function AttemptDetailPage() {
   }
 
   async function onToggleFlag(questionId: string) {
-    const prev = answersByQuestionId[questionId] || { selectedOptionIds: [], value: "", flagged: false };
-    const next = { ...prev, flagged: !prev.flagged };
-    await persistAnswer(questionId, next);
+    const prev = answersByQuestionId[questionId] || EMPTY_ANSWER;
+    await persistAnswer(questionId, { ...prev, flagged: !prev.flagged });
   }
 
   async function onSubmitAttempt() {
@@ -234,213 +215,168 @@ export default function AttemptDetailPage() {
       await submitAttempt(attemptId);
       navigate(`/attempts/${attemptId}/result`, { replace: true });
     } catch (e: unknown) {
-      const message =
-        typeof e === "object" &&
-        e &&
-        "response" in e &&
-        typeof (e as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
-          ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
-          : "Có lỗi khi nộp bài.";
-      setError(message || "Có lỗi khi nộp bài.");
+      setError(extractErrorMessage(e, "Something went wrong while submitting."));
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (loading) return <div style={{ padding: 20 }}>Đang tải bài thi...</div>;
+  if (loading) {
+    return (
+      <PageShell width="md">
+        <LoadingState label="Loading attempt..." />
+      </PageShell>
+    );
+  }
+
+  const answeredCount = Object.values(answersByQuestionId).filter(
+    (a) => a.selectedOptionIds.length > 0 || a.value.trim()
+  ).length;
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "radial-gradient(circle at 15% 10%, #fdf4ff 0%, #e0f2fe 55%, #ffffff 100%)",
-        color: "#0f172a",
-        fontFamily: '"Space Grotesk", "IBM Plex Sans", sans-serif',
-      }}
+    <PageShell
+      width="md"
+      title={readOnly ? "Review attempt" : "Attempt in progress"}
+      subtitle={
+        <span className="flex flex-wrap items-center gap-2">
+          <Badge tone={STATUS_TONE[attempt?.status ?? "draft"] ?? "neutral"}>
+            {attempt?.status ?? "unknown"}
+          </Badge>
+          <span>
+            {answeredCount} of {questions.length} answered
+          </span>
+        </span>
+      }
     >
-      <AppHeader />
-      <style>{`
-        .attempt-wrap {
-          max-width: 980px;
-          margin: 28px auto 60px;
-          padding: 0 20px 40px;
-        }
-        .attempt-title {
-          font-size: clamp(26px, 3vw, 36px);
-          margin: 0 0 6px;
-        }
-        .attempt-subtitle {
-          margin: 0 0 16px;
-          color: #475569;
-        }
-        .attempt-card {
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 18px 20px;
-          background: #ffffff;
-          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-          margin-bottom: 14px;
-        }
-        .attempt-question {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 12px;
-        }
-        .attempt-error {
-          background: #fef2f2;
-          color: #b91c1c;
-          padding: 10px;
-          border-radius: 10px;
-          margin-bottom: 12px;
-        }
-        .attempt-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 6px 12px;
-          border-radius: 999px;
-          background: #f1f5f9;
-          color: #334155;
-          font-size: 12px;
-        }
-        .attempt-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 16px;
-        }
-        .attempt-button {
-          padding: 10px 16px;
-          border-radius: 12px;
-          border: none;
-          background: #0f172a;
-          color: #ffffff;
-          font-weight: 600;
-          cursor: pointer;
-        }
-        .attempt-button:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-        .attempt-correct {
-          margin-top: 10px;
-          padding: 8px 10px;
-          border-radius: 10px;
-          background: #ecfdf3;
-          color: #15803d;
-          font-size: 13px;
-        }
-      `}</style>
-      <main className="attempt-wrap">
-        <h1 className="attempt-title">Làm bài thi</h1>
-        <div className="attempt-subtitle">
-          <span className="attempt-pill">Trạng thái: {attempt?.status}</span>
-        </div>
-
       {error && (
-        <div className="attempt-error">{error}</div>
+        <Alert tone="danger" className="mb-4">
+          {error}
+        </Alert>
       )}
 
-      {pagedQuestions.map((q, idx) => {
-        const local = answersByQuestionId[q.id] || { selectedOptionIds: [], value: "", flagged: false };
-        const correctTexts = correctAnswersByQuestionId[q.id] || [];
+      <div className="grid gap-3.5">
+        {pagedQuestions.map((q, idx) => {
+          const local = answersByQuestionId[q.id] || EMPTY_ANSWER;
+          const correctTexts = correctAnswersByQuestionId[q.id] || [];
+          const number = questionNumberOffset + currentPage * questionsPerPage + idx + 1;
 
-        return (
-          <div key={q.id} className="attempt-card">
-            <div className="attempt-question">
-              <p style={{ margin: 0, fontWeight: 600 }}>
-                {questionNumberOffset + currentPage * questionsPerPage + idx + 1}. {q.text}
-              </p>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                <input
-                  type="checkbox"
-                  checked={local.flagged}
+          return (
+            <Card key={q.id}>
+              <div className="flex items-start justify-between gap-4">
+                <p className="font-semibold text-foreground">
+                  <span className="mr-2 text-muted">{number}.</span>
+                  {q.text}
+                </p>
+                <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs font-medium text-muted">
+                  <Checkbox
+                    checked={local.flagged}
+                    disabled={readOnly}
+                    onChange={() => void onToggleFlag(q.id)}
+                  />
+                  <Flag size={13} className={local.flagged ? "text-warning" : ""} />
+                  Flag
+                </label>
+              </div>
+
+              {(q.type === "single" || q.type === "true_false") && (
+                <div className="mt-3.5 grid gap-1">
+                  {q.options.map((opt) => (
+                    <label
+                      key={opt.id}
+                      className={`flex cursor-pointer items-center gap-2.5 rounded-control px-3 py-2 text-sm transition-colors ${
+                        local.selectedOptionIds[0] === opt.id
+                          ? "bg-primary-soft text-primary"
+                          : "hover:bg-surface-sunken"
+                      } ${readOnly ? "cursor-default" : ""}`}
+                    >
+                      <Radio
+                        name={`question-${q.id}`}
+                        disabled={readOnly}
+                        checked={local.selectedOptionIds[0] === opt.id}
+                        onChange={() => void onPickSingle(q.id, opt.id)}
+                      />
+                      {opt.text}
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {q.type === "multiple" && (
+                <div className="mt-3.5 grid gap-1">
+                  {q.options.map((opt) => (
+                    <label
+                      key={opt.id}
+                      className={`flex cursor-pointer items-center gap-2.5 rounded-control px-3 py-2 text-sm transition-colors ${
+                        local.selectedOptionIds.includes(opt.id)
+                          ? "bg-primary-soft text-primary"
+                          : "hover:bg-surface-sunken"
+                      } ${readOnly ? "cursor-default" : ""}`}
+                    >
+                      <Checkbox
+                        disabled={readOnly}
+                        checked={local.selectedOptionIds.includes(opt.id)}
+                        onChange={() => void onToggleMultiple(q.id, opt.id)}
+                      />
+                      {opt.text}
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {q.type === "fill_blank" && (
+                <Input
+                  className="mt-3.5 max-w-md"
+                  value={local.value}
                   disabled={readOnly}
-                  onChange={() => void onToggleFlag(q.id)}
+                  onChange={(e) => onChangeFillBlank(q.id, e.target.value)}
+                  onBlur={() => void onBlurFillBlank(q.id)}
+                  placeholder="Type your answer"
                 />
-                Flag
-              </label>
-            </div>
+              )}
 
-            {(q.type === "single" || q.type === "true_false") && (
-              <div style={{ marginTop: 12 }}>
-                {q.options.map((opt) => (
-                  <label key={opt.id} style={{ display: "block", marginBottom: 8 }}>
-                    <input
-                      type="radio"
-                      name={`question-${q.id}`}
-                      disabled={readOnly}
-                      checked={local.selectedOptionIds[0] === opt.id}
-                      onChange={() => void onPickSingle(q.id, opt.id)}
-                    />
-                    <span style={{ marginLeft: 8 }}>{opt.text}</span>
-                  </label>
-                ))}
-              </div>
-            )}
+              {showCorrectAnswers && correctTexts.length > 0 && (
+                <Alert tone="success" className="mt-3">
+                  Correct answer: {correctTexts.join(", ")}
+                </Alert>
+              )}
+            </Card>
+          );
+        })}
+      </div>
 
-            {q.type === "multiple" && (
-              <div style={{ marginTop: 12 }}>
-                {q.options.map((opt) => (
-                  <label key={opt.id} style={{ display: "block", marginBottom: 8 }}>
-                    <input
-                      type="checkbox"
-                      disabled={readOnly}
-                      checked={local.selectedOptionIds.includes(opt.id)}
-                      onChange={() => void onToggleMultiple(q.id, opt.id)}
-                    />
-                    <span style={{ marginLeft: 8 }}>{opt.text}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-
-            {q.type === "fill_blank" && (
-              <input
-                style={{ marginTop: 12, width: "100%", maxWidth: 420, padding: 8, border: "1px solid #d1d5db", borderRadius: 6 }}
-                value={local.value}
-                disabled={readOnly}
-                onChange={(e) => void onChangeFillBlank(q.id, e.target.value)}
-                onBlur={() => void onBlurFillBlank(q.id)}
-                placeholder="Nhập đáp án"
-              />
-            )}
-
-            {showCorrectAnswers && correctTexts.length > 0 && (
-              <div className="attempt-correct">
-                Đáp án đúng: {correctTexts.join(", ")}
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      <div className="attempt-footer">
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <button
-            className="attempt-button"
+      <div className="sticky bottom-4 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-card border border-border bg-surface-raised/95 px-4 py-3 shadow-lift backdrop-blur">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<ChevronLeft size={15} />}
             disabled={currentPage <= 0}
             onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
           >
-            Trang trước
-          </button>
-          <span>
-            {currentPage + 1} / {totalPages}
+            Previous
+          </Button>
+          <span className="px-1 text-sm text-muted">
+            Page {currentPage + 1} / {totalPages}
           </span>
-          <button
-            className="attempt-button"
+          <Button
+            variant="secondary"
+            size="sm"
             disabled={currentPage >= totalPages - 1}
             onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
           >
-            Trang sau
-          </button>
+            Next
+            <ChevronRight size={15} />
+          </Button>
         </div>
-        <button className="attempt-button" disabled={submitting} onClick={() => void onSubmitAttempt()}>
-          {readOnly ? "Xem kết quả" : submitting ? "Đang nộp..." : "Nộp bài"}
-        </button>
+
+        <Button
+          loading={submitting}
+          icon={readOnly ? undefined : <Send size={15} />}
+          onClick={() => void onSubmitAttempt()}
+        >
+          {readOnly ? "View result" : submitting ? "Submitting..." : "Submit attempt"}
+        </Button>
       </div>
-      </main>
-    </div>
+    </PageShell>
   );
 }

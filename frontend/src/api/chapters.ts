@@ -10,7 +10,7 @@ export async function getChaptersBySubject(
   return res.data;
 }
 
-// (optional) lấy chi tiết 1 chapter
+// (optional) get a single chapter
 export async function getChapterById(id: string | number): Promise<Chapter> {
   const res = await http.get(`/chapters/${id}`);
   return res.data;

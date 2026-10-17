@@ -1,156 +1,128 @@
 import { Link } from "react-router-dom";
-import AppHeader from "../../components/AppHeader";
+import {
+  BookOpen,
+  CreditCard,
+  History,
+  Keyboard,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import PageShell from "../../components/PageShell";
+import Card from "../../components/ui/Card";
+import Badge from "../../components/ui/Badge";
 import { useAuth } from "../../app/providers/AuthProvider";
+
+type Action = {
+  title: string;
+  description: string;
+  to: string;
+  cta: string;
+  icon: LucideIcon;
+  adminOnly?: boolean;
+};
+
+const ACTIONS: Action[] = [
+  {
+    title: "Start a quiz",
+    description: "Pick a subject and chapter, then tune your exam settings.",
+    to: "/subjects",
+    cta: "Browse subjects",
+    icon: BookOpen,
+  },
+  {
+    title: "Generate questions with AI",
+    description: "Describe a topic or paste text and turn it into a question set.",
+    to: "/ai/quiz",
+    cta: "Generate questions",
+    icon: Sparkles,
+  },
+  {
+    title: "Typing practice",
+    description: "Choose a passage and track your WPM and accuracy over time.",
+    to: "/practice/select",
+    cta: "Choose a passage",
+    icon: Keyboard,
+  },
+  {
+    title: "Quiz history",
+    description: "Review past attempts and clear out the ones you no longer need.",
+    to: "/attempts/history",
+    cta: "View history",
+    icon: History,
+  },
+  {
+    title: "Flashcards",
+    description: "Build decks and study them in flip mode.",
+    to: "/flashcard-decks",
+    cta: "Open flashcards",
+    icon: CreditCard,
+  },
+  {
+    title: "Admin area",
+    description: "Manage subjects, chapters, questions, roles and accounts.",
+    to: "/admin/subjects",
+    cta: "Open admin",
+    icon: ShieldCheck,
+    adminOnly: true,
+  },
+];
 
 export default function DashboardPage() {
   const { user } = useAuth();
 
+  const isAdmin = Boolean(
+    user?.role === "admin" ||
+      user?.roles?.some((role) => role === "admin" || role === "superadmin")
+  );
+
+  const actions = ACTIONS.filter((action) => !action.adminOnly || isAdmin);
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "radial-gradient(circle at top, #ecfeff 0%, #fdf4ff 45%, #ffffff 100%)",
-        color: "#0f172a",
-        fontFamily: '"Space Grotesk", "IBM Plex Sans", sans-serif',
-      }}
-    >
-      <AppHeader />
-      <style>{`
-        .dashboard-wrap {
-          max-width: 1040px;
-          margin: 28px auto 60px;
-          padding: 0 20px 48px;
-        }
-        .dashboard-hero {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          gap: 20px;
-          align-items: center;
-          margin-bottom: 28px;
-        }
-        .dashboard-title {
-          font-size: clamp(28px, 4vw, 44px);
-          margin: 0 0 8px;
-          letter-spacing: -0.02em;
-        }
-        .dashboard-subtitle {
-          margin: 0;
-          font-size: 16px;
-          color: #334155;
-        }
-        .dashboard-panel {
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-          color: #f8fafc;
-          border-radius: 18px;
-          padding: 20px 22px;
-          box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
-        }
-        .dashboard-panel h3 {
-          margin: 0 0 8px;
-          font-size: 18px;
-        }
-        .dashboard-panel p {
-          margin: 0;
-          color: rgba(248, 250, 252, 0.72);
-        }
-        .action-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 18px;
-          margin-top: 22px;
-        }
-        .action-card {
-          background: #ffffff;
-          border-radius: 16px;
-          padding: 18px 18px 20px;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-          transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
-        }
-        .action-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 18px 32px rgba(14, 116, 144, 0.16);
-          border-color: #99f6e4;
-        }
-        .action-title {
-          margin: 0 0 6px;
-          font-size: 18px;
-          color: #0f172a;
-        }
-        .action-text {
-          margin: 0 0 14px;
-          color: #475569;
-          font-size: 14px;
-        }
-        .action-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          font-weight: 600;
-          color: #0f766e;
-          text-decoration: none;
-        }
-        .action-link:hover {
-          color: #0e7490;
-        }
-      `}</style>
+    <PageShell width="wide">
+      <section className="mb-8 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+        <div className="flex flex-col justify-center">
+          <Badge tone="primary" icon={<Sparkles size={12} />} className="mb-3 self-start">
+            Dashboard
+          </Badge>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Welcome back{user?.name ? `, ${user.name}` : ""}
+          </h1>
+          <p className="mt-2 max-w-prose text-muted">
+            Jump back into quizzes, typing practice or flashcards. Everything is one click away.
+          </p>
+        </div>
 
-      <main className="dashboard-wrap">
-        <section className="dashboard-hero">
-          <div>
-            <h1 className="dashboard-title">Homepage Dashboard</h1>
-            <p className="dashboard-subtitle">
-              Welcome {user?.name}. Jump back into quizzes, typing practice, or admin tools.
-            </p>
-          </div>
-          <div className="dashboard-panel">
-            <h3>Your next move</h3>
-            <p>Pick a path and keep your momentum. Everything is one click away.</p>
-          </div>
-        </section>
+        <Card className="flex flex-col justify-center bg-surface-inverse text-surface-inverse-foreground border-transparent">
+          <h2 className="text-lg font-semibold">Your next move</h2>
+          <p className="mt-1 text-sm opacity-80">
+            Pick a path below and keep your momentum going.
+          </p>
+        </Card>
+      </section>
 
-        <section className="action-grid">
-          <div className="action-card">
-            <h3 className="action-title">Start Quiz</h3>
-            <p className="action-text">Choose subject, chapter, and exam settings.</p>
-            <Link className="action-link" to="/subjects">
-              Go to subjects →
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {actions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <Link key={action.to} to={action.to} className="group">
+              <Card interactive className="flex h-full flex-col">
+                <span className="mb-4 flex h-10 w-10 items-center justify-center rounded-control bg-primary-soft text-primary transition-colors group-hover:bg-primary group-hover:text-primary-fg">
+                  <Icon size={19} />
+                </span>
+                <h3 className="text-base font-semibold text-foreground">{action.title}</h3>
+                <p className="mt-1.5 flex-1 text-sm text-muted">{action.description}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary">
+                  {action.cta}
+                  <span className="transition-transform duration-200 group-hover:translate-x-0.5">
+                    →
+                  </span>
+                </span>
+              </Card>
             </Link>
-          </div>
-
-          <div className="action-card">
-            <h3 className="action-title">Typing Practice</h3>
-            <p className="action-text">Select a typing text and track WPM + accuracy.</p>
-            <Link className="action-link" to="/practice/select">
-              Go to typing texts →
-            </Link>
-          </div>
-
-          <div className="action-card">
-            <h3 className="action-title">Quiz History</h3>
-            <p className="action-text">Review your quiz attempts and clean old sessions.</p>
-            <Link className="action-link" to="/attempts/history">
-              View attempt history →
-            </Link>
-          </div>
-
-          <div className="action-card">
-            <h3 className="action-title">Flashcards</h3>
-            <p className="action-text">Manage decks and study cards with flip mode.</p>
-            <Link className="action-link" to="/flashcard-decks">
-              Open flashcards →
-            </Link>
-          </div>
-
-          <div className="action-card">
-            <h3 className="action-title">Admin Area</h3>
-            <p className="action-text">Manage subjects, chapters, and questions.</p>
-            <Link className="action-link" to="/admin/subjects">
-              Open admin →
-            </Link>
-          </div>
-        </section>
-      </main>
-    </div>
+          );
+        })}
+      </section>
+    </PageShell>
   );
 }
