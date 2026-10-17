@@ -25,7 +25,8 @@ class AttemptQuestionRepository extends BaseRepository {
 
   async findByAttempt(attemptId) {
     const records = await this.model.findAll({
-      where: { attemptId, isDeleted: false }
+      where: { attemptId, isDeleted: false },
+      order: [["sequence", "ASC"], ["pageIndex", "ASC"]]
     });
     return records.map(record => this.mapper.toDomain(record));
   }

@@ -42,6 +42,7 @@ Table "attempt_questions" {
   "questionId" uuid [not null]
   "optionOrder" json
   "pageIndex" int [default: '0']
+  "sequence" int [default: '0', note: 'Thứ tự câu trong lượt làm bài, giữ nguyên sau khi xáo trộn']
 }
 
 Table "attempts" {
