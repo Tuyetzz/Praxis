@@ -3,6 +3,6 @@ export interface Subject {
   name: string;
   slug: string;
   order: number;
-  createdAt: string; // BE trả về timestamp
+  createdAt: string; // backend returns a timestamp
   isDeleted?: boolean;
 }

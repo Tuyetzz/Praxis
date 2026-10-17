@@ -71,6 +71,9 @@ class GetAttemptQuestions {
     return [...attemptQuestions]
       .sort((a, b) => {
         if (a.pageIndex !== b.pageIndex) return a.pageIndex - b.pageIndex;
+        // sequence giữ đúng thứ tự đã xáo trộn khi start attempt
+        if (a.sequence !== b.sequence) return a.sequence - b.sequence;
+        // fallback cho dữ liệu cũ chưa có sequence (tất cả = 0)
         return String(a.questionId).localeCompare(String(b.questionId));
       })
       .map((aq) => {

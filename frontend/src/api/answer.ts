@@ -2,19 +2,19 @@
 import { http } from "./http";
 import type { Answer } from "../types/answer";
 
-// Lấy danh sách answers theo attemptId
+// List answers for an attempt
 export async function getAnswersByAttempt(attemptId: number) {
   const res = await http.get<Answer[]>(`/answers/attempt/${attemptId}`);
   return res.data;
 }
 
-// Lấy chi tiết 1 answer theo id
+// Get a single answer by id
 export async function getAnswerById(id: number) {
   const res = await http.get<Answer>(`/answers/${id}`);
   return res.data;
 }
 
-// Tạo answer mới cho 1 câu hỏi trong attempt
+// Create an answer for a question in an attempt
 export async function createAnswer(
   attemptId: number,
   questionId: number,
@@ -27,19 +27,19 @@ export async function createAnswer(
   return res.data;
 }
 
-// Cập nhật answer
+// Update an answer
 export async function updateAnswer(id: number, payload: Partial<Answer>) {
   const res = await http.put<Answer>(`/answers/${id}`, payload);
   return res.data;
 }
 
-// Xóa answer
+// Delete an answer
 export async function deleteAnswer(id: number) {
   const res = await http.delete<{ success: boolean }>(`/answers/${id}`);
   return res.data;
 }
 
-// Submit nhiều answers 1 lần
+// Submit several answers at once
 export async function submitAnswers(payload: Answer[]) {
   const res = await http.post<{ success: boolean; results: Answer[] }>(
     "/answers/submit",

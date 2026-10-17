@@ -1,7 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getAttemptGrade, hardDeleteAttempt, type AttemptGradeResponse } from "../../../api/attempts";
-import AppHeader from "../../../components/AppHeader";
+import { ArrowLeft, CheckCircle2, Trash2, XCircle } from "lucide-react";
+import {
+  getAttemptGrade,
+  hardDeleteAttempt,
+  type AttemptGradeResponse,
+} from "../../../api/attempts";
+import PageShell from "../../../components/PageShell";
+import Card from "../../../components/ui/Card";
+import Alert from "../../../components/ui/Alert";
+import Badge from "../../../components/ui/Badge";
+import Button from "../../../components/ui/Button";
+import { LoadingState } from "../../../components/ui/States";
+
+const STATUS_TONE = {
+  correct: "success",
+  wrong: "danger",
+  blank: "neutral",
+} as const;
 
 export default function AttemptResultPage() {
   const { id } = useParams();
@@ -11,13 +27,14 @@ export default function AttemptResultPage() {
   const [result, setResult] = useState<AttemptGradeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let active = true;
 
     async function loadResult() {
       if (!attemptId) {
-        setError("Thiếu attempt id.");
+        setError("Missing attempt id.");
         setLoading(false);
         return;
       }
@@ -34,10 +51,11 @@ export default function AttemptResultPage() {
           typeof e === "object" &&
           e &&
           "response" in e &&
-          typeof (e as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
+          typeof (e as { response?: { data?: { message?: string } } }).response?.data?.message ===
+            "string"
             ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
-            : "Không tải được kết quả.";
-        if (active) setError(message || "Không tải được kết quả.");
+            : "Could not load your result.";
+        if (active) setError(message || "Could not load your result.");
       } finally {
         if (active) setLoading(false);
       }
@@ -49,151 +67,152 @@ export default function AttemptResultPage() {
     };
   }, [attemptId]);
 
-  if (loading) return <div style={{ padding: 20 }}>Đang tải kết quả...</div>;
-
   async function handleDeleteAttempt() {
     if (!attemptId) return;
-    if (!window.confirm("Xoa vinh vien lich su bai thi nay?")) return;
+    if (!window.confirm("Permanently delete this attempt? This cannot be undone.")) return;
+    setDeleting(true);
     try {
       await hardDeleteAttempt(attemptId);
       navigate("/dashboard", { replace: true });
     } catch {
-      setError("Khong xoa duoc lich su bai thi.");
+      setError("Could not delete this attempt.");
+      setDeleting(false);
     }
   }
 
   function formatAnswer(answer: AttemptGradeResponse["detailedAnswers"][number]["selectedAnswer"]) {
-    if (!answer) return "-";
+    if (!answer) return "—";
     if (typeof answer === "string") return answer;
     if (Array.isArray(answer)) {
-      return answer.map((item) => item.text || item.id).join(", ") || "-";
+      return answer.map((item) => item.text || item.id).join(", ") || "—";
     }
-    return "-";
+    return "—";
+  }
+
+  if (loading) {
+    return (
+      <PageShell width="md">
+        <LoadingState label="Loading result..." />
+      </PageShell>
+    );
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "radial-gradient(circle at 20% 10%, #dbeafe 0%, #fef9c3 55%, #ffffff 100%)",
-        color: "#0f172a",
-        fontFamily: '"Space Grotesk", "IBM Plex Sans", sans-serif',
-      }}
+    <PageShell
+      width="md"
+      title="Attempt result"
+      actions={
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<ArrowLeft size={15} />}
+          onClick={() => navigate("/attempts/history")}
+        >
+          History
+        </Button>
+      }
     >
-      <AppHeader />
-      <style>{`
-        .result-wrap {
-          max-width: 1040px;
-          margin: 28px auto 60px;
-          padding: 0 20px 40px;
-        }
-        .result-title {
-          font-size: clamp(26px, 3vw, 36px);
-          margin: 0 0 12px;
-        }
-        .result-summary {
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 18px 20px;
-          background: #ffffff;
-          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-          display: grid;
-          gap: 10px;
-          margin-bottom: 18px;
-        }
-        .result-grid {
-          display: grid;
-          gap: 12px;
-        }
-        .result-card {
-          border: 1px solid #e2e8f0;
-          border-radius: 14px;
-          padding: 14px 16px;
-          background: #ffffff;
-        }
-        .result-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 4px 10px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 600;
-          background: #f1f5f9;
-          color: #334155;
-        }
-        .result-error {
-          background: #fef2f2;
-          color: #b91c1c;
-          padding: 10px;
-          border-radius: 10px;
-          margin-bottom: 16px;
-        }
-        .result-button {
-          padding: 10px 16px;
-          border-radius: 12px;
-          border: none;
-          background: #0f172a;
-          color: #ffffff;
-          font-weight: 600;
-          cursor: pointer;
-        }
-      `}</style>
-      <main className="result-wrap">
-        <h1 className="result-title">Kết quả bài thi</h1>
+      {error && (
+        <Alert tone="danger" className="mb-4">
+          {error}
+        </Alert>
+      )}
 
-        {error && <div className="result-error">{error}</div>}
+      {result && (
+        <>
+          <Card className="mb-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-muted">Score</p>
+                <p className="text-3xl font-bold text-foreground">
+                  {result.summary.totalEarnedPoints}
+                  <span className="text-lg font-medium text-muted"> / {result.summary.maxScore}</span>
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-muted">Accuracy</p>
+                <p className="text-3xl font-bold text-foreground">
+                  {result.summary.accuracyPercentage}%
+                </p>
+              </div>
+              <Badge tone={result.summary.isPassed ? "success" : "warning"}>
+                {result.summary.isPassed ? "Passed" : "Not passed"}
+              </Badge>
+            </div>
 
-        {result && (
-          <>
-            <section className="result-summary">
-              <div>
-                Điểm: <strong>{result.summary.totalEarnedPoints}</strong> / <strong>{result.summary.maxScore}</strong>
-              </div>
-              <div>
-                Accuracy: <strong>{result.summary.accuracyPercentage}%</strong>
-              </div>
-              <div>
-                Đúng/Sai/Bỏ trống: {result.summary.correctCount} / {result.summary.wrongCount} / {result.summary.blankCount}
-              </div>
-              <div>
-                Kết quả: <span className="result-pill">{result.summary.isPassed ? "Passed" : "Not passed"}</span>
-              </div>
-            </section>
+            <div className="mt-5 grid grid-cols-3 gap-3 border-t border-border pt-4">
+              <Stat label="Correct" value={result.summary.correctCount} tone="text-success" />
+              <Stat label="Wrong" value={result.summary.wrongCount} tone="text-danger" />
+              <Stat label="Blank" value={result.summary.blankCount} tone="text-muted" />
+            </div>
+          </Card>
 
-            <section className="result-grid">
-              {result.detailedAnswers.map((item, index) => (
-                <article key={item.questionId} className="result-card">
-                  <div style={{ fontWeight: 600, marginBottom: 6 }}>
-                    {index + 1}. {item.questionText}
-                  </div>
-                  <div>Trạng thái: {item.status}</div>
-                  <div>
-                    Điểm: {item.points} / {item.maxPoints}
-                  </div>
-                  <div>Đáp án chọn: {formatAnswer(item.selectedAnswer)}</div>
-                  <div>Đáp án đúng: {formatAnswer(item.correctAnswer)}</div>
-                </article>
-              ))}
-            </section>
-          </>
-        )}
+          <h2 className="mb-3 text-lg font-semibold text-foreground">Answer breakdown</h2>
 
-        <div style={{ marginTop: 18 }}>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <button className="result-button" onClick={() => navigate("/dashboard")}>
-              Back to homepage
-            </button>
-            <button
-              className="result-button"
-              style={{ background: "#ef4444" }}
-              onClick={handleDeleteAttempt}
-            >
-              Delete attempt
-            </button>
+          <div className="grid gap-3">
+            {result.detailedAnswers.map((item, index) => (
+              <Card key={item.questionId}>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-medium text-foreground">
+                    <span className="mr-2 text-muted">{index + 1}.</span>
+                    {item.questionText}
+                  </p>
+                  <Badge
+                    tone={STATUS_TONE[item.status as keyof typeof STATUS_TONE] ?? "neutral"}
+                    icon={
+                      item.status === "correct" ? (
+                        <CheckCircle2 size={12} />
+                      ) : item.status === "wrong" ? (
+                        <XCircle size={12} />
+                      ) : undefined
+                    }
+                  >
+                    {item.status}
+                  </Badge>
+                </div>
+
+                <dl className="mt-3 grid gap-1.5 text-sm">
+                  <Row label="Your answer" value={formatAnswer(item.selectedAnswer)} />
+                  <Row label="Correct answer" value={formatAnswer(item.correctAnswer)} />
+                  <Row label="Points" value={`${item.points} / ${item.maxPoints}`} />
+                </dl>
+              </Card>
+            ))}
           </div>
-        </div>
-      </main>
+        </>
+      )}
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Button variant="secondary" icon={<ArrowLeft size={15} />} onClick={() => navigate("/dashboard")}>
+          Back to dashboard
+        </Button>
+        <Button
+          variant="danger"
+          icon={<Trash2 size={15} />}
+          loading={deleting}
+          onClick={handleDeleteAttempt}
+        >
+          Delete attempt
+        </Button>
+      </div>
+    </PageShell>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: number; tone: string }) {
+  return (
+    <div className="text-center">
+      <p className={`text-2xl font-bold ${tone}`}>{value}</p>
+      <p className="text-xs text-muted">{label}</p>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex gap-2">
+      <dt className="shrink-0 text-muted">{label}:</dt>
+      <dd className="min-w-0 break-words text-foreground">{value}</dd>
     </div>
   );
 }

@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return token;
   }
 
-  // Khởi động: nếu có token thì dùng user đã lưu localStorage
+  // On boot: if a token exists, restore the user that was persisted to localStorage.
   useEffect(() => {
     const token = getValidToken();
     if (!token) {

@@ -26,11 +26,11 @@ function clearStoredAuth() {
   window.dispatchEvent(new Event(AUTH_INVALID_EVENT));
 }
 
-// Tạo instance axios để dùng chung
+// Shared axios instance
 export const http = axios.create({
   baseURL: "http://localhost:5000/api",
   timeout: 10000,
-  withCredentials: false, // nếu backend có cookie/session
+  withCredentials: false, // set true if the backend uses cookies/sessions
 });
 
 const refreshHttp = axios.create({
@@ -39,11 +39,11 @@ const refreshHttp = axios.create({
   withCredentials: false,
 });
 
-// attach token nếu có (khi F5)
+// attach token on module load (survives F5)
 const token = getStoredAccessToken();
 if (token) http.defaults.headers.common.Authorization = `Bearer ${token}`;
 
-// Interceptor: gắn token vào header (nếu có login)
+// Interceptor: attach the token to every request
 http.interceptors.request.use((config) => {
   const token = getStoredAccessToken();
   if (token) {

@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { RotateCcw, BookOpen } from "lucide-react";
+import { BookOpen, RotateCcw, Sparkles } from "lucide-react";
 import { createTypingResult } from "../../api/typingResults";
 import { getPublicTypingTexts } from "../../api/typingTexts";
 import type { TypingText } from "../../types/typingText";
-import AppHeader from "../../components/AppHeader";
+import PageShell from "../../components/PageShell";
+import Card from "../../components/ui/Card";
+import Alert from "../../components/ui/Alert";
+import Button from "../../components/ui/Button";
 
 interface TypingStats {
   wpm: number;
@@ -121,6 +124,7 @@ export default function TypingPage() {
       setActiveText(storedText);
       setParagraph(storedText.content);
       setLoadingText(false);
+      localStorage.removeItem("selectedTypingText");
     } else {
       loadDefaultText();
     }
@@ -130,18 +134,16 @@ export default function TypingPage() {
     };
   }, []);
 
-  // Handle timer
+  // Timer: runs while typing is active and at least one character is entered.
   useEffect(() => {
-    if (stats.isActive && currentIndex > 0 && startedAtRef.current) {
+    const startedAt = startedAtRef.current;
+    if (stats.isActive && currentIndex > 0 && startedAt !== null) {
       timerRef.current = setInterval(() => {
-        const elapsed = Math.max(1, Math.floor((Date.now() - startedAtRef.current) / 1000));
-        setStats((prev) => ({
-          ...prev,
-          timeElapsed: elapsed,
-        }));
+        const elapsed = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
+        setStats((prev) => ({ ...prev, timeElapsed: elapsed }));
       }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
     }
 
     return () => {
@@ -149,15 +151,13 @@ export default function TypingPage() {
     };
   }, [stats.isActive, currentIndex]);
 
-  // Calculate WPM and Accuracy
+  // WPM / accuracy, recomputed as the run progresses.
   useEffect(() => {
     if (stats.timeElapsed > 0 && currentIndex > 0) {
       const minutes = stats.timeElapsed / 60;
-      const words = currentIndex / 5; // Average word length is 5 characters
+      const words = currentIndex / 5; // average word length is 5 characters
       const wpm = Math.round(words / minutes);
-      const accuracy = Math.round(
-        ((currentIndex - mistakes.length) / currentIndex) * 100
-      );
+      const accuracy = Math.round(((currentIndex - mistakes.length) / currentIndex) * 100);
 
       setStats((prev) => ({
         ...prev,
@@ -171,9 +171,7 @@ export default function TypingPage() {
     if (currentIndex >= paragraph.length) return;
 
     if (!stats.isActive) {
-      if (!startedAtRef.current) {
-        startedAtRef.current = Date.now();
-      }
+      if (!startedAtRef.current) startedAtRef.current = Date.now();
       setStats((prev) => ({ ...prev, isActive: true }));
     }
 
@@ -207,17 +205,8 @@ export default function TypingPage() {
     setCompletedAt(null);
     startedAtRef.current = null;
     submitLockRef.current = false;
-    setStats({
-      wpm: 0,
-      accuracy: 100,
-      timeElapsed: 0,
-      isActive: false,
-    });
+    setStats({ wpm: 0, accuracy: 100, timeElapsed: 0, isActive: false });
     inputRef.current?.focus();
-  };
-
-  const handleSelectText = () => {
-    navigate("/practice/select");
   };
 
   const formatTime = (seconds: number) => {
@@ -229,13 +218,13 @@ export default function TypingPage() {
   const getCharClass = (index: number) => {
     if (index < currentIndex) {
       return mistakes.includes(index)
-        ? "bg-red-500 text-white"
-        : "bg-green-500 text-white";
-    } else if (index === currentIndex) {
-      return "bg-blue-400 text-white animate-pulse";
-    } else {
-      return "text-gray-400";
+        ? "bg-danger text-white"
+        : "bg-success text-white";
     }
+    if (index === currentIndex) {
+      return "bg-primary text-primary-fg animate-pulse";
+    }
+    return "text-muted";
   };
 
   const isComplete = currentIndex >= paragraph.length && currentIndex > 0;
@@ -251,6 +240,7 @@ export default function TypingPage() {
     }
   }, [completedAt, isComplete]);
 
+  // Save the result once per completed run (local-only texts are not persisted).
   useEffect(() => {
     if (!isComplete || hasSubmitted) return;
     if (!activeText || activeText.id.startsWith("local-")) return;
@@ -259,7 +249,7 @@ export default function TypingPage() {
 
     const durationSeconds = Math.max(1, stats.timeElapsed);
     const minutes = durationSeconds / 60;
-    const rawWpm = Math.round((input.length / 5) / minutes) || 0;
+    const rawWpm = Math.round(input.length / 5 / minutes) || 0;
 
     createTypingResult({
       textId: activeText.id,
@@ -275,7 +265,7 @@ export default function TypingPage() {
       })
       .catch(() => {
         setHasSubmitted(true);
-        setSubmitError("Unable to save typing result.");
+        setSubmitError("Unable to save your typing result.");
       });
   }, [
     activeText,
@@ -288,186 +278,108 @@ export default function TypingPage() {
     stats.wpm,
   ]);
 
+  const progress = paragraph.length ? (currentIndex / paragraph.length) * 100 : 0;
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "radial-gradient(circle at 10% 10%, #ecfeff 0%, #f8fafc 55%, #ffffff 100%)",
-        color: "#0f172a",
-        fontFamily: '"Space Grotesk", "IBM Plex Sans", sans-serif',
-      }}
+    <PageShell
+      width="lg"
+      title="Typing practice"
+      subtitle={activeText ? `Passage: ${activeText.title}` : "Improve your speed and accuracy."}
+      actions={
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<BookOpen size={15} />}
+          onClick={() => navigate("/practice/select")}
+        >
+          Choose passage
+        </Button>
+      }
     >
-      <AppHeader />
-      <style>{`
-        .typing-page-wrap {
-          max-width: 1050px;
-          margin: 28px auto 60px;
-          padding: 0 20px 44px;
-        }
-        .typing-hero {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          gap: 18px;
-          align-items: center;
-          margin-bottom: 18px;
-        }
-        .typing-panel {
-          background: #ffffff;
-          border-radius: 16px;
-          border: 1px solid #e2e8f0;
-          padding: 18px 20px;
-          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-        }
-        .typing-panel--dark {
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-          color: #f8fafc;
-          border: none;
-        }
-        .typing-stat {
-          border-radius: 16px;
-          border: 1px solid #e2e8f0;
-          background: #ffffff;
-          padding: 16px 18px;
-          text-align: center;
-          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-        }
-        .typing-input {
-          width: 100%;
-          background: #f8fafc;
-          border: 1px solid #cbd5f5;
-          border-radius: 12px;
-          padding: 12px 14px;
-          color: #0f172a;
-        }
-        .typing-input:focus {
-          outline: none;
-          border-color: #14b8a6;
-          box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
-        }
-        .typing-button {
-          border-radius: 12px;
-          font-weight: 600;
-          padding: 12px 20px;
-          transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
-        }
-        .typing-button:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
-        }
-      `}</style>
-      <div className="min-h-screen">
-        <div className="typing-page-wrap">
-          <div className="typing-hero">
-            <div>
-              <h1 className="text-4xl font-bold text-slate-900 mb-2">Fast Type</h1>
-              <p className="text-slate-600">
-                Practice your typing skills and improve your WPM
-              </p>
-              {activeText && (
-                <p className="text-slate-500 text-sm mt-2">Text: {activeText.title}</p>
-              )}
-            </div>
-            <div className="typing-panel typing-panel--dark">
-              <div style={{ fontWeight: 600, fontSize: 16 }}>Stay consistent</div>
-              <div style={{ color: "rgba(248, 250, 252, 0.7)" }}>
-                Keep a steady rhythm for better accuracy and speed.
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="typing-stat">
-              <div className="text-4xl font-bold text-teal-600">{stats.wpm}</div>
-              <div className="text-sm text-slate-500 mt-2">WPM</div>
-            </div>
-            <div className="typing-stat">
-              <div className="text-4xl font-bold text-emerald-600">{stats.accuracy}%</div>
-              <div className="text-sm text-slate-500 mt-2">Accuracy</div>
-            </div>
-            <div className="typing-stat">
-              <div className="text-4xl font-bold text-indigo-600">
-                {formatTime(stats.timeElapsed)}
-              </div>
-              <div className="text-sm text-slate-500 mt-2">Time</div>
-            </div>
-          </div>
-
-          <div className="typing-panel mb-8">
-            <div className="mb-6 text-2xl leading-relaxed font-mono">
-              {loadingText ? (
-                <span className="text-slate-400">Loading text...</span>
-              ) : (
-                paragraph.split("").map((char, index) => (
-                  <span key={index} className={`${getCharClass(index)} px-0.5`}>
-                    {char === " " ? "\u00A0" : char}
-                  </span>
-                ))
-              )}
-            </div>
-
-            {isComplete && (
-              <div className="bg-emerald-600 text-white p-4 rounded-lg text-center font-semibold">
-                🎉 Typing complete! Great job!
-              </div>
-            )}
-
-            {submitError && (
-              <div className="bg-amber-500 text-white p-3 rounded-lg text-center font-semibold mt-3">
-                {submitError}
-              </div>
-            )}
-
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onKeyDown={(e) => {
-                handleBackspace(e);
-                handleKeyPress(e);
-              }}
-              className="typing-input"
-              placeholder="Start typing here..."
-              autoFocus
-            />
-          </div>
-
-          <div className="flex gap-4 flex-wrap">
-            <button
-              onClick={handleRestart}
-              className="typing-button bg-slate-900 text-white flex items-center gap-2"
-            >
-              <RotateCcw size={20} />
-              Restart
-            </button>
-            <button
-              onClick={handleSelectText}
-              className="typing-button bg-emerald-500 text-white flex items-center gap-2"
-            >
-              <BookOpen size={20} />
-              Select Text
-            </button>
-          </div>
-
-          <div className="mt-8 typing-panel">
-            <div className="flex justify-between mb-2">
-              <span className="text-slate-500 text-sm">Progress</span>
-              <span className="text-slate-500 text-sm">
-                {currentIndex}/{paragraph.length}
-              </span>
-            </div>
-            <div className="w-full bg-slate-200 rounded-full h-2">
-              <div
-                className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
-                style={{
-                  width: paragraph.length
-                    ? `${(currentIndex / paragraph.length) * 100}%`
-                    : "0%",
-                }}
-              ></div>
-            </div>
-          </div>
-        </div>
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <StatTile value={stats.wpm} label="Words per minute" tone="text-primary" />
+        <StatTile value={`${stats.accuracy}%`} label="Accuracy" tone="text-success" />
+        <StatTile value={formatTime(stats.timeElapsed)} label="Elapsed" tone="text-foreground" />
       </div>
-    </div>
+
+      <Card className="mb-5">
+        <p className="mb-5 font-mono text-xl leading-relaxed tracking-wide sm:text-2xl">
+          {loadingText ? (
+            <span className="text-muted">Loading passage...</span>
+          ) : (
+            paragraph.split("").map((char, index) => (
+              <span key={index} className={`${getCharClass(index)} rounded-sm px-0.5`}>
+                {char === " " ? " " : char}
+              </span>
+            ))
+          )}
+        </p>
+
+        {isComplete && (
+          <Alert tone="success" className="mb-4">
+            <span className="inline-flex items-center gap-2 font-semibold">
+              <Sparkles size={16} />
+              Typing complete! Great job.
+            </span>
+          </Alert>
+        )}
+
+        {submitError && (
+          <Alert tone="warning" className="mb-4">
+            {submitError}
+          </Alert>
+        )}
+
+        <input
+          ref={inputRef}
+          type="text"
+          value={input}
+          onKeyDown={(e) => {
+            handleBackspace(e);
+            handleKeyPress(e);
+          }}
+          className="w-full rounded-control border border-border bg-surface px-4 py-3 font-mono text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
+          placeholder="Start typing here..."
+          autoFocus
+        />
+      </Card>
+
+      <div className="mb-5 flex flex-wrap gap-3">
+        <Button icon={<RotateCcw size={16} />} onClick={handleRestart}>
+          Restart
+        </Button>
+        <Button
+          variant="secondary"
+          icon={<BookOpen size={16} />}
+          onClick={() => navigate("/practice/select")}
+        >
+          Select another passage
+        </Button>
+      </div>
+
+      <Card>
+        <div className="mb-2 flex justify-between text-sm text-muted">
+          <span>Progress</span>
+          <span>
+            {currentIndex} / {paragraph.length}
+          </span>
+        </div>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-surface-sunken">
+          <div
+            className="h-2 rounded-full bg-primary transition-all duration-300 ease-smooth"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </Card>
+    </PageShell>
+  );
+}
+
+function StatTile({ value, label, tone }: { value: string | number; label: string; tone: string }) {
+  return (
+    <Card className="text-center">
+      <p className={`text-4xl font-bold tabular-nums ${tone}`}>{value}</p>
+      <p className="mt-1 text-sm text-muted">{label}</p>
+    </Card>
   );
 }

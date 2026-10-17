@@ -1,18 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import AppHeader from "../../components/AppHeader";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { getMyTypingResults, hardDeleteTypingResult } from "../../api/typingResults";
 import type { TypingResult } from "../../types/typingResult";
+import PageShell from "../../components/PageShell";
+import Card from "../../components/ui/Card";
+import Alert from "../../components/ui/Alert";
+import Badge from "../../components/ui/Badge";
+import Button from "../../components/ui/Button";
+import { EmptyState, LoadingState } from "../../components/ui/States";
 
 function formatDate(value?: string) {
-  if (!value) return "-";
+  if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
 }
 
 function formatDuration(seconds?: number) {
-  if (!seconds || seconds < 0) return "-";
+  if (!seconds || seconds < 0) return "—";
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}m ${secs}s`;
@@ -23,6 +29,7 @@ export default function TypingHistoryPage() {
   const [results, setResults] = useState<TypingResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -35,7 +42,7 @@ export default function TypingHistoryPage() {
         if (!active) return;
         setResults(data);
       } catch {
-        if (active) setError("Cant load typing history.");
+        if (active) setError("Could not load your typing history.");
       } finally {
         if (active) setLoading(false);
       }
@@ -59,178 +66,112 @@ export default function TypingHistoryPage() {
 
   async function handleDelete(resultId?: string) {
     if (!resultId) return;
-    if (!window.confirm("Permanently delete this typing history?")) return;
+    if (!window.confirm("Permanently delete this typing result?")) return;
+    setDeletingId(resultId);
     try {
       await hardDeleteTypingResult(resultId);
       setResults((prev) => prev.filter((item) => item.id !== resultId));
     } catch {
-      setError("Cant delete typing history.");
+      setError("Could not delete that typing result.");
+    } finally {
+      setDeletingId(null);
     }
   }
 
-  if (loading) return <div style={{ padding: 20 }}>Loading history...</div>;
-
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "radial-gradient(circle at 15% 10%, #ecfeff 0%, #f8fafc 55%, #ffffff 100%)",
-        color: "#0f172a",
-        fontFamily: '"Space Grotesk", "IBM Plex Sans", sans-serif',
-      }}
+    <PageShell
+      title="Typing history"
+      subtitle="Track your speed and accuracy over time."
+      actions={
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<ArrowLeft size={15} />}
+          onClick={() => navigate("/practice/select")}
+        >
+          Passages
+        </Button>
+      }
     >
-      <AppHeader />
-      <style>{`
-        .history-wrap {
-          max-width: 1020px;
-          margin: 28px auto 60px;
-          padding: 0 20px 40px;
-        }
-        .history-title {
-          font-size: clamp(26px, 3vw, 36px);
-          margin: 0 0 6px;
-        }
-        .history-subtitle {
-          margin: 0 0 16px;
-          color: #475569;
-        }
-        .summary-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 12px;
-          margin-bottom: 18px;
-        }
-        .summary-card {
-          border-radius: 16px;
-          border: 1px solid #e2e8f0;
-          background: #ffffff;
-          padding: 14px 16px;
-          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-        }
-        .history-grid {
-          display: grid;
-          gap: 12px;
-        }
-        .history-card {
-          border-radius: 16px;
-          border: 1px solid #e2e8f0;
-          background: #ffffff;
-          padding: 16px 18px;
-          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-        }
-        .history-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 4px 10px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 600;
-          background: #ecfeff;
-          color: #0f766e;
-        }
-        .history-error {
-          background: #fef2f2;
-          color: #b91c1c;
-          padding: 10px;
-          border-radius: 10px;
-          margin-bottom: 16px;
-        }
-        .history-button {
-          padding: 10px 16px;
-          border-radius: 12px;
-          border: none;
-          background: #0f172a;
-          color: #ffffff;
-          font-weight: 600;
-          cursor: pointer;
-        }
-        .history-hero {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          gap: 18px;
-          align-items: center;
-          margin-bottom: 18px;
-        }
-        .history-panel {
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-          color: #f8fafc;
-          border-radius: 16px;
-          padding: 16px 18px;
-          box-shadow: 0 16px 32px rgba(15, 23, 42, 0.16);
-        }
-      `}</style>
-      <main className="history-wrap">
-        <div className="history-hero">
-          <div>
-            <h1 className="history-title">Typing History</h1>
-            <p className="history-subtitle">Overview of your typing results.</p>
-          </div>
-          <div className="history-panel">
-            <div style={{ fontWeight: 600, fontSize: 16 }}>Total progress</div>
-            <div style={{ color: "rgba(248, 250, 252, 0.7)" }}>
-              Track your speed and accuracy over time.
-            </div>
-          </div>
-        </div>
+      {error && (
+        <Alert tone="danger" className="mb-4">
+          {error}
+        </Alert>
+      )}
 
-        {error && <div className="history-error">{error}</div>}
+      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        <Card className="text-center">
+          <p className="text-2xl font-bold text-primary">{totals.avgWpm}</p>
+          <p className="text-xs text-muted">Average WPM</p>
+        </Card>
+        <Card className="text-center">
+          <p className="text-2xl font-bold text-success">{totals.avgAcc}%</p>
+          <p className="text-xs text-muted">Average accuracy</p>
+        </Card>
+        <Card className="text-center">
+          <p className="text-2xl font-bold text-foreground">{results.length}</p>
+          <p className="text-xs text-muted">Sessions</p>
+        </Card>
+      </div>
 
-        <div className="summary-grid">
-          <div className="summary-card">
-            <div className="history-pill">Average WPM</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>{totals.avgWpm}</div>
-          </div>
-          <div className="summary-card">
-            <div className="history-pill">Average Accuracy</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>{totals.avgAcc}%</div>
-          </div>
-          <div className="summary-card">
-            <div className="history-pill">Total Sessions</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>{results.length}</div>
-          </div>
-        </div>
+      {loading && <LoadingState label="Loading history..." />}
 
-        <section className="history-grid">
-          {results.map((item) => (
-            <article key={item.id || `${item.textId}-${item.createdAt}`} className="history-card">
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                <div>
-                  <div style={{ fontWeight: 600 }}>WPM: {item.wpm}</div>
-                  <div>Accuracy: {item.accuracy}%</div>
+      {!loading && results.length === 0 && (
+        <EmptyState
+          title="No typing history yet"
+          description="Finish a passage and your results will appear here."
+          action={<Button onClick={() => navigate("/practice/select")}>Choose a passage</Button>}
+        />
+      )}
+
+      {!loading && results.length > 0 && (
+        <div className="grid gap-3">
+          {results.map((item) => {
+            const errorTags = item.errorTags ? Object.entries(item.errorTags) : [];
+            return (
+              <Card key={item.id || `${item.textId}-${item.createdAt}`}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge tone="primary">{item.wpm} WPM</Badge>
+                    <Badge tone="success">{item.accuracy}% accuracy</Badge>
+                  </div>
+                  <div className="text-right text-sm text-muted">
+                    <p>{formatDate(item.createdAt)}</p>
+                    <p>Duration: {formatDuration(item.durationSeconds)}</p>
+                  </div>
                 </div>
-                <div style={{ textAlign: "right", color: "#64748b" }}>
-                  <div>{formatDate(item.createdAt)}</div>
-                  <div>Duration: {formatDuration(item.durationSeconds)}</div>
-                </div>
-              </div>
-              {item.errorTags && Object.keys(item.errorTags).length > 0 ? (
-                <div style={{ marginTop: 10, color: "#475569" }}>
-                  Error tags: {Object.entries(item.errorTags)
-                    .map(([key, count]) => `${key}(${count})`)
-                    .join(", ")}
-                </div>
-              ) : (
-                <div style={{ marginTop: 10, color: "#94a3b8" }}>No error tags recorded.</div>
-              )}
-              <div style={{ marginTop: 12 }}>
-                <button
-                  className="history-button"
-                  style={{ background: "#ef4444" }}
-                  onClick={() => handleDelete(item.id)}
-                >
-                  Delete forever
-                </button>
-              </div>
-            </article>
-          ))}
-          {results.length === 0 && <div>No typing history available.</div>}
-        </section>
 
-        <div style={{ marginTop: 18 }}>
-          <button className="history-button" onClick={() => navigate("/practice/select")}>Back to texts</button>
+                <div className="mt-3 border-t border-border pt-3 text-sm">
+                  {errorTags.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-muted">Missed keys:</span>
+                      {errorTags.map(([key, count]) => (
+                        <Badge key={key} tone="warning">
+                          {key === " " ? "space" : key} × {count}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-muted">No missed keys recorded.</span>
+                  )}
+                </div>
+
+                <div className="mt-4">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<Trash2 size={14} />}
+                    loading={deletingId === item.id}
+                    onClick={() => handleDelete(item.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
         </div>
-      </main>
-    </div>
+      )}
+    </PageShell>
   );
 }

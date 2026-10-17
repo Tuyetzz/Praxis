@@ -1,14 +1,15 @@
 // /api/questions.ts
 import { http } from "./http";
-import type { Question } from "../types/question";
+import type { Question, QuestionType } from "../types/question";
+import type { Option } from "../types/options";
 
-// Lấy tất cả questions
+// List all questions
 export async function getAllQuestions(params?: Record<string, string | number | boolean>) {
   const res = await http.get<Question[]>("/questions", { params });
   return res.data;
 }
 
-// Lấy chi tiết question theo id
+// Get a single question by id
 export async function getQuestionById(id: string | number) {
   const res = await http.get<Question>(`/questions/${id}`);
   return res.data;
@@ -22,7 +23,7 @@ export async function getQuestionsByChapter(
   return res.data;
 }
 
-// Tạo mới question
+// Create a question
 export async function createQuestion(payload: Partial<Question>) {
   const res = await http.post<Question>("/questions", payload);
   return res.data;
@@ -33,27 +34,66 @@ export async function createQuestionWithOptions(payload: Record<string, unknown>
   return res.data;
 }
 
-// Cập nhật question
+// Update a question
 export async function updateQuestion(id: string | number, payload: Partial<Question>) {
   const res = await http.put<Question>(`/questions/${id}`, payload);
   return res.data;
 }
 
-// Xóa question
+// Delete a question
 export async function deleteQuestion(id: string | number) {
   const res = await http.delete<{ success: boolean }>(`/questions/${id}`);
   return res.data;
 }
 
-// Khôi phục question
+// Restore a soft-deleted question
 export async function restoreQuestion(id: string | number) {
   const res = await http.patch<{ success: boolean }>(`/questions/${id}/restore`);
   return res.data;
 }
 
-// Tạo nhiều questions (batch)
-export async function batchCreateQuestions(payload: Partial<Question>[]) {
-  const res = await http.post<Question[]>("/questions/batch", payload);
+/**
+ * Create several questions at once.
+ *
+ * Note the payload shape: the backend expects an object wrapper
+ * ({ mode, subjectId, chapterId, type, items }), not a bare array.
+ * See backend/src/usecases/question/AddBatchQuestions.js.
+ */
+export type BatchQuestionItem = {
+  text: string;
+  type?: QuestionType;
+  explanation?: string | null;
+  difficulty?: number;
+  points?: number;
+  media?: unknown[] | null;
+  tags?: string[];
+  options?: Array<{
+    text: string;
+    isCorrect?: boolean;
+    media?: string | null;
+    order?: number;
+  }>;
+};
+
+export type BatchCreateQuestionsPayload = {
+  mode?: "all-or-nothing" | "continue-on-error";
+  subjectId: string;
+  chapterId: string;
+  type?: QuestionType;
+  items: BatchQuestionItem[];
+};
+
+export type BatchCreateQuestionsResponse = {
+  mode: string;
+  created: number;
+  errors?: Array<{ index: number; error: string }>;
+  data: Array<{ question: Question; options: Option[] }>;
+};
+
+export async function batchCreateQuestions(
+  payload: BatchCreateQuestionsPayload
+): Promise<BatchCreateQuestionsResponse> {
+  const res = await http.post<BatchCreateQuestionsResponse>("/questions/batch", payload);
   return res.data;
 }
 

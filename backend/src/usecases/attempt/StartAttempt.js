@@ -170,6 +170,7 @@ class StartAttempt {
           attemptId: attempt.id,
           questionId: question.id,
           pageIndex: Math.floor(index / normalizedSettings.questionsPerPage),
+          sequence: index,
           optionOrder: optionIds,
         };
       });
