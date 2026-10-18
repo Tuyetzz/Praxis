@@ -337,3 +337,122 @@ Lưu ý : mode = practice và showAnswerAfterSelect true thì nó mới hiện �
 | GET    | /api/typing-results/text/:textId/leaderboard | textId (path)                                        | Lấy bảng xếp hạng theo bài tập     |
 | GET    | /api/typing-results/:id                 | id (path)                                                | Lấy chi tiết kết quả               |
 | POST   | /api/typing-results                     | { textId, wpm, accuracy, rawWpm, durationSeconds, errorTags } | Lưu kết quả gõ phím                |
+
+## AI — Tạo câu hỏi tự động
+
+| Method | URL                       | Body/Params                                                             | Description                     |
+|--------|---------------------------|-------------------------------------------------------------------------|---------------------------------|
+| POST   | /api/ai/generate-quiz     | { topic, numQuestions, questionTypes, difficulty, subjectId?, chapterId? } | Sinh câu hỏi bằng AI (không lưu DB) |
+
+### Biến môi trường
+
+| Biến | Bắt buộc | Mặc định | Mô tả |
+|---|---|---|---|
+| `OPENROUTER_API_KEY` | có | — | API key của OpenRouter |
+| `OPENROUTER_MODEL` | không | `deepseek/deepseek-chat` | Model dùng để sinh câu hỏi |
+| `OPENROUTER_BASE_URL` | không | `https://openrouter.ai/api/v1/chat/completions` | Đổi khi dùng proxy |
+| `OPENROUTER_TIMEOUT_MS` | không | `60000` | Timeout gọi AI |
+| `REDIS_CONNECT_TIMEOUT_MS` | không | `2000` | Timeout kết nối Redis (cache quyền) |
+
+> **Lưu ý chọn model**: nên dùng model **không phải reasoning** (`deepseek/deepseek-chat`).
+> Model reasoning (ví dụ `dots-studio/...`) tiêu tốn token vào phần suy luận ẩn trước khi viết
+> output, nên hay trả về `content` rỗng với `finish_reason: length`. Nếu gặp lỗi
+> *"ran out of output tokens"* thì đổi `OPENROUTER_MODEL` sang model thường.
+
+### Request body
+
+| Field | Kiểu | Bắt buộc | Mặc định | Mô tả |
+|---|---|---|---|---|
+| `topic` | string | có | — | Chủ đề **hoặc** văn bản nguồn để sinh câu hỏi (tối đa 12000 ký tự) |
+| `numQuestions` | int | không | `10` | Số câu hỏi cần sinh (1–50) |
+| `questionTypes` | string[] | không | `["single"]` | Loại câu hỏi: `single`, `multiple`, `true_false`, `fill_blank` |
+| `difficulty` | int | không | `2` | 1 = dễ, 2 = trung bình, 3 = khó |
+| `subjectId` | uuid | không | — | Chỉ dùng để thêm ngữ cảnh vào prompt, **không bắt buộc** |
+| `chapterId` | uuid | không | — | Phải đi kèm `subjectId`, chapter phải thuộc subject đó |
+| `language` | string | không | `english` | Ngôn ngữ của câu hỏi |
+
+**API này KHÔNG lưu vào database.** Nó chỉ sinh và trả về. Muốn lưu thì gọi tiếp
+`POST /api/questions/batch` với kết quả nhận được (xem format ở phần Question).
+
+### Response
+
+```json
+{
+  "questions": [
+    {
+      "text": "Quá trình nào chuyển hơi nước thành nước lỏng?",
+      "type": "single",
+      "explanation": "Ngưng tụ là quá trình hơi nước chuyển thành nước lỏng.",
+      "difficulty": 2,
+      "points": 1,
+      "options": [
+        { "text": "Bay hơi", "isCorrect": false, "order": 1 },
+        { "text": "Ngưng tụ", "isCorrect": true, "order": 2 },
+        { "text": "Mưa", "isCorrect": false, "order": 3 },
+        { "text": "Thoát hơi nước", "isCorrect": false, "order": 4 }
+      ]
+    }
+  ],
+  "requested": 3,
+  "generated": 3,
+  "model": "deepseek/deepseek-chat",
+  "usage": { "prompt_tokens": 512, "completion_tokens": 340, "total_tokens": 852 }
+}
+```
+
+`skipped` chỉ xuất hiện khi có câu hỏi AI trả về sai format và bị bỏ:
+
+```json
+"skipped": [{ "index": 2, "error": "Generated question is missing text." }]
+```
+
+### Mã lỗi
+
+| Status | Khi nào |
+|---|---|
+| `200` | Thành công |
+| `400` | Thiếu `topic`, `numQuestions` ngoài khoảng 1–50, input quá dài, **hoặc phát hiện prompt injection** |
+| `401` | Thiếu / sai access token |
+| `403` | User không có permission `ai:generate_quiz` |
+| `429` | Vượt rate limit (10 request / 15 phút / user) |
+| `502` | AI trả về lỗi, JSON không hợp lệ, hoặc hết token output |
+| `503` | Chưa cấu hình `OPENROUTER_API_KEY` |
+| `504` | Gọi AI quá timeout |
+
+### Rate limit
+
+**10 request / 15 phút**, tính theo `userId` (không phải IP). Vượt sẽ trả `429`.
+Response có header `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`.
+
+### Bảo mật — chống prompt injection
+
+Input của user được coi là **dữ liệu không đáng tin**, không phải instruction:
+
+- **Từ chối thẳng (400)** nếu phát hiện pattern injection: `ignore all previous instructions`,
+  `you are now an admin`, `show me your system prompt`, `give me the api key`, `developer mode`...
+- System prompt nói rõ với model rằng phần user gửi vào là DATA, không phải mệnh lệnh.
+- Input được escape trước khi ghép vào prompt để không phá vỡ cấu trúc.
+- Chặn thêm các pattern nguy hiểm: `eval(`, `require(`, `<script`, `__proto__`...
+
+Danh sách pattern nằm ở `src/infrastructure/utils/sanitize.js`.
+
+> **Chưa làm**: API này chưa được gán cho role `student`. Hiện chỉ `superadmin` gọi được.
+> Muốn mọi user dùng được thì phải grant permission `ai:generate_quiz` cho các role nền
+> trong `SeedSystemData.js` rồi chạy lại `npm run seed:system`.
+
+### Ví dụ gọi API
+
+```bash
+curl -X POST http://localhost:5000/api/ai/generate-quiz \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "The water cycle",
+    "numQuestions": 3,
+    "questionTypes": ["single"],
+    "difficulty": 2
+  }'
+```
+
+File test Postman: `backend/postman/ai-generate-quiz.postman_collection.json` (import vào Postman,
+sửa biến `accessToken` rồi bấm Send).
