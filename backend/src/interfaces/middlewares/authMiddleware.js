@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const { SUPERADMIN_ROLE_NAME, ALL_PERMISSIONS_FLAG } = require("../../domain/constants/permissions");
 
-function createAuthMiddleware({ userRepository, redisClient }) {
+function createAuthMiddleware({ userRepository, redisClient, logger }) {
   const authMiddleware = (req, res, next) => {
     const authHeader = req.headers.authorization || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
@@ -35,11 +35,9 @@ function createAuthMiddleware({ userRepository, redisClient }) {
 
   authMiddleware.requiredPermission = (permissionSlug) => async (req, res, next) => {
     try {
-      console.log("requiredPermission called with slug:", permissionSlug);
       if (!req.user || !req.user.id) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      console.log("Checking permission for user:", req.user.id, "Permission:", permissionSlug);
       const userId = req.user.id;
       const userRoles = Array.isArray(req.user.roles) ? req.user.roles : [req.user.roles];
 
@@ -49,14 +47,29 @@ function createAuthMiddleware({ userRepository, redisClient }) {
       if (isSuperAdmin) return next();
 
       const cacheKey = `user_permissions:${userId}`;
-      let cachedData = await redisClient.get(cacheKey);
-      let permissionSlugs;
+      let permissionSlugs = null;
 
-      if (!cachedData) {
+      // The cache is an optimization, not a dependency: if Redis is down we
+      // fall through to the database rather than failing (or hanging) the request.
+      try {
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) {
+          permissionSlugs = typeof cachedData === "string" ? JSON.parse(cachedData) : cachedData;
+        }
+      } catch (cacheError) {
+        logger.warn(
+          `[Auth] Permission cache unavailable (${cacheError.message}); reading from database.`
+        );
+      }
+
+      if (!permissionSlugs) {
         permissionSlugs = await userRepository.getPermissionSlugs(userId);
-        await redisClient.set(cacheKey, JSON.stringify(permissionSlugs), 'EX', 600);
-      } else {
-        permissionSlugs = typeof cachedData === 'string' ? JSON.parse(cachedData) : cachedData;
+        // Best-effort write-back; a cache failure must not break authorization.
+        try {
+          await redisClient.set(cacheKey, JSON.stringify(permissionSlugs), "EX", 600);
+        } catch {
+          /* ignore - see above */
+        }
       }
 
       const hasPermission =
@@ -69,7 +82,7 @@ function createAuthMiddleware({ userRepository, redisClient }) {
 
       return next();
     } catch (error) {
-      console.error("Auth Error:", error);
+      logger.error(`Auth Error: ${error.message}`);
       return res.status(500).json({ message: "Internal Server Error during authorization" });
     }
   };

@@ -37,6 +37,7 @@ const FlashcardDeckController = require('./interfaces/controllers/FlashcardDeckC
 const FlashcardController = require('./interfaces/controllers/FlashcardController');
 const TypingTextController = require('./interfaces/controllers/TypingTextController');
 const TypingResultController = require('./interfaces/controllers/TypingResultController');
+const AIController = require('./interfaces/controllers/AIController');
 
 
 // usecases
@@ -134,6 +135,8 @@ const GetTypingLeaderboard = require('./usecases/typingResult/GetTypingLeaderboa
 const GetOneTypingResult = require('./usecases/typingResult/GetOneTypingResult');
 const SequelizeUnitOfWork = require('./infrastructure/unitOfWork/SequelizeUnitOfWork');
 const AutoSubmitAttemptsJob = require('./infrastructure/jobs/autoSubmitAttempts');
+const GenerateQuiz = require('./usecases/ai/GenerateQuiz');
+const openRouterService = require('./infrastructure/services/ai/OpenRouterService');
 
 
 const authHelper = require('./infrastructure/utils/auth_helper');
@@ -279,7 +282,10 @@ container.register({
   flashcardController: asClass(FlashcardController).singleton(),
   typingTextController: asClass(TypingTextController).singleton(),
   typingResultController: asClass(TypingResultController).singleton(),
+  aiController: asClass(AIController).singleton(),
   autoSubmitAttemptsJob: asClass(AutoSubmitAttemptsJob).singleton(),
+  generateQuiz: asClass(GenerateQuiz).singleton(),
+  openRouterService: asValue(openRouterService),
 
   
   authMiddleware: asFunction(createAuthMiddleware).singleton(),

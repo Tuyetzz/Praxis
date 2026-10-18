@@ -12,6 +12,7 @@ router.use(contextMiddleware);
 router.use('/users', require('./userRoutes'));
 router.use('/roles', require('./roleRoutes'));
 router.use('/permissions', require('./permissionRoutes'));
+router.use('/ai', require('./aiRoutes'));
 router.use('/subjects', require('./subjectRoutes'));
 router.use('/chapters', require('./chapterRoutes'));
 router.use('/questions', require('./questionRoutes'));

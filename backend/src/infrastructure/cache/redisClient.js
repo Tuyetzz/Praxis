@@ -7,6 +7,9 @@ const redisHost = process.env.REDIS_HOST || "127.0.0.1";
 const redisPort = process.env.REDIS_PORT || "6379";
 const redisUrl = `redis://${redisHost}:${redisPort}`;
 
+// Fail the connect attempt after this long instead of retrying forever.
+const CONNECT_TIMEOUT_MS = Number(process.env.REDIS_CONNECT_TIMEOUT_MS) || 2000;
+
 const client = createClient({ url: redisUrl });
 let isConnected = false;
 let connectPromise = null;
@@ -37,7 +40,18 @@ const ensureConnected = async () => {
   if (!connectPromise) {
     connectPromise = (async () => {
       try {
-        await client.connect();
+        // Bound the connect attempt. node-redis retries a dead server forever,
+        // so without this the promise never settles and every request that
+        // touches the cache hangs until the client gives up (which is never).
+        await Promise.race([
+          client.connect(),
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error(`Redis connect timed out after ${CONNECT_TIMEOUT_MS}ms`)),
+              CONNECT_TIMEOUT_MS
+            )
+          ),
+        ]);
         isConnected = true;
       } catch (err) {
         resetConnectionState();
@@ -45,7 +59,7 @@ const ensureConnected = async () => {
       }
     })();
   }
-  await connectPromise;
+  return connectPromise;
 };
 
 const redisClient = {

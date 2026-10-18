@@ -49,7 +49,17 @@ export type GenerateQuizResponse = {
   usage?: { promptTokens?: number; completionTokens?: number };
 };
 
+/**
+ * AI generation is slow (the model can spend 20s+ reasoning before answering),
+ * so it overrides the 10s default on the shared axios instance. Keep this above
+ * the backend's OPENROUTER_TIMEOUT_MS (60s default) so a backend-side timeout
+ * surfaces as a proper error response instead of a client-side abort.
+ */
+const AI_REQUEST_TIMEOUT_MS = 120000;
+
 export async function generateQuiz(payload: GenerateQuizRequest): Promise<GenerateQuizResponse> {
-  const res = await http.post<GenerateQuizResponse>("/ai/generate-quiz", payload);
+  const res = await http.post<GenerateQuizResponse>("/ai/generate-quiz", payload, {
+    timeout: AI_REQUEST_TIMEOUT_MS,
+  });
   return res.data;
 }

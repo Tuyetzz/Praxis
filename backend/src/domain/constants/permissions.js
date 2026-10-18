@@ -45,6 +45,8 @@ const PERMISSIONS = Object.freeze({
   TYPING_RESULT_CREATE: "typing_result:create",
   TYPING_RESULT_DELETE: "typing_result:delete",
 
+  AI_GENERATE_QUIZ: "ai:generate_quiz",
+
   ROLE_MANAGE: "role:manage",
   PERMISSION_MANAGE: "permission:manage"
 });
