@@ -38,6 +38,7 @@ const FlashcardController = require('./interfaces/controllers/FlashcardControlle
 const TypingTextController = require('./interfaces/controllers/TypingTextController');
 const TypingResultController = require('./interfaces/controllers/TypingResultController');
 const AIController = require('./interfaces/controllers/AIController');
+const HealthController = require('./interfaces/controllers/HealthController');
 
 
 // usecases
@@ -136,6 +137,7 @@ const GetOneTypingResult = require('./usecases/typingResult/GetOneTypingResult')
 const SequelizeUnitOfWork = require('./infrastructure/unitOfWork/SequelizeUnitOfWork');
 const AutoSubmitAttemptsJob = require('./infrastructure/jobs/autoSubmitAttempts');
 const GenerateQuiz = require('./usecases/ai/GenerateQuiz');
+const CheckHealth = require('./usecases/health/CheckHealth');
 const openRouterService = require('./infrastructure/services/ai/OpenRouterService');
 
 
@@ -283,8 +285,10 @@ container.register({
   typingTextController: asClass(TypingTextController).singleton(),
   typingResultController: asClass(TypingResultController).singleton(),
   aiController: asClass(AIController).singleton(),
+  healthController: asClass(HealthController).singleton(),
   autoSubmitAttemptsJob: asClass(AutoSubmitAttemptsJob).singleton(),
   generateQuiz: asClass(GenerateQuiz).singleton(),
+  checkHealth: asClass(CheckHealth).singleton(),
   openRouterService: asValue(openRouterService),
 
   

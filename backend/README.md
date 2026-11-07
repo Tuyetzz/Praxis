@@ -38,6 +38,36 @@ Các API controller:
 
 # API Endpoints
 
+## Health (public — không cần token)
+
+| Method | URL                | Body/Params | Description                                      |
+|--------|--------------------|-------------|--------------------------------------------------|
+| GET    | /api/health        | -           | Kiểm tra DB + Redis. 200 nếu DB ok, 503 nếu DB down |
+| GET    | /api/health/live   | -           | Chỉ báo process còn sống, không chạm DB/Redis     |
+
+Response của `/api/health`:
+
+```json
+{
+  "status": "ok",
+  "uptimeSeconds": 128,
+  "checks": {
+    "database": { "ok": true, "latencyMs": 199 },
+    "cache": { "ok": false, "latencyMs": 2035, "error": "Redis connect timed out after 2000ms" }
+  }
+}
+```
+
+**Lưu ý quan trọng:**
+- Hai endpoint này **không cần auth** — Docker healthcheck, load balancer và uptime monitor
+  không gửi JWT được. Chúng được mount **trước** `authMiddleware` trong `routes/index.js`.
+- **Redis down KHÔNG làm `/health` fail** (vẫn trả 200, `status: "ok"`), vì Redis chỉ là cache —
+  `authMiddleware` tự fallback sang DB. Chỉ DB down mới trả 503.
+- Mỗi dependency có timeout riêng (mặc định 2000ms) và chạy song song, nên một service treo
+  không làm treo cả health check.
+- Docker healthcheck dùng `/health/live` (không phải `/health`) để Redis/MySQL chập chờn
+  không gây restart loop.
+
 ## Auth
 | Method | URL                  | Body/Params                | Description              |
 |--------|----------------------|----------------------------|--------------------------|
