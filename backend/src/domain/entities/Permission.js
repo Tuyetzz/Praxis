@@ -1,20 +1,18 @@
 // src/domain/entities/Permission.js
-const BaseEntity = require("./BaseEntity");
 
-class Permission extends BaseEntity {
+class Permission {
   constructor(data) {
-    super(data); // Kế thừa id (UUID), createdAt, updatedAt, createdBy, updatedBy, isDeleted
-    this.name = data.name; // Ví dụ: "Tạo câu hỏi"
-    this.slug = data.slug; // Ví dụ: "question:create"
+    this.id = data.id;
+    this.name = data.name;
+    this.slug = data.slug;
     this.description = data.description;
 
     this.validate();
   }
 
-  // Domain Logic: Kiểm tra tính hợp lệ
   validate() {
     if (!this.slug || !this.slug.includes(':')) {
-      throw new Error("Permission slug phải theo định dạng 'resource:action' (ví dụ: 'user:edit').");
+      throw new Error("Permission slug must follow the format 'resource:action' (e.g., 'user:edit').");
     }
   }
 

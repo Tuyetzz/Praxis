@@ -6,7 +6,7 @@ const BaseModel = require("./BaseModel");
 class UserModel extends BaseModel {}
 
 UserModel.init({
-  ...BaseModel.initBaseAttributes(),
+  
   name: {
     type: DataTypes.STRING(100),
     allowNull: false,

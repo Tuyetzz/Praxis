@@ -5,7 +5,7 @@ export interface AttemptQuestion {
   id: number;
   attemptId: number;
   questionId: number;
-  optionOrder: number[] | null; // giữ thứ tự option sau khi shuffle
+  optionOrder: number[] | null; // preserves option order after shuffling
   pageIndex: number;
-  question?: Question; // nếu bạn include luôn Question khi query
+  question?: Question; // present when Question is included in the query
 }

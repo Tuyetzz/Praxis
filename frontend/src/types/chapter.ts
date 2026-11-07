@@ -1,7 +1,8 @@
 export interface Chapter {
-  id: number;
-  subjectId: number;
+  id: string;
+  subjectId: string;
   name: string;
   order: number;
   createdAt: string;
+  isDeleted?: boolean;
 }

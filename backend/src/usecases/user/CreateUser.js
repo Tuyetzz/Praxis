@@ -1,17 +1,19 @@
-// src/usecases/user/CreateUser.js
-const userRepository = require('../../infrastructure/repositories/UserRepository');
-const { hashPassword } = require('../../infrastructure/utils/auth_helper');
 
 class CreateUser {
+  constructor({ userRepository, hashPassword }) {
+    this.userRepository = userRepository;
+    this.hashPassword = hashPassword;
+  }
+
   async execute(userData) {
     const { name, email, password, status, avatarUrl } = userData;
 
-    const existing = await userRepository.findByEmail(email);
+    const existing = await this.userRepository.findByEmail(email);
     if (existing) throw new Error("Email has already been used.");
 
-    const passwordHash = await hashPassword(password || "123456");
+    const passwordHash = await this.hashPassword(password || "123456");
 
-    const newUser = await userRepository.create({
+    const newUser = await this.userRepository.create({
       name,
       email: email.trim().toLowerCase(),
       passwordHash,
@@ -30,4 +32,4 @@ class CreateUser {
   }
 }
 
-module.exports = new CreateUser();
+module.exports = CreateUser;

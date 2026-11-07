@@ -3,36 +3,43 @@ import type { User } from "../types/user";
 
 export interface LoginPayload { email: string; password: string; }
 export interface RegisterPayload { name: string; email: string; password: string; }
-export interface LoginResponse { accessToken: string; user: User; }
-
-export async function login(payload: LoginPayload): Promise<LoginResponse> {
-  try {
-    console.log("Login payload:", payload);
-    const { data } = await http.post("/auth/login", payload);
-    console.log("Login response:", data);
-    return data;
-  } catch (err: any) {
-    if (err.response) {
-      console.error("Login error:", err.response.status, err.response.data);
-    } else {
-      console.error("Login error:", err);
-    }
-    throw err;
-  }
+export interface LoginResponse {
+  accessToken: string;
+  refreshToken?: string;
+  user: User;
 }
 
+type ApiEnvelope<T> = {
+  success?: boolean;
+  message?: string;
+  data?: T;
+};
 
+function unwrapData<T>(payload: T | ApiEnvelope<T>): T {
+  const maybeEnvelope = payload as ApiEnvelope<T>;
+  if (maybeEnvelope && typeof maybeEnvelope === "object" && "data" in maybeEnvelope && maybeEnvelope.data) {
+    return maybeEnvelope.data;
+  }
+  return payload as T;
+}
+
+export async function login(payload: LoginPayload): Promise<LoginResponse> {
+  const { data } = await http.post("/auth/login", payload);
+  const loginData = unwrapData<LoginResponse>(data);
+
+  if (!loginData?.accessToken) {
+    throw new Error("Login response does not include accessToken");
+  }
+
+  return loginData;
+}
 
 export async function register(payload: RegisterPayload): Promise<User> {
   const { data } = await http.post("/auth/register", payload);
-  return data; // backend thường trả user mới (không có passwordHash)
-}
-
-export async function getMe(): Promise<User> {
-  const { data } = await http.get("/auth/me");
-  return data;
+  return unwrapData<User>(data);
 }
 
 export async function logout(): Promise<void> {
-  await http.post("/auth/logout");
+  const refreshToken = localStorage.getItem("refreshToken");
+  await http.post("/auth/logout", refreshToken ? { refreshToken } : undefined);
 }

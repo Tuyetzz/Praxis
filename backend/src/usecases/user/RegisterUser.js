@@ -1,20 +1,31 @@
-// src/usecases/user/RegisterUser.js
-const userRepository = require('../../infrastructure/repositories/UserRepository');
-const { hashPassword } = require('../../infrastructure/utils/auth_helper');
 
 class RegisterUser {
+  constructor({ userRepository, roleRepository, userRoleRepository, hashPassword }) {
+    this.userRepository = userRepository;
+    this.roleRepository = roleRepository;
+    this.userRoleRepository = userRoleRepository;
+    this.hashPassword = hashPassword;
+  }
+
   async execute({ name, email, password }) {
-    const existing = await userRepository.findByEmail(email);
-    if (existing) throw new Error("Email đã được sử dụng.");
+    const existing = await this.userRepository.findByEmail(email);
+    if (existing) throw new Error("Email has already been used.");
 
-    const passwordHash = await hashPassword(password);
+    const passwordHash = await this.hashPassword(password);
 
-    const newUser = await userRepository.create({ 
+    const newUser = await this.userRepository.create({ 
       name, 
       email: email.trim().toLowerCase(), 
       passwordHash,
       status: 'active' 
     });
+
+    const studentRole = await this.roleRepository.findByName("student");
+    if (!studentRole) {
+      throw new Error("Default role 'student' not found.");
+    }
+
+    await this.userRoleRepository.assignRoleToUser(newUser.id, studentRole.id);
 
     return {
       id: newUser.id,
@@ -25,4 +36,4 @@ class RegisterUser {
   }
 }
 
-module.exports = new RegisterUser();
+module.exports = RegisterUser;

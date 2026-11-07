@@ -1,7 +1,8 @@
 export interface Subject {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   order: number;
-  createdAt: string; // BE trả về timestamp
+  createdAt: string; // backend returns a timestamp
+  isDeleted?: boolean;
 }

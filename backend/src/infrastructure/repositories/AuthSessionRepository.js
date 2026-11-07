@@ -16,6 +16,13 @@ class AuthSessionRepository {
     return this.mapper.toDomain(record);
   }
 
+  async update(id, authSessionEntity) {
+    const persistenceData = this.mapper.toPersistence(authSessionEntity);
+    await this.model.update(persistenceData, { where: { id } });
+    const updatedRecord = await this.model.findByPk(id);
+    return this.mapper.toDomain(updatedRecord);
+  }
+
   async findByUser(userId) {
     const records = await this.model.findAll({
       where: { userId, revokedAt: null }
@@ -43,6 +50,18 @@ class AuthSessionRepository {
       { where: { userId, revokedAt: null } }
     );
   }
+
+  async updateByRefreshToken(refreshToken, updateData) {
+    const persistenceData = this.mapper.toPersistence(updateData);
+    const [affectedRows] = await this.model.update(persistenceData, { where: { refreshToken, revokedAt: null } });
+    if (affectedRows === 0) {
+      return null;
+    }
+    const newRefreshToken = persistenceData.refreshToken || refreshToken;
+    const updatedRecord = await this.model.findOne({ where: { refreshToken: newRefreshToken } });
+    if (!updatedRecord) return null;
+    return this.mapper.toDomain(updatedRecord);
+  }
 }
 
-module.exports = new AuthSessionRepository();
+module.exports = AuthSessionRepository;

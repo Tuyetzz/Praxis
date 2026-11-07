@@ -1,164 +1,380 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, BookOpen } from "lucide-react";
+import {
+  BookOpen,
+  ChevronRight,
+  History,
+  Pencil,
+  Plus,
+  RefreshCcw,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
+import type { TypingText, TypingTextDifficulty } from "../../types/typingText";
+import PageShell from "../../components/PageShell";
+import Card from "../../components/ui/Card";
+import Alert from "../../components/ui/Alert";
+import Badge from "../../components/ui/Badge";
+import Button from "../../components/ui/Button";
+import { Checkbox, Field, Input, Select, Textarea } from "../../components/ui/Field";
+import { EmptyState, LoadingState } from "../../components/ui/States";
+import {
+  createTypingText,
+  deleteTypingText,
+  getMyTypingTexts,
+  getPublicTypingTexts,
+  updateTypingText,
+} from "../../api/typingTexts";
 
-interface TextSnippet {
-  id: number;
+type TypingTextForm = {
   title: string;
-  preview: string;
   content: string;
-  difficulty: "easy" | "medium" | "hard";
-}
+  difficulty: TypingTextDifficulty;
+  language: string;
+  isPublic: boolean;
+};
 
-const MOCK_PARAGRAPHS: TextSnippet[] = [
-  {
-    id: 1,
-    title: "The Quick Brown Fox",
-    preview: "A classic typing practice text...",
-    content:
-      "The quick brown fox jumps over the lazy dog. This pangram contains every letter of the English alphabet at least once.",
-    difficulty: "easy",
-  },
-  {
-    id: 2,
-    title: "Technology Today",
-    preview: "Modern technology has changed our world...",
-    content:
-      "Technology has revolutionized the way we communicate, work, and live. From smartphones to artificial intelligence, innovation continues to shape our society.",
-    difficulty: "medium",
-  },
-  {
-    id: 3,
-    title: "Climate Change",
-    preview: "Environmental challenges and solutions...",
-    content:
-      "Climate change represents one of the most pressing challenges of our time. Rising global temperatures are affecting ecosystems, weather patterns, and human societies worldwide.",
-    difficulty: "hard",
-  },
-  {
-    id: 4,
-    title: "Digital Marketing",
-    preview: "The evolution of marketing in the digital age...",
-    content:
-      "Digital marketing has transformed how businesses reach their customers. Social media, email campaigns, and content marketing are essential components of modern marketing strategies.",
-    difficulty: "medium",
-  },
-  {
-    id: 5,
-    title: "Science Fiction",
-    preview: "Exploring imaginary worlds and future possibilities...",
-    content:
-      "Science fiction explores imaginative concepts like space travel, artificial intelligence, and parallel universes. These stories inspire us to think about the future and the possibilities it may hold.",
-    difficulty: "medium",
-  },
-  {
-    id: 6,
-    title: "Ancient History",
-    preview: "Learning from civilizations of the past...",
-    content:
-      "Ancient civilizations such as Egypt, Greece, and Rome have left profound legacies that continue to influence our modern world. Their contributions to art, philosophy, and governance remain significant today.",
-    difficulty: "hard",
-  },
-];
+const EMPTY_FORM: TypingTextForm = {
+  title: "",
+  content: "",
+  difficulty: "medium",
+  language: "english",
+  isPublic: false,
+};
+
+const DIFFICULTY_TONE = {
+  easy: "success",
+  medium: "warning",
+  hard: "danger",
+} as const;
 
 export default function ParagraphSelectPage() {
   const navigate = useNavigate();
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [myTexts, setMyTexts] = useState<TypingText[]>([]);
+  const [publicTexts, setPublicTexts] = useState<TypingText[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState<TypingTextForm>(EMPTY_FORM);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleSelect = (snippet: TextSnippet) => {
-    // Store selected paragraph in localStorage for TypingPage to retrieve
-    localStorage.setItem("selectedParagraph", snippet.content);
+  async function loadTexts() {
+    setLoading(true);
+    try {
+      const [mine, publics] = await Promise.all([getMyTypingTexts(), getPublicTypingTexts()]);
+      setMyTexts(mine);
+      setPublicTexts(publics);
+    } catch {
+      setMyTexts([]);
+      setPublicTexts([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadTexts();
+  }, []);
+
+  const handleSelect = (snippet: TypingText) => {
+    localStorage.setItem("selectedTypingText", JSON.stringify(snippet));
     navigate("/practice/typing");
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "easy":
-        return "bg-green-100 text-green-800";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800";
-      case "hard":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  const handleEdit = (text: TypingText) => {
+    setEditingId(text.id);
+    setForm({
+      title: text.title,
+      content: text.content,
+      difficulty: text.difficulty,
+      language: text.language,
+      isPublic: text.isPublic,
+    });
+    setFormError(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDelete = async (text: TypingText) => {
+    if (!window.confirm(`Delete "${text.title}"?`)) return;
+    setFormError(null);
+    setDeletingId(text.id);
+    try {
+      await deleteTypingText(text.id);
+      await loadTexts();
+    } catch {
+      setFormError("Unable to delete that passage.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
+  const handleSubmit = async () => {
+    if (!form.title.trim() || !form.content.trim()) {
+      setFormError("Title and content are required.");
+      return;
+    }
+
+    setFormError(null);
+    try {
+      if (editingId) {
+        await updateTypingText(editingId, form);
+      } else {
+        await createTypingText(form);
+      }
+      setForm(EMPTY_FORM);
+      setEditingId(null);
+      await loadTexts();
+    } catch {
+      setFormError("Unable to save the passage. Please try again.");
+    }
+  };
+
+  const defaultTexts = publicTexts.filter((text) => text.isDefault);
+  const sharedPublicTexts = publicTexts.filter((text) => !text.isDefault);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-12">
-          <div className="flex items-center gap-3 mb-4">
-            <BookOpen size={32} className="text-blue-400" />
-            <h1 className="text-4xl font-bold text-white">Select a Paragraph</h1>
+    <PageShell
+      width="lg"
+      title="Typing passages"
+      subtitle="Pick a passage to practice, or manage your own library."
+      actions={
+        <>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<History size={15} />}
+            onClick={() => navigate("/practice/typing/history")}
+          >
+            History
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Sparkles size={15} />}
+            onClick={() => navigate("/practice/typing/ai")}
+          >
+            Summarize with AI
+          </Button>
+          <Button variant="ghost" size="sm" icon={<RefreshCcw size={15} />} onClick={loadTexts}>
+            Refresh
+          </Button>
+        </>
+      }
+    >
+      <Card className="mb-8">
+        <h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground">
+          <Plus size={17} className="text-primary" />
+          {editingId ? "Edit passage" : "Create a passage"}
+        </h2>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Title">
+            {({ id }) => (
+              <Input
+                id={id}
+                placeholder="e.g. Morning routine"
+                value={form.title}
+                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+              />
+            )}
+          </Field>
+
+          <Field label="Language">
+            {({ id }) => (
+              <Input
+                id={id}
+                placeholder="english"
+                value={form.language}
+                onChange={(e) => setForm((prev) => ({ ...prev, language: e.target.value }))}
+              />
+            )}
+          </Field>
+
+          <Field label="Difficulty">
+            {({ id }) => (
+              <Select
+                id={id}
+                value={form.difficulty}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    difficulty: e.target.value as TypingTextDifficulty,
+                  }))
+                }
+              >
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </Select>
+            )}
+          </Field>
+
+          <div className="flex items-end pb-2">
+            <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium text-foreground">
+              <Checkbox
+                checked={form.isPublic}
+                onChange={(e) => setForm((prev) => ({ ...prev, isPublic: e.target.checked }))}
+              />
+              Make this passage public
+            </label>
           </div>
-          <p className="text-gray-300 text-lg">
-            Choose a text to practice typing. Select the difficulty level that
-            suits your skill.
-          </p>
         </div>
 
-        {/* Grid of Paragraphs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {MOCK_PARAGRAPHS.map((snippet) => (
-            <div
-              key={snippet.id}
-              className={`bg-slate-700 rounded-lg overflow-hidden hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 cursor-pointer transform hover:scale-105 ${
-                selectedId === snippet.id ? "ring-2 ring-blue-400" : ""
-              }`}
-              onClick={() => setSelectedId(snippet.id)}
+        <div className="mt-4">
+          <Field label="Content">
+            {({ id }) => (
+              <Textarea
+                id={id}
+                className="min-h-[140px]"
+                placeholder="Paste or write the passage text here..."
+                value={form.content}
+                onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
+              />
+            )}
+          </Field>
+        </div>
+
+        {formError && (
+          <Alert tone="danger" className="mt-3">
+            {formError}
+          </Alert>
+        )}
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button onClick={handleSubmit}>{editingId ? "Save changes" : "Create passage"}</Button>
+          {editingId && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setEditingId(null);
+                setForm(EMPTY_FORM);
+                setFormError(null);
+              }}
             >
-              <div className="p-6">
-                {/* Title and Difficulty */}
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-xl font-bold text-white truncate">
-                    {snippet.title}
-                  </h3>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ml-2 ${getDifficultyColor(
-                      snippet.difficulty
-                    )}`}
-                  >
-                    {snippet.difficulty}
-                  </span>
-                </div>
+              Cancel
+            </Button>
+          )}
+        </div>
+      </Card>
 
-                {/* Preview */}
-                <p className="text-gray-300 mb-4 line-clamp-3">
-                  {snippet.content}
-                </p>
+      {loading ? (
+        <LoadingState label="Loading passages..." />
+      ) : (
+        <div className="grid gap-10">
+          <PassageSection
+            title="My passages"
+            texts={myTexts}
+            emptyLabel="You haven't created any passages yet."
+            onSelect={handleSelect}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            deletingId={deletingId}
+            editable
+          />
 
-                {/* Stats */}
-                <div className="flex justify-between text-sm text-gray-400 mb-6 border-t border-gray-600 pt-4">
-                  <span>{snippet.content.split(" ").length} words</span>
-                  <span>{snippet.content.length} characters</span>
-                </div>
+          <PassageSection
+            title="Default passages"
+            texts={defaultTexts}
+            emptyLabel="No default passages available yet."
+            onSelect={handleSelect}
+          />
 
-                {/* Select Button */}
-                <button
-                  onClick={() => handleSelect(snippet)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2"
+          <PassageSection
+            title="Public passages"
+            texts={sharedPublicTexts}
+            emptyLabel="No public passages available yet."
+            onSelect={handleSelect}
+          />
+        </div>
+      )}
+    </PageShell>
+  );
+}
+
+type SectionProps = {
+  title: string;
+  texts: TypingText[];
+  emptyLabel: string;
+  onSelect: (text: TypingText) => void;
+  onEdit?: (text: TypingText) => void;
+  onDelete?: (text: TypingText) => void;
+  deletingId?: string | null;
+  editable?: boolean;
+};
+
+function PassageSection({
+  title,
+  texts,
+  emptyLabel,
+  onSelect,
+  onEdit,
+  onDelete,
+  deletingId,
+  editable = false,
+}: SectionProps) {
+  return (
+    <section>
+      <h2 className="mb-4 text-xl font-semibold text-foreground">{title}</h2>
+
+      {texts.length === 0 ? (
+        <EmptyState icon={<BookOpen size={24} />} title={emptyLabel} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {texts.map((snippet) => (
+            <Card key={snippet.id} className="flex flex-col">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="min-w-0 truncate font-semibold text-foreground" title={snippet.title}>
+                  {snippet.title}
+                </h3>
+                <Badge tone={DIFFICULTY_TONE[snippet.difficulty] ?? "neutral"}>
+                  {snippet.difficulty}
+                </Badge>
+              </div>
+
+              <p className="mt-2 line-clamp-3 flex-1 text-sm text-muted">{snippet.content}</p>
+
+              <div className="mt-4 flex justify-between border-t border-border pt-3 text-xs text-muted">
+                <span>{snippet.content.split(" ").length} words</span>
+                <span>{snippet.content.length} characters</span>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => onSelect(snippet)}
+                  icon={<ChevronRight size={14} />}
                 >
                   Start
-                  <ChevronRight size={18} />
-                </button>
+                </Button>
+
+                {editable && onEdit && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => onEdit(snippet)}
+                    aria-label={`Edit ${snippet.title}`}
+                  >
+                    <Pencil size={14} />
+                  </Button>
+                )}
+
+                {editable && onDelete && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    loading={deletingId === snippet.id}
+                    onClick={() => onDelete(snippet)}
+                    aria-label={`Delete ${snippet.title}`}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                )}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
-
-        {/* Footer Info */}
-        <div className="mt-12 bg-slate-700 rounded-lg p-6">
-          <h3 className="text-white font-semibold mb-3">💡 Tips</h3>
-          <ul className="text-gray-300 space-y-2">
-            <li>• Easy texts are perfect for warm-up sessions</li>
-            <li>• Medium texts help you maintain consistent speed</li>
-            <li>• Hard texts challenge you and improve your accuracy</li>
-            <li>• Try different difficulty levels to find your sweet spot</li>
-          </ul>
-        </div>
-      </div>
-    </div>
+      )}
+    </section>
   );
 }

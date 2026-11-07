@@ -6,7 +6,7 @@ const BaseModel = require("./BaseModel");
 class AttemptModel extends BaseModel {}
 
 AttemptModel.init({
-  ...BaseModel.initBaseAttributes(),
+  
   userId: {
     type: DataTypes.UUID,
     allowNull: false,

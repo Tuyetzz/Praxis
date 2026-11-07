@@ -1,22 +1,24 @@
-// src/usecases/auth/LogoutUser.js
-const sessionRepository = require('../../infrastructure/repositories/AuthSessionRepository');
 
 class LogoutUser {
+  constructor({ authSessionRepository }) {
+    this.sessionRepository = authSessionRepository;
+  }
+
   async execute(refreshToken) {
     if (!refreshToken) {
       throw new Error("RefreshToken is required to logout.");
     }
 
-    const session = await sessionRepository.findByRefreshToken(refreshToken);
-    
+    const session = await this.sessionRepository.findByRefreshToken(refreshToken);
+
     if (!session || session.revokedAt) {
       return { success: true, message: "Session already invalidated" };
     }
 
-    await sessionRepository.revokeToken(refreshToken);
+    await this.sessionRepository.revokeToken(refreshToken);
 
     return { success: true, message: "Logged out successfully" };
   }
 }
 
-module.exports = new LogoutUser();
+module.exports = LogoutUser;

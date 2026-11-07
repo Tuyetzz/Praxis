@@ -8,6 +8,7 @@ class AttemptQuestion extends BaseEntity {
     this.questionId = data.questionId;
     this.optionOrder = data.optionOrder || [];
     this.pageIndex = data.pageIndex || 0;
+    this.sequence = data.sequence ?? 0;
   }
 
   isAtPage(index) {

@@ -21,6 +21,24 @@ class TypingResultRepository extends BaseRepository {
     });
     return records.map(record => this.mapper.toDomain(record));
   }
+
+  async findLeaderboardByText(textId, limit = 10) {
+    const records = await this.model.findAll({
+      where: { textId, isDeleted: false },
+      order: [
+        ['wpm', 'DESC'],
+        ['accuracy', 'DESC'],
+        ['createdAt', 'ASC']
+      ],
+      limit
+    });
+
+    return records.map((record) => this.mapper.toDomain(record));
+  }
+
+  async hardDeleteByTextId(textId, options = {}) {
+    return await this.hardDeleteWhere({ textId }, options);
+  }
 }
 
-module.exports = new TypingResultRepository();
+module.exports = TypingResultRepository;

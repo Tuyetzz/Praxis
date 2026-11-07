@@ -6,7 +6,7 @@ const BaseModel = require("./BaseModel");
 class AttemptQuestionModel extends BaseModel {}
 
 AttemptQuestionModel.init({
-  ...BaseModel.initBaseAttributes(),
+  
   attemptId: {
     type: DataTypes.UUID,
     allowNull: false,
@@ -24,6 +24,12 @@ AttemptQuestionModel.init({
     type: DataTypes.INTEGER,
     defaultValue: 0,
     allowNull: false
+  },
+  sequence: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false,
+    comment: "Vị trí của câu trong lượt làm bài (0-based), giữ nguyên thứ tự sau khi xáo trộn"
   }
 }, {
   sequelize,
@@ -32,7 +38,8 @@ AttemptQuestionModel.init({
   indexes: [
     { fields: ["attemptId"] },
     { fields: ["questionId"] },
-    { fields: ["attemptId", "pageIndex"] } 
+    { fields: ["attemptId", "pageIndex"] },
+    { fields: ["attemptId", "sequence"] }
   ]
 });
 

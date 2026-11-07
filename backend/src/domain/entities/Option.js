@@ -11,12 +11,10 @@ class Option extends BaseEntity {
     this.order = data.order || 0;
   }
 
-  // Domain logic: Kiểm tra xem option này có nội dung trống không
   hasContent() {
     return !!this.text || !!this.media;
   }
 
-  // Domain logic: Đánh dấu đây là đáp án đúng/sai
   setCorrectness(status) {
     this.isCorrect = !!status;
   }

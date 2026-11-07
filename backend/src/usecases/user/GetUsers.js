@@ -1,8 +1,14 @@
-const userRepository = require('../../infrastructure/repositories/UserRepository');
 
 class GetUsers {
+  constructor({ userRepository }) {
+    this.userRepository = userRepository;
+  }
+
   async execute(filters = {}) {
-    return await userRepository.findAll(filters);
+    if (this.userRepository.findAllWithRoles) {
+      return await this.userRepository.findAllWithRoles(filters);
+    }
+    return await this.userRepository.findAll(filters);
   }
 }
-module.exports = new GetUsers();
+module.exports = GetUsers;

@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { RotateCcw, BookOpen } from "lucide-react";
+import { BookOpen, RotateCcw, Sparkles } from "lucide-react";
+import { createTypingResult } from "../../api/typingResults";
+import { getPublicTypingTexts } from "../../api/typingTexts";
+import type { TypingText } from "../../types/typingText";
+import PageShell from "../../components/PageShell";
+import Card from "../../components/ui/Card";
+import Alert from "../../components/ui/Alert";
+import Button from "../../components/ui/Button";
 
 interface TypingStats {
   wpm: number;
@@ -9,14 +16,74 @@ interface TypingStats {
   isActive: boolean;
 }
 
+const LOCAL_DEFAULT_TEXTS: TypingText[] = [
+  {
+    id: "local-1",
+    authorId: "",
+    title: "Quick Brown Fox",
+    content:
+      "The quick brown fox jumps over the lazy dog. This pangram includes every letter of the alphabet.",
+    language: "english",
+    isPublic: false,
+    isDefault: true,
+    difficulty: "easy",
+  },
+  {
+    id: "local-2",
+    authorId: "",
+    title: "Modern Tech",
+    content:
+      "Technology shapes how we communicate, learn, and create. Practice smooth, steady typing with this paragraph.",
+    language: "english",
+    isPublic: false,
+    isDefault: true,
+    difficulty: "medium",
+  },
+  {
+    id: "local-3",
+    authorId: "",
+    title: "Focused Practice",
+    content:
+      "Consistent practice builds accuracy. Keep your eyes on the text and your fingers on the home row.",
+    language: "english",
+    isPublic: false,
+    isDefault: true,
+    difficulty: "medium",
+  },
+];
+
+function getStoredTypingText(): TypingText | null {
+  const raw = localStorage.getItem("selectedTypingText");
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as TypingText;
+  } catch {
+    localStorage.removeItem("selectedTypingText");
+    return null;
+  }
+}
+
+function buildErrorTags(input: string, mistakes: number[]) {
+  const tags: Record<string, number> = {};
+  mistakes.forEach((index) => {
+    const char = input[index];
+    if (!char) return;
+    tags[char] = (tags[char] ?? 0) + 1;
+  });
+  return Object.keys(tags).length ? tags : undefined;
+}
+
 export default function TypingPage() {
   const navigate = useNavigate();
-  const [paragraph, setParagraph] = useState(
-    "The quick brown fox jumps over the lazy dog. This is a test paragraph for the typing practice system."
-  );
+  const [activeText, setActiveText] = useState<TypingText | null>(null);
+  const [paragraph, setParagraph] = useState("");
+  const [loadingText, setLoadingText] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [input, setInput] = useState("");
   const [mistakes, setMistakes] = useState<number[]>([]);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [completedAt, setCompletedAt] = useState<number | null>(null);
   const [stats, setStats] = useState<TypingStats>({
     wpm: 0,
     accuracy: 100,
@@ -24,19 +91,59 @@ export default function TypingPage() {
     isActive: false,
   });
   const inputRef = useRef<HTMLInputElement>(null);
-  const timerRef = useRef<NodeJS.Timeout>();
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startedAtRef = useRef<number | null>(null);
+  const submitLockRef = useRef(false);
 
-  // Handle timer
   useEffect(() => {
-    if (stats.isActive && currentIndex > 0) {
-      timerRef.current = setInterval(() => {
-        setStats((prev) => ({
-          ...prev,
-          timeElapsed: prev.timeElapsed + 1,
-        }));
-      }, 1000);
+    let mounted = true;
+    const storedText = getStoredTypingText();
+
+    async function loadDefaultText() {
+      try {
+        const publicTexts = await getPublicTypingTexts();
+        if (!mounted) return;
+        if (publicTexts.length > 0) {
+          const randomText = publicTexts[Math.floor(Math.random() * publicTexts.length)];
+          setActiveText(randomText);
+          setParagraph(randomText.content);
+          setLoadingText(false);
+          return;
+        }
+      } catch {
+        if (!mounted) return;
+      }
+
+      const fallback = LOCAL_DEFAULT_TEXTS[Math.floor(Math.random() * LOCAL_DEFAULT_TEXTS.length)];
+      setActiveText(fallback);
+      setParagraph(fallback.content);
+      setLoadingText(false);
+    }
+
+    if (storedText) {
+      setActiveText(storedText);
+      setParagraph(storedText.content);
+      setLoadingText(false);
+      localStorage.removeItem("selectedTypingText");
     } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+      loadDefaultText();
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Timer: runs while typing is active and at least one character is entered.
+  useEffect(() => {
+    const startedAt = startedAtRef.current;
+    if (stats.isActive && currentIndex > 0 && startedAt !== null) {
+      timerRef.current = setInterval(() => {
+        const elapsed = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
+        setStats((prev) => ({ ...prev, timeElapsed: elapsed }));
+      }, 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
     }
 
     return () => {
@@ -44,15 +151,13 @@ export default function TypingPage() {
     };
   }, [stats.isActive, currentIndex]);
 
-  // Calculate WPM and Accuracy
+  // WPM / accuracy, recomputed as the run progresses.
   useEffect(() => {
     if (stats.timeElapsed > 0 && currentIndex > 0) {
       const minutes = stats.timeElapsed / 60;
-      const words = currentIndex / 5; // Average word length is 5 characters
+      const words = currentIndex / 5; // average word length is 5 characters
       const wpm = Math.round(words / minutes);
-      const accuracy = Math.round(
-        ((currentIndex - mistakes.length) / currentIndex) * 100
-      );
+      const accuracy = Math.round(((currentIndex - mistakes.length) / currentIndex) * 100);
 
       setStats((prev) => ({
         ...prev,
@@ -66,6 +171,7 @@ export default function TypingPage() {
     if (currentIndex >= paragraph.length) return;
 
     if (!stats.isActive) {
+      if (!startedAtRef.current) startedAtRef.current = Date.now();
       setStats((prev) => ({ ...prev, isActive: true }));
     }
 
@@ -94,17 +200,13 @@ export default function TypingPage() {
     setCurrentIndex(0);
     setInput("");
     setMistakes([]);
-    setStats({
-      wpm: 0,
-      accuracy: 100,
-      timeElapsed: 0,
-      isActive: false,
-    });
+    setSubmitError(null);
+    setHasSubmitted(false);
+    setCompletedAt(null);
+    startedAtRef.current = null;
+    submitLockRef.current = false;
+    setStats({ wpm: 0, accuracy: 100, timeElapsed: 0, isActive: false });
     inputRef.current?.focus();
-  };
-
-  const handleSelectText = () => {
-    navigate("/practice/select");
   };
 
   const formatTime = (seconds: number) => {
@@ -116,114 +218,168 @@ export default function TypingPage() {
   const getCharClass = (index: number) => {
     if (index < currentIndex) {
       return mistakes.includes(index)
-        ? "bg-red-500 text-white"
-        : "bg-green-500 text-white";
-    } else if (index === currentIndex) {
-      return "bg-blue-400 text-white animate-pulse";
-    } else {
-      return "text-gray-400";
+        ? "bg-danger text-white"
+        : "bg-success text-white";
     }
+    if (index === currentIndex) {
+      return "bg-primary text-primary-fg animate-pulse";
+    }
+    return "text-muted";
   };
 
   const isComplete = currentIndex >= paragraph.length && currentIndex > 0;
 
+  useEffect(() => {
+    if (!isComplete || completedAt) return;
+    const finishTime = Date.now();
+    setCompletedAt(finishTime);
+    setStats((prev) => ({ ...prev, isActive: false }));
+    if (startedAtRef.current) {
+      const elapsed = Math.max(1, Math.floor((finishTime - startedAtRef.current) / 1000));
+      setStats((prev) => ({ ...prev, timeElapsed: elapsed }));
+    }
+  }, [completedAt, isComplete]);
+
+  // Save the result once per completed run (local-only texts are not persisted).
+  useEffect(() => {
+    if (!isComplete || hasSubmitted) return;
+    if (!activeText || activeText.id.startsWith("local-")) return;
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
+
+    const durationSeconds = Math.max(1, stats.timeElapsed);
+    const minutes = durationSeconds / 60;
+    const rawWpm = Math.round(input.length / 5 / minutes) || 0;
+
+    createTypingResult({
+      textId: activeText.id,
+      wpm: stats.wpm,
+      accuracy: stats.accuracy,
+      rawWpm,
+      durationSeconds,
+      errorTags: buildErrorTags(input, mistakes),
+    })
+      .then(() => {
+        setHasSubmitted(true);
+        setSubmitError(null);
+      })
+      .catch(() => {
+        setHasSubmitted(true);
+        setSubmitError("Unable to save your typing result.");
+      });
+  }, [
+    activeText,
+    hasSubmitted,
+    input,
+    isComplete,
+    mistakes,
+    stats.accuracy,
+    stats.timeElapsed,
+    stats.wpm,
+  ]);
+
+  const progress = paragraph.length ? (currentIndex / paragraph.length) * 100 : 0;
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-4">
-      <div className="w-full max-w-2xl">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Typing Practice</h1>
-          <p className="text-gray-300">
-            Practice your typing skills and improve your WPM
-          </p>
-        </div>
+    <PageShell
+      width="lg"
+      title="Typing practice"
+      subtitle={activeText ? `Passage: ${activeText.title}` : "Improve your speed and accuracy."}
+      actions={
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<BookOpen size={15} />}
+          onClick={() => navigate("/practice/select")}
+        >
+          Choose passage
+        </Button>
+      }
+    >
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <StatTile value={stats.wpm} label="Words per minute" tone="text-primary" />
+        <StatTile value={`${stats.accuracy}%`} label="Accuracy" tone="text-success" />
+        <StatTile value={formatTime(stats.timeElapsed)} label="Elapsed" tone="text-foreground" />
+      </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-slate-700 rounded-lg p-4 text-center">
-            <div className="text-4xl font-bold text-blue-400">{stats.wpm}</div>
-            <div className="text-sm text-gray-300 mt-2">WPM</div>
-          </div>
-          <div className="bg-slate-700 rounded-lg p-4 text-center">
-            <div className="text-4xl font-bold text-green-400">
-              {stats.accuracy}%
-            </div>
-            <div className="text-sm text-gray-300 mt-2">Accuracy</div>
-          </div>
-          <div className="bg-slate-700 rounded-lg p-4 text-center">
-            <div className="text-4xl font-bold text-purple-400">
-              {formatTime(stats.timeElapsed)}
-            </div>
-            <div className="text-sm text-gray-300 mt-2">Time</div>
-          </div>
-        </div>
-
-        {/* Typing Area */}
-        <div className="bg-slate-700 rounded-lg p-8 mb-8">
-          <div className="mb-6 text-2xl leading-relaxed font-mono">
-            {paragraph.split("").map((char, index) => (
-              <span key={index} className={`${getCharClass(index)} px-0.5`}>
-                {char === " " ? "\u00A0" : char}
+      <Card className="mb-5">
+        <p className="mb-5 font-mono text-xl leading-relaxed tracking-wide sm:text-2xl">
+          {loadingText ? (
+            <span className="text-muted">Loading passage...</span>
+          ) : (
+            paragraph.split("").map((char, index) => (
+              <span key={index} className={`${getCharClass(index)} rounded-sm px-0.5`}>
+                {char === " " ? " " : char}
               </span>
-            ))}
-          </div>
-
-          {isComplete && (
-            <div className="bg-green-600 text-white p-4 rounded-lg text-center font-semibold">
-              🎉 Typing complete! Great job!
-            </div>
+            ))
           )}
+        </p>
 
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onKeyDown={(e) => {
-              handleBackspace(e);
-              handleKeyPress(e);
-            }}
-            className="w-full bg-slate-600 text-white placeholder-gray-400 border-2 border-slate-500 rounded-lg p-3 focus:outline-none focus:border-blue-400"
-            placeholder="Start typing here..."
-            autoFocus
+        {isComplete && (
+          <Alert tone="success" className="mb-4">
+            <span className="inline-flex items-center gap-2 font-semibold">
+              <Sparkles size={16} />
+              Typing complete! Great job.
+            </span>
+          </Alert>
+        )}
+
+        {submitError && (
+          <Alert tone="warning" className="mb-4">
+            {submitError}
+          </Alert>
+        )}
+
+        <input
+          ref={inputRef}
+          type="text"
+          value={input}
+          onKeyDown={(e) => {
+            handleBackspace(e);
+            handleKeyPress(e);
+          }}
+          className="w-full rounded-control border border-border bg-surface px-4 py-3 font-mono text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
+          placeholder="Start typing here..."
+          autoFocus
+        />
+      </Card>
+
+      <div className="mb-5 flex flex-wrap gap-3">
+        <Button icon={<RotateCcw size={16} />} onClick={handleRestart}>
+          Restart
+        </Button>
+        <Button
+          variant="secondary"
+          icon={<BookOpen size={16} />}
+          onClick={() => navigate("/practice/select")}
+        >
+          Select another passage
+        </Button>
+      </div>
+
+      <Card>
+        <div className="mb-2 flex justify-between text-sm text-muted">
+          <span>Progress</span>
+          <span>
+            {currentIndex} / {paragraph.length}
+          </span>
+        </div>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-surface-sunken">
+          <div
+            className="h-2 rounded-full bg-primary transition-all duration-300 ease-smooth"
+            style={{ width: `${progress}%` }}
           />
         </div>
+      </Card>
+    </PageShell>
+  );
+}
 
-        {/* Buttons */}
-        <div className="flex gap-4 flex-wrap">
-          <button
-            onClick={handleRestart}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
-          >
-            <RotateCcw size={20} />
-            Restart
-          </button>
-          <button
-            onClick={handleSelectText}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
-          >
-            <BookOpen size={20} />
-            Select Text
-          </button>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="mt-8">
-          <div className="flex justify-between mb-2">
-            <span className="text-gray-300 text-sm">Progress</span>
-            <span className="text-gray-300 text-sm">
-              {currentIndex}/{paragraph.length}
-            </span>
-          </div>
-          <div className="w-full bg-slate-700 rounded-full h-2">
-            <div
-              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-              style={{
-                width: `${(currentIndex / paragraph.length) * 100}%`,
-              }}
-            ></div>
-          </div>
-        </div>
-      </div>
-    </div>
+function StatTile({ value, label, tone }: { value: string | number; label: string; tone: string }) {
+  return (
+    <Card className="text-center">
+      <p className={`text-4xl font-bold tabular-nums ${tone}`}>{value}</p>
+      <p className="mt-1 text-sm text-muted">{label}</p>
+    </Card>
   );
 }

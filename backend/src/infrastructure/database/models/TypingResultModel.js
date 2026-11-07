@@ -6,7 +6,7 @@ const BaseModel = require("./BaseModel");
 class TypingResultModel extends BaseModel {}
 
 TypingResultModel.init({
-  ...BaseModel.initBaseAttributes(),
+  
   userId: {
     type: DataTypes.UUID,
     allowNull: false,
@@ -34,7 +34,7 @@ TypingResultModel.init({
   errorTags: {
     type: DataTypes.JSON,
     allowNull: true,
-    comment: "Lưu các phím hay gõ sai để gợi ý luyện tập"
+    comment: "Store words or keys that were mistyped along with their counts, e.g. { 'k': 5, 'l': 2 }"
   }
 }, {
   sequelize,

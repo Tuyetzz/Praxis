@@ -17,4 +17,4 @@ class FlashcardRepository extends BaseRepository {
   }
 }
 
-module.exports = new FlashcardRepository();
+module.exports = FlashcardRepository;

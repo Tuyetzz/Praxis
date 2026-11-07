@@ -1,21 +1,24 @@
 // src/infrastructure/database/models/PermissionModel.js
-const { DataTypes } = require("sequelize");
+const { DataTypes, Model } = require("sequelize");
 const sequelize = require("../config/db");
-const BaseModel = require("./BaseModel");
 
-class PermissionModel extends BaseModel {}
+class PermissionModel extends Model {}
 
 PermissionModel.init({
-  ...BaseModel.initBaseAttributes(),
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
   name: {
     type: DataTypes.STRING(100),
     allowNull: false,
-    unique: true,
+    unique: 'unique_permission_name',
   },
   slug: {
     type: DataTypes.STRING(100),
     allowNull: false,
-    unique: true,
+    unique: 'unique_permission_slug',
   },
   description: {
     type: DataTypes.STRING(255),
@@ -24,7 +27,7 @@ PermissionModel.init({
 }, {
   sequelize,
   tableName: "permissions",
-  timestamps: true,
+  timestamps: false,
   indexes: []
 });
 

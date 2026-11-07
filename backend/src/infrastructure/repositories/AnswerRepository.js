@@ -14,6 +14,20 @@ class AnswerRepository extends BaseRepository {
     });
     return records.map(record => this.mapper.toDomain(record));
   }
+
+  async findByAttemptAndQuestion(attemptId, questionId) {
+    const record = await this.model.findOne({
+      where: { attemptId, questionId, isDeleted: false }
+    });
+    return record ? this.mapper.toDomain(record) : null;
+  }
+
+  async findByAttemptId(attemptId) {
+    const records = await this.model.findAll({
+      where: { attemptId, isDeleted: false }
+    });
+    return records.map(record => this.mapper.toDomain(record));
+  }
 }
 
-module.exports = new AnswerRepository();
+module.exports = AnswerRepository;

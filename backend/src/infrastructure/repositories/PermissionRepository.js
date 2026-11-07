@@ -1,19 +1,33 @@
 // src/infrastructure/repositories/PermissionRepository.js
-const BaseRepository = require("./BaseRepository");
 const PermissionModel = require("../database/models/PermissionModel");
 const permissionMapper = require("../mappers/PermissionMapper");
 
-class PermissionRepository extends BaseRepository {
+class PermissionRepository {
   constructor() {
-    super(PermissionModel, permissionMapper);
+    this.model = PermissionModel;
+    this.mapper = permissionMapper;
+  }
+
+  async findById(id) {
+    const record = await this.model.findOne({
+      where: { id }
+    });
+    return record ? this.mapper.toDomain(record) : null;
+  }
+
+  async findAll() {
+    const records = await this.model.findAll({
+      where: { }
+    });
+    return records.map(record => this.mapper.toDomain(record));
   }
 
   async findBySlug(slug) {
     const record = await this.model.findOne({
-      where: { slug, isDeleted: false }
+      where: { slug }
     });
     return record ? this.mapper.toDomain(record) : null;
   }
 }
 
-module.exports = new PermissionRepository();
+module.exports = PermissionRepository;

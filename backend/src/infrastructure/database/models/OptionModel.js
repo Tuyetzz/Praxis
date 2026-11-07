@@ -6,7 +6,7 @@ const BaseModel = require("./BaseModel");
 class OptionModel extends BaseModel {}
 
 OptionModel.init({
-  ...BaseModel.initBaseAttributes(),
+  
   questionId: {
     type: DataTypes.UUID,
     allowNull: false,
@@ -21,7 +21,7 @@ OptionModel.init({
     allowNull: false,
   },
   media: {
-    type: DataTypes.STRING, // URL ảnh hoặc video đính kèm cho phương án
+    type: DataTypes.STRING, // URL photo or video
     allowNull: true,
   },
   order: {
