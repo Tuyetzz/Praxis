@@ -6,6 +6,11 @@ const authMiddleware = container.resolve('authMiddleware');
 
 router.use('/auth', require('./authRoutes'));
 
+// Health checks must be reachable WITHOUT a token: Docker healthchecks,
+// load balancers and uptime monitors do not authenticate. Mounted before
+// authMiddleware for exactly that reason.
+router.use('/health', require('./healthRoutes'));
+
 router.use(authMiddleware);
 router.use(contextMiddleware);
 

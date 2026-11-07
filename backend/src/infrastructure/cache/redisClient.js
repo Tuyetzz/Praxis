@@ -63,6 +63,15 @@ const ensureConnected = async () => {
 };
 
 const redisClient = {
+  /**
+   * Round-trip check against Redis. Used by the health endpoint.
+   * Throws if Redis is unreachable (ensureConnected has a bounded timeout).
+   */
+  async ping() {
+    await ensureConnected();
+    return client.ping();
+  },
+
   async get(key) {
     await ensureConnected();
     logger.info(`[Redis] GET ${key}`);
