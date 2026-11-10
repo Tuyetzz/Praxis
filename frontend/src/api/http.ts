@@ -26,15 +26,25 @@ function clearStoredAuth() {
   window.dispatchEvent(new Event(AUTH_INVALID_EVENT));
 }
 
+// API base URL.
+//
+// Vite inlines VITE_* variables at BUILD time, so this is baked into the bundle.
+//   dev  : unset                -> http://localhost:5000/api (backend on the host)
+//   prod : VITE_API_URL=/api    -> same origin, nginx proxies /api to the backend
+//
+// Using a relative "/api" in production means the browser never makes a
+// cross-origin request, so CORS is not involved at all.
+const API_BASE_URL: string = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
+
 // Shared axios instance
 export const http = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: API_BASE_URL,
   timeout: 10000,
   withCredentials: false, // set true if the backend uses cookies/sessions
 });
 
 const refreshHttp = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: API_BASE_URL,
   timeout: 10000,
   withCredentials: false,
 });

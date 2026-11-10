@@ -1,0 +1,57 @@
+# Production image for the frontend.
+#
+# Multi-stage: stage 1 builds the static bundle, stage 2 serves it with nginx.
+# The final image contains only nginx + the built files - no Node, no
+# node_modules, no source. That keeps it small, which matters on a Pi.
+#
+# This image does NOT proxy /api. The nginx in docker-compose.prod.yml handles
+# both the static files and the API proxy, so there is a single place to set
+# server_name, TLS and timeouts. Keeping the proxy out of here also means the
+# same image works behind any reverse proxy.
+
+# ---------- stage 1: build ----------
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+
+# Vite inlines VITE_* at build time, so the API URL must be passed as a build
+# arg. Default "/api" means "same origin, proxied by nginx" - no CORS involved.
+ARG VITE_API_URL=/api
+ENV VITE_API_URL=$VITE_API_URL
+
+RUN npm run build
+
+# ---------- stage 2: serve ----------
+FROM nginx:1.27-alpine
+
+# SPA config: try the file, fall back to index.html so client-side routes
+# (/dashboard, /attempts/123) work on refresh instead of 404ing.
+RUN printf '%s\n' \
+  'server {' \
+  '    listen       80;' \
+  '    server_name  _;' \
+  '    root   /usr/share/nginx/html;' \
+  '    index  index.html;' \
+  '' \
+  '    # Long cache for hashed assets, no cache for the HTML shell.' \
+  '    location ~* \\.(?:js|css|woff2?|png|jpe?g|gif|svg|ico)$ {' \
+  '        expires 1y;' \
+  '        add_header Cache-Control "public, immutable";' \
+  '    }' \
+  '' \
+  '    location / {' \
+  '        try_files $uri $uri/ /index.html;' \
+  '    }' \
+  '}' \
+  > /etc/nginx/conf.d/default.conf
+
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
