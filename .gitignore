@@ -1,2 +1,8 @@
 node_modules/
+
+# Environment files - never commit real secrets.
+# Keep the *.example files tracked so others know what to fill in.
 .env
+.env.*
+!.env.example
+!.env.prod.example

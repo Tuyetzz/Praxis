@@ -10,3 +10,6 @@ dist
 build
 coverage
 *.log
+
+# Not needed in the production image
+test
