@@ -1,0 +1,35 @@
+# Production image for the backend.
+#
+# Differences from the dev Dockerfile:
+#   - runs the real entry point (src/server.js), not nodemon
+#   - installs production dependencies only (no nodemon/devDeps)
+#   - runs as a non-root user
+#   - source is baked in, not bind-mounted
+FROM node:20-alpine
+
+# dumb-init forwards SIGTERM/SIGINT to node, so the graceful shutdown handler in
+# src/server.js (which closes the DB pool and stops the cron job) actually runs.
+# Without it PID 1 is node itself and signals are handled less predictably.
+RUN apk add --no-cache dumb-init
+
+WORKDIR /app
+
+# Copy manifests first so the dependency layer is cached across code changes.
+COPY package*.json ./
+
+# `npm ci` installs exactly what package-lock.json pins (reproducible builds).
+# --omit=dev drops nodemon and friends.
+# --include=dev is NOT needed here because the source is plain CommonJS - there
+# is no build step on the backend.
+RUN npm ci --omit=dev && npm cache clean --force
+
+COPY . .
+
+# node:20-alpine already ships a `node` user (uid 1000); running as non-root
+# limits the blast radius if the app is ever compromised.
+USER node
+
+EXPOSE 5000
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "src/server.js"]

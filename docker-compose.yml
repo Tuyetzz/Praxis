@@ -1,28 +1,44 @@
-version: "3.8"
-
 services:
   mysql:
     image: mysql:8.0
     container_name: tracnghiem_mysql_dev
-    env_file:
-      - ./.env
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      # Values come from the root .env file (gitignored). No defaults for the
+      # passwords on purpose: a wrong default silently creates a database that
+      # nothing can authenticate against. Compose fails loudly instead.
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required - copy .env.example to .env}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-examdb}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      # Hard-coded, NOT ${MYSQL_USER}: the root .env sets MYSQL_USER=root, and a
+      # set variable always beats a :- default, which would put the invalid
+      # value back and crash-loop MySQL again.
+      MYSQL_USER: quizuser
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required - copy .env.example to .env}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "127.0.0.1",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 20
+      start_period: 30s
 
   redis:
     image: redis:7-alpine
+    container_name: tracnghiem_redis_dev
+    restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
@@ -30,19 +46,40 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+      start_period: 10s
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: lms_backend
+    restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
     env_file:
-      - ./backend/.env.dev
+      - ./backend/.env
+    environment:
+      # Inside the compose network "localhost" means the backend container
+      # itself, not MySQL or Redis, so the hosts must be overridden here.
+      DB_HOST: mysql
+      DB_PORT: 3306
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # Credentials, taken from the root .env (gitignored). backend/.env keeps
+      # root for host development; these override it inside the container.
+      # DB_USER is hard-coded to match the mysql service above.
+      DB_USER: quizuser
+      DB_PASS: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required - copy .env.example to .env}
+      DB_NAME: ${MYSQL_DATABASE:-examdb}
+      # OpenRouter API key for AI quiz generation. Comes from the root .env so
+      # the key is never written into a tracked file.
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?OPENROUTER_API_KEY is required - copy .env.example to .env}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-deepseek/deepseek-chat}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1/chat/completions}
+      OPENROUTER_TIMEOUT_MS: ${OPENROUTER_TIMEOUT_MS:-60000}
     command: sh -c "npm run seed:system && npm run dev"
     ports:
       - "5000:5000"
@@ -53,12 +90,16 @@ services:
       # The image is node:20-alpine, which has no curl/wget - use node itself.
       # Hits /health/live (not /health) so a brief Redis/MySQL hiccup does not
       # mark the app unhealthy and trigger a restart loop.
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5000/api/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:5000/api/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
-      # Generous: the container runs "seed:system && dev", and nodemon + the
-      # DB sync at boot take a while on a cold start.
       start_period: 60s
 
   frontend:
@@ -66,8 +107,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: lms_frontend
+    restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_started
     ports:
       - "5173:5173"
     volumes:
@@ -75,7 +118,13 @@ services:
       - frontend_node_modules:/app/node_modules
     healthcheck:
       # Vite dev server. node:20-alpine has no curl/wget, so use node's fetch.
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:5173/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -85,3 +134,4 @@ volumes:
   mysql_data:
   backend_node_modules:
   frontend_node_modules:
+
