@@ -486,3 +486,93 @@ curl -X POST http://localhost:5000/api/ai/generate-quiz \
 
 File test Postman: `backend/postman/ai-generate-quiz.postman_collection.json` (import vào Postman,
 sửa biến `accessToken` rồi bấm Send).
+---
+
+## Các file env — file nào được đọc khi nào
+
+Có nhiều file `.env*` trong repo và rất dễ rối, vì **có hai cơ chế đọc khác nhau**:
+`dotenv` (đọc bởi code Node) và **Docker Compose** (đọc bởi Docker). Chúng độc lập với nhau.
+
+### Bảng tổng hợp
+
+| File | Ai đọc | Khi nào |
+|---|---|---|
+| `.env` (thư mục gốc) | Docker Compose | Tự động, cho `${VAR}` trong `docker-compose*.yml` |
+| `.env.prod` (gốc) | Docker Compose | Khi deploy: `--env-file .env.prod` |
+| `backend/.env` | `dotenv` **và** Compose `env_file` | **Cả hai chế độ** |
+| `.env.example` | *(không ai đọc — chỉ để tham khảo)* | Được commit |
+| `.env.prod.example` | *(không ai đọc — chỉ để tham khảo)* | Được commit |
+
+### Cơ chế 1 — `dotenv` (code Node đọc)
+
+```js
+// src/server.js:1
+require("dotenv").config();   // KHÔNG có tham số
+```
+
+Không truyền đường dẫn → dotenv tìm file tên `.env` ở **thư mục hiện hành** (`process.cwd()`):
+
+- Chạy `npm run dev` trong `backend/` → đọc `backend/.env`
+- Trong Docker, `WORKDIR /app` → đọc `/app/.env` (chính là `backend/.env` được mount)
+
+Đây là lý do `.env` ở thư mục gốc **không** ảnh hưởng gì khi chạy local — code không nhìn thấy nó.
+
+### Cơ chế 2 — Docker Compose (Docker đọc)
+
+```yaml
+env_file:
+  - ./backend/.env      # nạp toàn bộ biến vào container
+environment:
+  DB_HOST: mysql        # ghi đè lên env_file
+```
+
+Compose còn tự động đọc `.env` ở thư mục gốc để thay `${VAR}` trong file compose.
+
+**Thứ tự ưu tiên (cao → thấp):**
+
+```
+environment:  >  env_file:  >  .env (gốc, cho ${VAR})
+```
+
+### Bốn tình huống thực tế
+
+**1. Chạy local**
+```bash
+cd backend && npm run dev
+```
+Chỉ đọc `backend/.env`. Không file nào khác.
+
+**2. Docker dev**
+```bash
+docker compose up
+```
+Cả ba nguồn cùng lúc:
+- `.env` (gốc) → cấp `${MYSQL_ROOT_PASSWORD}`, `${MYSQL_PASSWORD}`…
+- `backend/.env` → `env_file`, nạp vào container
+- `environment:` → ghi đè (`DB_HOST=mysql`, `DB_USER=quizuser`…)
+
+**3. Deploy production**
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+```
+`.env.prod` thay cho `.env` gốc. `backend/.env` **vẫn được đọc**, nhưng bị `environment:` ghi đè.
+
+**4. CI (GitHub Actions)**
+Không cần file env nào — toàn bộ test là unit test dùng fake repository.
+
+### Quy tắc để không bị rối
+
+| Loại biến | Để ở đâu |
+|---|---|
+| Hạ tầng (host, port, tên service) | `docker-compose*.yml` — hard-code |
+| Secrets của Docker (MySQL password) | `.env` gốc (dev) / `.env.prod` (prod) |
+| Secrets của app (JWT, OpenRouter key) | `.env.prod` (prod) hoặc `backend/.env` (local) |
+| Biến chỉ dùng khi chạy local | `backend/.env` |
+
+**Vì sao `DB_HOST` phải khác nhau:** khi chạy local, MySQL ở `localhost`. Trong Docker, `localhost` là chính container backend — MySQL là một container khác, nên phải dùng tên service `mysql`. Compose override biến này qua `environment:` để `backend/.env` vẫn dùng được cho local.
+
+**Vì sao `MYSQL_USER` không được là `root`:** entrypoint của MySQL từ chối thẳng và container crash-loop:
+```
+MYSQL_USER and MYSQL_PASSWORD are for configuring a regular user
+and cannot be used for the root user
+```
