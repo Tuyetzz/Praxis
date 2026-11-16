@@ -2,6 +2,7 @@ import type {
   InputHTMLAttributes,
   LabelHTMLAttributes,
   ReactNode,
+  Ref,
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from "react";
@@ -72,10 +73,15 @@ export function Select({ className = "", children, ...rest }: SelectHTMLAttribut
   );
 }
 
-export function Textarea({ className = "", ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+// React 19 passes `ref` as a normal prop, and it is forwarded to the element by
+// the spread below - but TextareaHTMLAttributes does not declare it, so add it
+// here to keep call sites type-safe.
+export function Textarea({
+  className = "",
+  ...rest
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { ref?: Ref<HTMLTextAreaElement> }) {
   return <textarea className={`${CONTROL_BASE} scrollbar-slim ${className}`} {...rest} />;
 }
-
 // Checkbox / radio share the accent color so they follow the theme too.
 export function Checkbox({ className = "", ...rest }: InputHTMLAttributes<HTMLInputElement>) {
   return (
