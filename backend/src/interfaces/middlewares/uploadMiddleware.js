@@ -8,6 +8,7 @@ const storage = multer.memoryStorage(); // Store file in memory buffer
 const fileFilter = (req, file, cb) => {
   const allowedMimes = [
     'text/csv',
+    'text/plain', // .txt - used by the flashcard importer
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/json',
@@ -16,7 +17,7 @@ const fileFilter = (req, file, cb) => {
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Only CSV, Excel, and JSON files are allowed'), false);
+    cb(new Error('Only TXT, CSV, Excel, and JSON files are allowed'), false);
   }
 };
 

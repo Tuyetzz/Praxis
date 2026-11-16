@@ -207,10 +207,75 @@ POST /api/questions/batch
 | Method | URL                              | Body/Params                              | Description                        |
 |--------|----------------------------------|------------------------------------------|------------------------------------|
 | GET    | /api/flashcards/deck/:deckId     | -                                        | Lấy danh sách flashcard trong deck |
+| GET    | /api/flashcards/export/:deckId   | ?format=txt\|csv                         | Tải deck về (mặc định txt)         |
 | GET    | /api/flashcards/:id              | -                                        | Lấy thông tin 1 flashcard          |
 | POST   | /api/flashcards                  | { deckId, frontText, backText, order, nextReview } | Tạo flashcard mới      |
+| POST   | /api/flashcards/import           | multipart: file + deckId                 | Import nhiều thẻ từ file           |
 | PUT    | /api/flashcards/:id              | { frontText, backText, order, nextReview }        | Cập nhật flashcard      |
 | DELETE | /api/flashcards/:id              | -                                        | Xóa flashcard                     |
+
+### Import flashcard
+
+`POST /api/flashcards/import` — `multipart/form-data`, field `file` + field `deckId`.
+Chỉ chủ deck mới import được (giống quyền tạo thẻ). Tối đa **500 thẻ** mỗi lần.
+
+**Định dạng `.txt`** — mỗi dòng 1 thẻ, ngăn cách bằng ` - ` (gạch ngang có dấu cách 2 bên):
+
+```
+# Dòng bắt đầu bằng # là comment, sẽ bị bỏ qua
+Bustling - nhộn nhịp (bustling city)
+well-known - nổi tiếng
+```
+
+- Chỉ cắt ở dấu ` - ` **đầu tiên**, nên `well-known` không bị tách nhầm.
+- Vế sau được phép chứa dấu gạch ngang và dấu phẩy.
+- Dòng trống và dòng comment bị bỏ qua.
+- Dòng thiếu vế trước hoặc vế sau bị bỏ qua (không tính là lỗi).
+
+**Định dạng `.csv` / `.xlsx`** — cần header. Tên cột được nhận (không phân biệt hoa thường):
+
+| Vế trước | Vế sau |
+|---|---|
+| `front`, `frontText`, `term`, `word`, `question` | `back`, `backText`, `definition`, `meaning`, `answer` |
+
+```csv
+front,back
+Bustling,nhộn nhịp
+"proximity","(n) sự lân cận, trạng thái gần"
+```
+
+**Định dạng `.json`** — mảng object:
+
+```json
+[{ "front": "Bustling", "back": "nhộn nhịp" }]
+```
+
+**Response:**
+
+```json
+{
+  "totalCards": 14,
+  "imported": 14,
+  "failed": 0,
+  "errors": [{ "line": 3, "error": "Mặt trước của thẻ không được để trống." }]
+}
+```
+
+`order` của thẻ mới được nối tiếp từ thẻ cuối cùng trong deck, nên thẻ import
+luôn nằm ở cuối chứ không xen vào giữa. `errors` chỉ xuất hiện khi có dòng lỗi.
+
+> File mẫu để tải về: `frontend/public/flashcard-import-example.txt`
+> (được serve tại `/flashcard-import-example.txt`).
+
+### Export flashcard
+
+`GET /api/flashcards/export/:deckId?format=txt` — trả file kèm header
+`Content-Disposition: attachment`, trình duyệt tự tải về.
+
+- `format=txt` (mặc định) — cùng định dạng với import, nên **export rồi import lại được ngay**.
+- `format=csv` — có header `front,back`, value chứa dấu phẩy được bọc trong `"`.
+- Ai xem được deck (chủ deck hoặc deck public) thì export được.
+- Xuống dòng trong nội dung thẻ được thay bằng dấu cách để giữ định dạng 1 dòng/thẻ.
 
 Ghi chú:
 - Các route `/api/users/*` yêu cầu JWT token ở header `Authorization: Bearer <token>`
