@@ -1,4 +1,4 @@
-# Frontend — QuizWeb
+# Frontend — Praxis
 
 SPA for the quiz practice app (quiz + flashcards + typing).
 React 19 · TypeScript strict · Vite 7 · React Router 7 · axios · TailwindCSS 3 · lucide-react.

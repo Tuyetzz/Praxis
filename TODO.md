@@ -1,4 +1,4 @@
-# TODO — QuizWeb
+# TODO — Praxis
 
 > Cập nhật: 2026-10-15
 
@@ -34,7 +34,7 @@ CREATE INDEX attempt_questions_attemptId_sequence ON attempt_questions (attemptI
 | **Độ khó implement** | Thấp: thêm 1 endpoint proxy, dùng prompt engineering | Cao: cần dataset, GPU, MLOps, deploy, monitoring |
 | **Chất lượng output** | Tốt ngay lập tức (model SOTA) | Phụ thuộc data + compute; cold-start kém |
 | **Chi phí** | Pay-per-token (dễ dự đoán) | GPU Colab free có limit; VPS GPU tốn tiền |
-| **Tùy biến domain** | Prompt + few-shot + RAG (context từ question bank) | Fine-tune trên data QuizWeb (cần data sạch) |
+| **Tùy biến domain** | Prompt + few-shot + RAG (context từ question bank) | Fine-tune trên data Praxis (cần data sạch) |
 | **Latency** | ~1-3s | Tùy infra; ngrok thêm overhead |
 | **Bảo mật dữ liệu** | Data đi ra ngoài (cần DPA) | Giữ local (nếu self-host) |
 | **Maintenance** | Nhà cung cấp lo | Tự lo model drift, retrain, scaling |
