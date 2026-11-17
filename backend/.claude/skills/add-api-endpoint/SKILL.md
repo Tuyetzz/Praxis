@@ -1,9 +1,9 @@
 ---
 name: add-api-endpoint
-description: Add a new resource/endpoint to the QuizWeb backend following the 4-layer architecture (entity → model → mapper → repository → usecase → controller → route → container). Use when creating new CRUD, adding a usecase to an existing resource, or adding a route to an existing resource.
+description: Add a new resource/endpoint to the Praxis backend following the 4-layer architecture (entity → model → mapper → repository → usecase → controller → route → container). Use when creating new CRUD, adding a usecase to an existing resource, or adding a route to an existing resource.
 ---
 
-# Adding a new API endpoint (QuizWeb backend)
+# Adding a new API endpoint (Praxis backend)
 
 Goal: keep the 4-layer architecture and existing conventions intact. Before writing anything, read one complete resource and copy it — **`Subject` is the smallest complete example**:
 
