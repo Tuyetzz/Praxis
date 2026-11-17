@@ -1,7 +1,9 @@
+name: praxis
+
 services:
   mysql:
     image: mysql:8.0
-    container_name: tracnghiem_mysql_dev
+    container_name: praxis_mysql
     restart: unless-stopped
     environment:
       # Values come from the root .env file (gitignored). No defaults for the
@@ -37,7 +39,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: tracnghiem_redis_dev
+    container_name: praxis_redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -52,7 +54,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: lms_backend
+    container_name: praxis_backend
     restart: unless-stopped
     depends_on:
       mysql:
@@ -106,7 +108,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: lms_frontend
+    container_name: praxis_frontend
     restart: unless-stopped
     depends_on:
       backend:
