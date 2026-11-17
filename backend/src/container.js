@@ -117,6 +117,8 @@ const GetFlashcardsByDeck = require('./usecases/flashcard/GetFlashcardsByDeck');
 const GetOneFlashcard = require('./usecases/flashcard/GetOneFlashcard');
 const UpdateFlashcard = require('./usecases/flashcard/UpdateFlashcard');
 const DeleteFlashcard = require('./usecases/flashcard/DeleteFlashcard');
+const ImportFlashcardsFromFile = require('./usecases/flashcard/ImportFlashcardsFromFile');
+const ExportFlashcards = require('./usecases/flashcard/ExportFlashcards');
 const CreateTypingText = require('./usecases/typingText/CreateTypingText');
 const HardDeleteAttempt = require('./usecases/attempt/HardDeleteAttempt');
 const HardDeleteTypingResult = require('./usecases/typingResult/HardDeleteTypingResult');
@@ -240,6 +242,8 @@ container.register({
   getOneFlashcard: asClass(GetOneFlashcard).singleton(),
   updateFlashcard: asClass(UpdateFlashcard).singleton(),
   deleteFlashcard: asClass(DeleteFlashcard).singleton(),
+  importFlashcardsFromFile: asClass(ImportFlashcardsFromFile).singleton(),
+  exportFlashcards: asClass(ExportFlashcards).singleton(),
   createTypingText: asClass(CreateTypingText).singleton(),
   getTypingTexts: asClass(GetTypingTexts).singleton(),
   getPublicTypingTexts: asClass(GetPublicTypingTexts).singleton(),

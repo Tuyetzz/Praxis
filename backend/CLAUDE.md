@@ -1,4 +1,4 @@
-# Backend — QuizWeb
+# Backend — Praxis
 
 API server for the quiz practice app (quiz + flashcards + typing).
 Express 5 · Sequelize 6 + MySQL · Redis · Awilix DI · JWT · CommonJS (NOT ESM/`import`).

@@ -1,0 +1,53 @@
+# Flashcard import example
+#
+# HOW TO USE
+#   1. One card per line.
+#   2. Separate the front and the back with a space, a dash, a space:  front - back
+#   3. Lines starting with # are comments and are ignored.
+#   4. Blank lines are ignored.
+#   5. Save as .txt and import it. .csv and .json also work - see the bottom.
+#
+# The back may contain dashes and commas; only the FIRST " - " splits the line.
+
+Bustling - nhộn nhịp (bustling city)
+overwhelming - áp đảo
+Potency - hiệu lực
+speculation - sự suy đoán
+coreography - vũ đạo
+resilience - khả năng phục hồi
+proximity - (n) sự lân cận, trạng thái gần
+erect - dựng lên
+salute - v. đưa tay lên (chào) theo quân đội
+vacancy - Vị trí, chức vụ bỏ trống
+impurities - tạp chất (in water)
+curate - lựa chọn
+stoop - cúi xuống (stoop to any low just to get attention)
+amenity - tiện nghi
+
+# ---------------------------------------------------------------------------
+# A dash inside a word does not split the line:
+#   well-known - nổi tiếng          ->  front: "well-known"
+#
+# ---------------------------------------------------------------------------
+# CSV FORMAT
+#
+# Save with the first line exactly as below, then one card per line:
+#
+#   front,back
+#   Bustling,nhộn nhịp
+#   overwhelming,áp đảo
+#
+# If a value contains a comma, wrap it in double quotes:
+#
+#   proximity,"(n) sự lân cận, trạng thái gần"
+#
+# Recognised column names: front/back, frontText/backText,
+# term/definition, word/meaning, question/answer
+#
+# ---------------------------------------------------------------------------
+# JSON FORMAT
+#
+# [
+#   { "front": "Bustling", "back": "nhộn nhịp" },
+#   { "front": "overwhelming", "back": "áp đảo" }
+# ]

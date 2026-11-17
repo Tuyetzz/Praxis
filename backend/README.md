@@ -1,51 +1,72 @@
-Cách chạy: npm run dev
-Cách seed: npm run seed:system
+# Backend — Praxis
 
+Express 5 · Sequelize 6 + MySQL 8 · Redis · Awilix DI · JWT · CommonJS.
+
+```bash
+npm run dev            # start with nodemon
+npm run seed:system    # seed permissions, roles and the superadmin user
+npm test               # run the test suite
+```
+
+---
+
+## Project structure
+
+```
 src/
 ├── domain/
-│   ├── entities/          # Các class định nghĩa dữ liệu (Plain JS/TS)
-│   └── constants/         # Các biến hằng số nghiệp vụ
+│   ├── entities/          # Data classes and their validation rules
+│   └── constants/         # Business constants (enums, permission slugs)
 ├── usecases/
-│   ├── user/              # Ví dụ: RegisterUser.js, GetUserProfile.js
-│   └── base/              # (Option) Các logic nghiệp vụ chung
+│   ├── user/              # e.g. RegisterUser.js, GetUserProfile.js
+│   └── base/              # Shared business logic
 ├── interfaces/
-│   ├── controllers/       # Nhận HTTP request, điều hướng vào usecase
-│   ├── routes/            # Khai báo các endpoint
-│   └── middlewares/       # Auth, Validation, Error Handler
+│   ├── controllers/       # Accept HTTP requests, dispatch to a usecase
+│   ├── routes/            # Endpoint declarations
+│   └── middlewares/       # Auth, context, upload, rate limiting
 ├── infrastructure/
 │   ├── database/
-│   │   ├── models/        # Sequelize Models (Kế thừa từ Base Model)
-│   │   └── config.js      # Cấu hình kết nối MySQL
-│   ├── repositories/      # Triển khai thực tế của Repository (Kế thừa từ Base Repo)
+│   │   ├── models/        # Sequelize models (extend BaseModel)
+│   │   └── config/        # MySQL connection
+│   ├── repositories/      # Repository implementations (extend BaseRepository)
 │   └── utils/             # Bcrypt, JWT helpers
 └── server.js
+```
 
-Seed vào db 1 superadmin
-Seed vào db permission, tạo 1 file enum
+The seed creates one superadmin user, every permission from
+`domain/constants/permissions.js`, and the base roles (`admin`, `teacher`,
+`student`).
 
-Luồng get
-- Repository sẽ lấy ra từ db dùng model của infrastructure
-  - Khi chạy thì migrate bảng ra từ infrastructure
-- Sau đó sẽ nhét vào trong mapper để đổi sang của domain
-- Usecase sẽ nhận về domain entity
+### Read flow
 
-Luồng insert/update
-- Khi có 1 hành động update, usecase sẽ tạo/đổi cái domain entity
-- Repository nhận domain entity dùng toPersistence() ở mapper để biến thành obj
-- Infrastructure sẽ gọi lệnh insert/update vào db
+1. The repository queries the database using an infrastructure model.
+   Tables are created from the models at boot.
+2. The mapper converts the record into a domain entity.
+3. The usecase receives the domain entity.
 
-Các API controller:
+### Write flow
 
-# API Endpoints
+1. The usecase creates or mutates a domain entity.
+2. The repository converts it back to a plain object via the mapper's
+   `toPersistence()`.
+3. Infrastructure issues the insert/update.
 
-## Health (public — không cần token)
+---
 
-| Method | URL                | Body/Params | Description                                      |
-|--------|--------------------|-------------|--------------------------------------------------|
-| GET    | /api/health        | -           | Kiểm tra DB + Redis. 200 nếu DB ok, 503 nếu DB down |
-| GET    | /api/health/live   | -           | Chỉ báo process còn sống, không chạm DB/Redis     |
+## API Endpoints
 
-Response của `/api/health`:
+All `/api/*` routes require `Authorization: Bearer <accessToken>` unless marked
+public. Errors use `{ message }`, except `/api/auth/*` which uses the envelope
+`{ success, message, data }`.
+
+### Health (public)
+
+| Method | URL              | Description                                                        |
+|--------|------------------|--------------------------------------------------------------------|
+| GET    | /api/health      | Checks MySQL and Redis. `200` if the DB is up, `503` if it is down |
+| GET    | /api/health/live | Liveness only — does not touch MySQL or Redis                      |
+
+Response from `/api/health`:
 
 ```json
 {
@@ -58,204 +79,260 @@ Response của `/api/health`:
 }
 ```
 
-**Lưu ý quan trọng:**
-- Hai endpoint này **không cần auth** — Docker healthcheck, load balancer và uptime monitor
-  không gửi JWT được. Chúng được mount **trước** `authMiddleware` trong `routes/index.js`.
-- **Redis down KHÔNG làm `/health` fail** (vẫn trả 200, `status: "ok"`), vì Redis chỉ là cache —
-  `authMiddleware` tự fallback sang DB. Chỉ DB down mới trả 503.
-- Mỗi dependency có timeout riêng (mặc định 2000ms) và chạy song song, nên một service treo
-  không làm treo cả health check.
-- Docker healthcheck dùng `/health/live` (không phải `/health`) để Redis/MySQL chập chờn
-  không gây restart loop.
+**Important notes**
 
-## Auth
-| Method | URL                  | Body/Params                | Description              |
-|--------|----------------------|----------------------------|--------------------------|
-| POST   | /api/auth/register   | { name, email, password }  | Đăng ký tài khoản        |
-| POST   | /api/auth/login      | { email, password }        | Đăng nhập                |
-| POST   | /api/auth/refresh    | { refreshToken }           | Làm mới access token     |
-| POST   | /api/auth/logout     | { refreshToken }           | Đăng xuất                |
+- These two endpoints require **no authentication** — Docker healthchecks, load
+  balancers and uptime monitors cannot send a JWT. They are mounted **before**
+  `authMiddleware` in `routes/index.js`.
+- **Redis being down does NOT fail `/health`** (it still returns `200` with
+  `status: "ok"`), because Redis is only a cache — `authMiddleware` falls back
+  to the database. Only a DB outage returns `503`.
+- Each dependency has its own timeout (2000ms by default) and they run in
+  parallel, so one slow service cannot stall the whole check.
+- The Docker healthcheck uses `/health/live` (not `/health`) so a brief
+  Redis/MySQL hiccup does not cause a restart loop.
 
-## User (Yêu cầu xác thực)
-| Method | URL                | Body/Params         | Description                        |
-|--------|--------------------|---------------------|------------------------------------|
-| GET    | /api/users         | ?filter             | Lấy danh sách user                 |
-| GET    | /api/users/me      | -                   | Lấy thông tin user hiện tại        |
-| POST   | /api/users         | { ...user }         | Tạo user mới                       |
-| PUT    | /api/users/:id     | { ...user }         | Cập nhật user                      |
-| DELETE | /api/users/:id     | -                   | Xóa mềm user (admin/superadmin)    |
+### Auth
 
-## Role (Yêu cầu quyền ROLE_MANAGE hoặc PERMISSION_MANAGE)
-| Method | URL                                 | Body/Params                | Description                         |
-|--------|-------------------------------------|----------------------------|-------------------------------------|
-| GET    | /api/roles                          | ?filter                    | Lấy danh sách role                  |
-| POST   | /api/roles                          | { name, description }      | Tạo role mới                        |
-| GET    | /api/roles/:id                      | -                          | Lấy thông tin 1 role                |
-| PUT    | /api/roles/:id | { name, description }      | Cập nhật role |
-| DELETE | /api/roles/:id  | -          | Xóa role                            |
-| GET    | /api/roles/:id/permissions  | -        | Lấy danh sách permission của role    |
-| POST   | /api/roles/:id/permissions | { permissionId } | Gán permission cho role|
-| DELETE | /api/roles/:id/permissions| { permissionId }| Gỡ permission khỏi role|
-| POST   | /api/roles/:id/users                | { userId }                 | Gán role cho user                   |
-| DELETE | /api/roles/:id/users/:userId        | -                          | Gỡ role khỏi user                   |
-| GET    | /api/roles/users/:userId/roles      | -                          | Lấy danh sách role của user         |
+| Method | URL                | Body                      | Description                        |
+|--------|--------------------|---------------------------|------------------------------------|
+| POST   | /api/auth/register | { name, email, password } | Register an account                |
+| POST   | /api/auth/login    | { email, password }       | Log in                             |
+| POST   | /api/auth/refresh  | { refreshToken }          | Exchange a refresh token           |
+| POST   | /api/auth/logout   | { refreshToken }          | Revoke the session                 |
 
-## Permission (Yêu cầu quyền PERMISSION_MANAGE)
-| Method | URL               | Body/Params | Description                 |
-|--------|-------------------|-------------|-----------------------------|
-| GET    | /api/permissions  | -           | Lấy danh sách permission    |
+### User (requires authentication)
 
-## Subject (Yêu cầu xác thực và quyền tương ứng)
-| Method | URL                       | Body/Params                | Description                    |
-|--------|---------------------------|----------------------------|--------------------------------|
-| GET    | /api/subjects/search      | search, page, limit, order | Tìm kiếm subject (có paging)   |
-| GET    | /api/subjects             | -                          | Lấy danh sách subject          |
-| GET    | /api/subjects/:id         | -                          | Lấy thông tin 1 subject        |
-| POST   | /api/subjects             | { ...subject }             | Tạo subject mới                |
-| PUT    | /api/subjects/:id         | { ...subject }             | Cập nhật subject               |
-| DELETE | /api/subjects/:id         | -                          | Xóa subject                    |
+| Method | URL              | Body        | Description                          |
+|--------|------------------|-------------|--------------------------------------|
+| GET    | /api/users       | ?filter     | List users                           |
+| GET    | /api/users/me    | -           | Current user profile                 |
+| POST   | /api/users       | { ...user } | Create a user                        |
+| PUT    | /api/users/:id   | { ...user } | Update a user                        |
+| DELETE | /api/users/:id   | -           | Soft delete (admin/superadmin)       |
 
-## Chapter (Yêu cầu xác thực và quyền tương ứng)
-| Method | URL                                | Body/Params                | Description                        |
-|--------|------------------------------------|----------------------------|------------------------------------|
-| GET    | /api/chapters                      | -                          | Lấy danh sách chapter              |
-| GET    | /api/chapters/search               | search, subjectId, page, limit, order | Tìm kiếm chapter (có paging) |
-| GET    | /api/chapters/subject/:subjectId   | -                          | Lấy danh sách chapter theo subject |
-| GET    | /api/chapters/:id                  | -                          | Lấy thông tin 1 chapter            |
-| POST   | /api/chapters                      | { ...chapter }             | Tạo chapter mới                    |
-| PUT    | /api/chapters/:id                  | { ...chapter }             | Cập nhật chapter                   |
-| DELETE | /api/chapters/:id                  | -                          | Xóa chapter                        |
+### Role (requires `role:manage` or `permission:manage`)
 
-## Question (Yêu cầu xác thực và quyền tương ứng)
-| Method | URL                                 | Body/Params                                   | Description                          |
-|--------|-------------------------------------|-----------------------------------------------|--------------------------------------|
-| GET    | /api/questions/search               | search, subjectId, chapterId, type, difficulty, page, limit, order | Tìm kiếm question (có paging) |
-| GET    | /api/questions                      | -                                             | Lấy danh sách question               |
-| GET    | /api/questions/subject/:subjectId   | -                                             | Lấy danh sách question theo subject  |
-| GET    | /api/questions/chapter/:chapterId   | -                                             | Lấy danh sách question theo chapter  |
-| GET    | /api/questions/:id                  | -                                             | Lấy thông tin 1 question             |
-| POST   | /api/questions/batch                | Xem phần "Batch Questions Input Format" dưới | Thêm nhiều question + options cùng lúc |
-| POST   | /api/questions                      | { subjectId, chapterId, type, text, explanation, difficulty, points, media, tags } | Tạo question mới |
-| PUT    | /api/questions/:id                  | { type, text, explanation, difficulty, points, media, tags } | Cập nhật question |
-| DELETE | /api/questions/:id                  | -                                             | Xóa question                         |
+| Method | URL                             | Body               | Description                    |
+|--------|---------------------------------|--------------------|--------------------------------|
+| GET    | /api/roles                      | ?filter            | List roles                     |
+| POST   | /api/roles                      | { name, description } | Create a role               |
+| GET    | /api/roles/:id                  | -                  | Get one role                   |
+| PUT    | /api/roles/:id                  | { name, description } | Update a role               |
+| DELETE | /api/roles/:id                  | -                  | Delete a role                  |
+| GET    | /api/roles/:id/permissions      | -                  | Permissions granted to a role   |
+| POST   | /api/roles/:id/permissions      | { permissionId }   | Grant a permission              |
+| DELETE | /api/roles/:id/permissions      | { permissionId }   | Revoke a permission             |
+| POST   | /api/roles/:id/users            | { userId }         | Assign a role to a user         |
+| DELETE | /api/roles/:id/users/:userId    | -                  | Remove a role from a user       |
+| GET    | /api/roles/users/:userId/roles  | -                  | Roles held by a user            |
 
-### Batch Questions Input Format
-POST /api/questions/batch
+### Permission (requires `permission:manage`)
+
+| Method | URL              | Description        |
+|--------|------------------|--------------------|
+| GET    | /api/permissions | List permissions   |
+
+### Subject (requires authentication and the matching permission)
+
+| Method | URL                     | Query                      | Description            |
+|--------|-------------------------|----------------------------|------------------------|
+| GET    | /api/subjects/search    | search, page, limit, order | Paginated search       |
+| GET    | /api/subjects           | -                          | List subjects          |
+| GET    | /api/subjects/:id       | -                          | Get one subject        |
+| POST   | /api/subjects           | { ...subject }             | Create a subject       |
+| PUT    | /api/subjects/:id       | { ...subject }             | Update a subject       |
+| DELETE | /api/subjects/:id       | -                          | Soft delete            |
+
+### Chapter
+
+| Method | URL                              | Query                                 | Description               |
+|--------|----------------------------------|---------------------------------------|---------------------------|
+| GET    | /api/chapters                    | -                                     | List chapters             |
+| GET    | /api/chapters/search             | search, subjectId, page, limit, order | Paginated search          |
+| GET    | /api/chapters/subject/:subjectId | -                                     | Chapters for a subject    |
+| GET    | /api/chapters/:id                | -                                     | Get one chapter           |
+| POST   | /api/chapters                    | { ...chapter }                        | Create a chapter          |
+| PUT    | /api/chapters/:id                | { ...chapter }                        | Update a chapter          |
+| DELETE | /api/chapters/:id                | -                                     | Soft delete               |
+
+### Question
+
+| Method | URL                               | Body / Query                                                  | Description                     |
+|--------|-----------------------------------|---------------------------------------------------------------|---------------------------------|
+| GET    | /api/questions/search             | search, subjectId, chapterId, type, difficulty, page, limit, order | Paginated search           |
+| GET    | /api/questions                    | -                                                             | List questions                  |
+| GET    | /api/questions/subject/:subjectId | -                                                             | Questions for a subject         |
+| GET    | /api/questions/chapter/:chapterId | -                                                             | Questions for a chapter         |
+| GET    | /api/questions/:id                | -                                                             | Get one question                |
+| POST   | /api/questions/batch              | See "Batch format" below                                      | Create many questions at once   |
+| POST   | /api/questions                    | { subjectId, chapterId, type, text, explanation, difficulty, points, media, tags } | Create a question |
+| PUT    | /api/questions/:id                | { type, text, explanation, difficulty, points, media, tags }   | Update a question               |
+| DELETE | /api/questions/:id                | -                                                             | Soft delete                     |
+
+#### Batch format
+
+`POST /api/questions/batch`
 
 ```json
 {
   "mode": "all-or-nothing",
-  "subjectId": "uuid-string",
-  "chapterId": "uuid-string",
+  "subjectId": "uuid",
+  "chapterId": "uuid",
   "type": "single",
   "items": [
     {
-      "text": "Nội dung câu hỏi",
-      "explanation": "Giải thích (optional)",
+      "text": "Question text",
+      "explanation": "Optional explanation",
       "difficulty": 1,
       "points": 1,
       "media": [],
       "tags": [],
       "options": [
-        {
-          "text": "Lựa chọn A",
-          "isCorrect": true,
-          "order": 1,
-          "media": null
-        },
-        {
-          "text": "Lựa chọn B",
-          "isCorrect": false,
-          "order": 2
-        }
+        { "text": "Option A", "isCorrect": true, "order": 1, "media": null },
+        { "text": "Option B", "isCorrect": false, "order": 2 }
       ]
     }
   ]
 }
 ```
 
-**Thông tin chi tiết:**
-- `mode`: "all-or-nothing" (hủy toàn bộ nếu 1 item lỗi) hoặc "continue-on-error" (bỏ qua item lỗi)
-- `subjectId`, `chapterId`: Bắt buộc
-- `type`: Mặc định sẽ dùng giá trị chỉ định ở level batch, có thể override ở mỗi item
-- Mỗi item có thể thiếu các trường (explanation, difficulty, points, media, tags) sẽ lấy giá trị mặc định
-- `options`: Có thể để trống nếu không có options
-- Response sẽ trả về: `{ mode, created: (số lượng), errors?: [...], data: [...] }`
+- `mode`: `all-or-nothing` (roll back everything if one item fails) or
+  `continue-on-error` (skip failed items).
+- `subjectId`, `chapterId`: required.
+- `type`: taken from the batch level by default; each item may override it.
+- Optional per-item fields fall back to defaults (`explanation`, `difficulty`,
+  `points`, `media`, `tags`).
+- `options` may be empty.
+- Response: `{ mode, created, errors?, data }`.
 
-## Option (Yêu cầu xác thực và quyền tương ứng - sử dụng QUESTION_*)
-| Method | URL                             | Body/Params                              | Description                    |
-|--------|--------------------------------|------------------------------------------|--------------------------------|
-| GET    | /api/options                   | -                                        | Lấy danh sách option           |
-| GET    | /api/options/question/:questionId | -                                      | Lấy danh sách option theo question |
-| GET    | /api/options/:id               | -                                        | Lấy thông tin 1 option         |
-| POST   | /api/options                   | { questionId, text, isCorrect, media, order } | Tạo option mới         |
-| PUT    | /api/options/:id               | { text, isCorrect, media, order }        | Cập nhật option                |
-| DELETE | /api/options/:id               | -                                        | Xóa option                     |
+### Option (uses the `question:*` permissions)
 
+| Method | URL                               | Body                                          | Description          |
+|--------|-----------------------------------|-----------------------------------------------|----------------------|
+| GET    | /api/options                      | -                                             | List options         |
+| GET    | /api/options/question/:questionId | -                                             | Options for a question |
+| GET    | /api/options/:id                  | -                                             | Get one option       |
+| POST   | /api/options                      | { questionId, text, isCorrect, media, order } | Create an option     |
+| PUT    | /api/options/:id                  | { text, isCorrect, media, order }             | Update an option     |
+| DELETE | /api/options/:id                  | -                                             | Soft delete          |
 
-## Flashcard Deck (Yêu cầu xác thực và quyền tương ứng)
-| Method | URL                          | Body/Params                | Description                        |
-|--------|------------------------------|----------------------------|------------------------------------|
-| GET    | /api/flashcard-decks/mine    | -                          | Lấy danh sách deck của tôi         |
-| GET    | /api/flashcard-decks/public  | -                          | Lấy danh sách deck public          |
-| GET    | /api/flashcard-decks/:id     | -                          | Lấy thông tin 1 deck (nếu xem được)|
-| POST   | /api/flashcard-decks         | { title, isPublic }        | Tạo deck mới                       |
-| PUT    | /api/flashcard-decks/:id     | { title, isPublic }        | Cập nhật deck                      |
-| DELETE | /api/flashcard-decks/:id     | -                          | Xóa deck                           |
+### Flashcard deck
 
-## Flashcard (Yêu cầu xác thực và quyền tương ứng)
-| Method | URL                              | Body/Params                              | Description                        |
-|--------|----------------------------------|------------------------------------------|------------------------------------|
-| GET    | /api/flashcards/deck/:deckId     | -                                        | Lấy danh sách flashcard trong deck |
-| GET    | /api/flashcards/:id              | -                                        | Lấy thông tin 1 flashcard          |
-| POST   | /api/flashcards                  | { deckId, frontText, backText, order, nextReview } | Tạo flashcard mới      |
-| PUT    | /api/flashcards/:id              | { frontText, backText, order, nextReview }        | Cập nhật flashcard      |
-| DELETE | /api/flashcards/:id              | -                                        | Xóa flashcard                     |
+| Method | URL                        | Body                | Description                          |
+|--------|----------------------------|---------------------|--------------------------------------|
+| GET    | /api/flashcard-decks/mine  | -                   | Decks owned by the caller             |
+| GET    | /api/flashcard-decks/public| -                   | Public decks                          |
+| GET    | /api/flashcard-decks/:id   | -                   | Get one deck (if viewable)            |
+| POST   | /api/flashcard-decks       | { title, isPublic } | Create a deck                         |
+| PUT    | /api/flashcard-decks/:id   | { title, isPublic } | Update a deck                         |
+| DELETE | /api/flashcard-decks/:id   | -                   | Soft delete                           |
 
-Ghi chú:
-- Các route `/api/users/*` yêu cầu JWT token ở header `Authorization: Bearer <token>`
-- Các trường body/params tham khảo ở phần entity User hoặc liên hệ BE nếu cần chi tiết.
+### Flashcard
 
-Cache:
-- Hiện tại đang dùng map cho tiện, mai sau sau khi xong be sẽ sửa thành redis
-- Cấu trúc lưu:
-  - Key: user_permissions:uuid-cua-user (String)
-  - Value: ["permission_1", "permission_2", ...] (Mảng các String)
+| Method | URL                            | Body / Query                             | Description                  |
+|--------|--------------------------------|------------------------------------------|------------------------------|
+| GET    | /api/flashcards/deck/:deckId   | -                                        | Cards in a deck              |
+| GET    | /api/flashcards/export/:deckId | ?format=txt\|csv                         | Download a deck              |
+| GET    | /api/flashcards/:id            | -                                        | Get one card                 |
+| POST   | /api/flashcards                | { deckId, frontText, backText, order, nextReview } | Create a card     |
+| POST   | /api/flashcards/import         | multipart: file + deckId                 | Import cards from a file     |
+| PUT    | /api/flashcards/:id            | { frontText, backText, order, nextReview } | Update a card              |
+| DELETE | /api/flashcards/:id            | -                                        | Soft delete                  |
 
-Ví dụ về paging của 2 cái kia
-GET /subjects/search?search=math&page=1&limit=10&order=name
-GET /chapters/search?search=chapter1&subjectId=xxx&page=1&limit=10&order=name
+#### Import flashcards
 
-Lưu ý : mode = practice và showAnswerAfterSelect true thì nó mới hiện đáp án
+`POST /api/flashcards/import` — `multipart/form-data` with fields `file` and
+`deckId`. Only the deck owner may import (same rule as creating a card).
+Maximum **500 cards** per import.
+
+**`.txt` format** — one card per line, separated by ` - ` (a hyphen with a space
+on each side):
+
+```
+# Lines starting with # are comments and are ignored
+Bustling - nhộn nhịp (bustling city)
+well-known - nổi tiếng
+```
+
+- Only the **first** ` - ` splits the line, so `well-known` is not broken apart.
+- The back side may contain hyphens and commas.
+- Blank lines and comment lines are skipped.
+- Lines missing either side are skipped (not counted as errors).
+
+**`.csv` / `.xlsx` format** — requires a header row. Recognised column names
+(case-insensitive):
+
+| Front | Back |
+|---|---|
+| `front`, `frontText`, `term`, `word`, `question` | `back`, `backText`, `definition`, `meaning`, `answer` |
+
+```csv
+front,back
+Bustling,nhộn nhịp
+"proximity","(n) sự lân cận, trạng thái gần"
+```
+
+**`.json` format** — an array of objects:
+
+```json
+[{ "front": "Bustling", "back": "nhộn nhịp" }]
+```
+
+**Response**
+
+```json
 {
-  "subjectId": "db0ccc85-00d9-435e-8349-06ea5e9684cf",
-  "chapterId": "8ddcc047-0b32-4159-ba95-a22a94c2fff9",
-  "mode": "exam",
-  "settings": {
-    "paging": "1-5",
-    "questionsPerPage": 10,
-    "questionTimeSeconds": 30,
-    "showAnswerAfterSelect": true,
-    "shuffleQuestions": true
-  },
-  "durationMinutes": 60
+  "totalCards": 14,
+  "imported": 14,
+  "failed": 0,
+  "errors": [{ "line": 3, "error": "Mặt trước của thẻ không được để trống." }]
 }
+```
 
-## Attempt (Làm bài thi/trắc nghiệm)
-| Method | URL                                   | Body/Params                                 | Description                        |
-|--------|---------------------------------------|---------------------------------------------|------------------------------------|
-| POST   | /api/attempts/start                   | { subjectId, chapterId, mode, settings }    | Bắt đầu 1 lượt làm bài mới         |
-| GET    | /api/attempts/:id                     | -                                           | Lấy thông tin 1 attempt            |
-| POST   | /api/attempts/:attemptId/answers      | { questionId, optionId/selectedOptionIds, value, flagged } | Lưu/chọn đáp án cho 1 câu hỏi |
-| POST   | /api/attempts/:attemptId/submit       | -                                           | Nộp bài, chấm điểm, trả kết quả  |
+> `errors[].error` is the entity's own validation message, passed through
+> verbatim. Some entity messages are still Vietnamese (see
+> `domain/entities/Flashcard.js`) while usecase messages are English — the
+> payload above is real output, not a placeholder.
 
-**Luồng làm bài:**
-1. Gọi POST /api/attempts/start để tạo attempt mới (status: in_progress)
-2. Mỗi lần chọn đáp án, gọi POST /api/attempts/:attemptId/answers để lưu đáp án
-3. Khi nộp bài, gọi POST /api/attempts/:attemptId/submit để chốt bài + chấm điểm (status: graded)
-4. Có thể GET /api/attempts/:id để lấy lại thông tin attempt bất kỳ lúc nào
+Imported cards continue from the highest existing `order` in the deck, so they
+land at the end rather than interleaving. `errors` only appears when a row
+failed.
 
-**settings** khi start attempt:
+> Downloadable template: `frontend/public/flashcard-import-example.txt`
+> (served at `/flashcard-import-example.txt`).
+
+#### Export flashcards
+
+`GET /api/flashcards/export/:deckId?format=txt` — returns the file with
+`Content-Disposition: attachment`, so the browser downloads it.
+
+- `format=txt` (default) — same layout as the importer, so an exported deck can
+  be **re-imported without conversion**.
+- `format=csv` — includes a `front,back` header; values containing commas are
+  quoted.
+- Anyone who can view the deck (owner or public) may export it.
+- Newlines inside a card are collapsed to spaces to preserve one line per card.
+
+### Attempt
+
+| Method | URL                              | Body                                                       | Description                   |
+|--------|----------------------------------|------------------------------------------------------------|-------------------------------|
+| POST   | /api/attempts/start              | { subjectId, chapterId, mode, settings }                   | Start an attempt              |
+| GET    | /api/attempts/:id                | -                                                          | Get one attempt               |
+| POST   | /api/attempts/:attemptId/answers | { questionId, optionId/selectedOptionIds, value, flagged }  | Save an answer                |
+| POST   | /api/attempts/:attemptId/submit  | -                                                          | Submit and grade              |
+
+**Flow**
+
+1. `POST /api/attempts/start` creates an attempt with `status: in_progress`.
+2. Each answer selection calls `POST /api/attempts/:attemptId/answers`.
+3. `POST /api/attempts/:attemptId/submit` finalises and grades it
+   (`status: graded`).
+4. `GET /api/attempts/:id` returns the attempt at any point.
+
+**`settings` sent to `start`**
+
 ```json
 {
   "paging": "1-50",
@@ -266,52 +343,48 @@ Lưu ý : mode = practice và showAnswerAfterSelect true thì nó mới hiện �
 }
 ```
 
-**Lưu ý:**
-- Chỉ user tạo attempt mới được phép thao tác với attempt đó
-- Khi nộp bài (submit), status chuyển sang graded (chấm điểm ngay)
-- Sau khi nộp, không thể sửa đáp án nữa
-- Đáp án được lưu từng câu, có thể update nhiều lần khi làm bài (trừ khi đã nộp)
+**Notes**
 
-**Điền 1 đáp án (Có thể gửi mỗi cái flagged cũng đc, nhưng mà questionId là bắt buộc)**
-- single/true-false
-{
-  "questionId": "cau-hoi-uuid",
-  "optionId": "option-uuid",
-  "flagged": true
-}
-- multiple
-{
-  "questionId": "cau-hoi-uuid",
-  "selectedOptionIds": ["option-uuid-1", "option-uuid-2"]
-}
-- fill blank
-{
-  "questionId": "cau-hoi-uuid",
-  "value": "đáp án điền vào"
-}
+- Only the user who created an attempt may act on it.
+- Submitting grades immediately; answers cannot change afterwards.
+- Answers are saved per question and may be updated repeatedly until submission.
+- `showAnswerAfterSelect` only takes effect in `practice` mode.
 
-**Chấm điểm (Grading - tự động khi submit):**
-- POST /api/attempts/:attemptId/submit sẽ tự động chấm điểm theo loại câu hỏi:
-  - Single/TrueFalse: so sánh optionId với đáp án đúng
-  - Multiple: so sánh selectedOptionIds với danh sách đáp án đúng (phải khớp chính xác)
-  - FillBlank: so sánh value với text của option đúng (case-insensitive)
-- Mỗi câu đúng sẽ được fullpoint, câu sai được 0 điểm
-- Score cuối = tổng điểm của tất cả câu đúng
-- Response trả về: `{ attempt, totalEarnedPoints, maxScore, correctCount, totalCount }`
+**Answering, by question type** (`questionId` is always required; `flagged` is
+optional)
 
-## Xem kết quả chấm điểm (Grading Result)
-| Method | URL                                   | Body/Params | Description                        |
-|--------|---------------------------------------|-------------|------------------------------------|
-| GET    | /api/attempts/:attemptId/grade        | -           | Xem chi tiết kết quả chấm điểm     |
+```jsonc
+// single / true_false
+{ "questionId": "uuid", "optionId": "uuid", "flagged": true }
 
-**Luồng:**
-- Sau khi nộp bài (submit), gọi GET /api/attempts/:attemptId/grade để lấy lại kết quả đã chấm.
-- API trả về:
-  - Thông tin attempt (id, userId, score, maxScore, status, thời gian)
-  - Thống kê: số câu đúng, sai, bỏ trống, phần trăm đúng, pass/fail
-  - Danh sách đáp án chi tiết từng câu (có đáp án đúng để so sánh)
+// multiple
+{ "questionId": "uuid", "selectedOptionIds": ["uuid-1", "uuid-2"] }
 
-**Ví dụ response:**
+// fill_blank
+{ "questionId": "uuid", "value": "the answer text" }
+```
+
+**Grading (automatic on submit)**
+
+| Question type | Rule |
+|---|---|
+| `single` / `true_false` | the selected option must equal the correct option |
+| `multiple` | selected set must match the correct set exactly |
+| `fill_blank` | case-insensitive comparison against the correct option's text |
+
+A correct answer earns the question's full `points`; a wrong one earns 0.
+`score` is the sum of earned points. Response:
+`{ attempt, totalEarnedPoints, maxScore, correctCount, totalCount }`.
+
+### Grading result
+
+| Method | URL                            | Description                       |
+|--------|--------------------------------|-----------------------------------|
+| GET    | /api/attempts/:attemptId/grade | Detailed result of a graded attempt |
+
+Returns the attempt, summary statistics, and a per-question breakdown including
+the correct answers.
+
 ```json
 {
   "attempt": {
@@ -345,81 +418,84 @@ Lưu ý : mode = practice và showAnswerAfterSelect true thì nó mới hiện �
 }
 ```
 
-**Lưu ý:**
-- Kết quả này sẽ tính lại toàn bộ điểm.
+> Reads the summary persisted at submit time; it does not re-grade.
 
-## Typing text
-| Method | URL                            | Body/Params                                                               | Description                        |
-|--------|--------------------------------|---------------------------------------------------------------------------|------------------------------------|
-| GET    | /api/typing-texts/mine         | -                                                                         | Lấy danh sách bài tập của tôi      |
-| GET    | /api/typing-texts/public       | -                                                                         | Lấy danh sách bài tập công khai    |
-| GET    | /api/typing-texts              | -                                                                         | Lấy tất cả bài tập                 |
-| GET    | /api/typing-texts/:id          | -                                                                         | Lấy chi tiết một văn bản           |
-| POST   | /api/typing-texts              | { title, content, language, isPublic, difficulty, isDefault, sourceType } | Tạo mới một bài tập                |
-| PUT    | /api/typing-texts/:id          | { title, content, language, isPublic, difficulty, isDefault, sourceType } | Cập nhật một bài tập               |
-| DELETE | /api/typing-texts/:id          | -                                                                         | Xóa một bài tập                    |
+### Typing text
 
-## Typing result
-| Method | URL                                     | Body/Params                                              | Description                        |
-|--------|-----------------------------------------|----------------------------------------------------------|------------------------------------|
-| GET    | /api/typing-results/mine                | -                                                        | Lấy lịch sử kết quả của tôi        |
-| GET    | /api/typing-results/text/:textId        | textId (path)                                            | Lấy danh sách kết quả theo bài tập |
-| GET    | /api/typing-results/text/:textId/leaderboard | textId (path)                                        | Lấy bảng xếp hạng theo bài tập     |
-| GET    | /api/typing-results/:id                 | id (path)                                                | Lấy chi tiết kết quả               |
-| POST   | /api/typing-results                     | { textId, wpm, accuracy, rawWpm, durationSeconds, errorTags } | Lưu kết quả gõ phím                |
+| Method | URL                    | Body                                                                      | Description        |
+|--------|------------------------|---------------------------------------------------------------------------|--------------------|
+| GET    | /api/typing-texts/mine | -                                                                         | Texts authored by the caller |
+| GET    | /api/typing-texts/public | -                                                                       | Public texts       |
+| GET    | /api/typing-texts      | -                                                                         | All texts          |
+| GET    | /api/typing-texts/:id  | -                                                                         | Get one text       |
+| POST   | /api/typing-texts      | { title, content, language, isPublic, difficulty, isDefault, sourceType } | Create a text      |
+| PUT    | /api/typing-texts/:id  | { title, content, language, isPublic, difficulty, isDefault, sourceType } | Update a text      |
+| DELETE | /api/typing-texts/:id  | -                                                                         | Soft delete        |
 
-## AI — Tạo câu hỏi tự động
+### Typing result
 
-| Method | URL                       | Body/Params                                                             | Description                     |
-|--------|---------------------------|-------------------------------------------------------------------------|---------------------------------|
-| POST   | /api/ai/generate-quiz     | { topic, numQuestions, questionTypes, difficulty, subjectId?, chapterId? } | Sinh câu hỏi bằng AI (không lưu DB) |
+| Method | URL                                          | Body                                                          | Description              |
+|--------|----------------------------------------------|---------------------------------------------------------------|--------------------------|
+| GET    | /api/typing-results/mine                     | -                                                             | Results for the caller   |
+| GET    | /api/typing-results/text/:textId             | -                                                             | Results for one text     |
+| GET    | /api/typing-results/text/:textId/leaderboard | -                                                             | Leaderboard for one text |
+| GET    | /api/typing-results/:id                      | -                                                             | Get one result           |
+| POST   | /api/typing-results                          | { textId, wpm, accuracy, rawWpm, durationSeconds, errorTags }  | Save a result            |
 
-### Biến môi trường
+### AI — question generation
 
-| Biến | Bắt buộc | Mặc định | Mô tả |
+| Method | URL                   | Body                                                                    | Description                          |
+|--------|-----------------------|-------------------------------------------------------------------------|--------------------------------------|
+| POST   | /api/ai/generate-quiz | { topic, numQuestions, questionTypes, difficulty, subjectId?, chapterId? } | Generate questions (does not persist) |
+
+#### Environment variables
+
+| Variable | Required | Default | Description |
 |---|---|---|---|
-| `OPENROUTER_API_KEY` | có | — | API key của OpenRouter |
-| `OPENROUTER_MODEL` | không | `deepseek/deepseek-chat` | Model dùng để sinh câu hỏi |
-| `OPENROUTER_BASE_URL` | không | `https://openrouter.ai/api/v1/chat/completions` | Đổi khi dùng proxy |
-| `OPENROUTER_TIMEOUT_MS` | không | `60000` | Timeout gọi AI |
-| `REDIS_CONNECT_TIMEOUT_MS` | không | `2000` | Timeout kết nối Redis (cache quyền) |
+| `OPENROUTER_API_KEY` | yes | — | OpenRouter API key |
+| `OPENROUTER_MODEL` | no | `deepseek/deepseek-chat` | Model used for generation |
+| `OPENROUTER_BASE_URL` | no | `https://openrouter.ai/api/v1/chat/completions` | Override when using a proxy |
+| `OPENROUTER_TIMEOUT_MS` | no | `60000` | AI request timeout |
+| `REDIS_CONNECT_TIMEOUT_MS` | no | `2000` | Redis connect timeout (permission cache) |
 
-> **Lưu ý chọn model**: nên dùng model **không phải reasoning** (`deepseek/deepseek-chat`).
-> Model reasoning (ví dụ `dots-studio/...`) tiêu tốn token vào phần suy luận ẩn trước khi viết
-> output, nên hay trả về `content` rỗng với `finish_reason: length`. Nếu gặp lỗi
-> *"ran out of output tokens"* thì đổi `OPENROUTER_MODEL` sang model thường.
+> **Model choice:** prefer a **non-reasoning** model such as
+> `deepseek/deepseek-chat`. Reasoning models spend part of the token budget on
+> hidden reasoning before writing any output, so they frequently return empty
+> `content` with `finish_reason: length`. If you see *"ran out of output
+> tokens"*, switch `OPENROUTER_MODEL` to a standard model.
 
-### Request body
+#### Request body
 
-| Field | Kiểu | Bắt buộc | Mặc định | Mô tả |
+| Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `topic` | string | có | — | Chủ đề **hoặc** văn bản nguồn để sinh câu hỏi (tối đa 12000 ký tự) |
-| `numQuestions` | int | không | `10` | Số câu hỏi cần sinh (1–50) |
-| `questionTypes` | string[] | không | `["single"]` | Loại câu hỏi: `single`, `multiple`, `true_false`, `fill_blank` |
-| `difficulty` | int | không | `2` | 1 = dễ, 2 = trung bình, 3 = khó |
-| `subjectId` | uuid | không | — | Chỉ dùng để thêm ngữ cảnh vào prompt, **không bắt buộc** |
-| `chapterId` | uuid | không | — | Phải đi kèm `subjectId`, chapter phải thuộc subject đó |
-| `language` | string | không | `english` | Ngôn ngữ của câu hỏi |
+| `topic` | string | yes | — | Topic **or** source text to generate from (max 12000 characters) |
+| `numQuestions` | int | no | `10` | How many questions (1–50) |
+| `questionTypes` | string[] | no | `["single"]` | One or more of `single`, `multiple`, `true_false`, `fill_blank` |
+| `difficulty` | int | no | `2` | 1 = easy, 2 = medium, 3 = hard |
+| `subjectId` | uuid | no | — | Adds context to the prompt only; **not required** |
+| `chapterId` | uuid | no | — | Must accompany `subjectId` and belong to it |
+| `language` | string | no | `english` | Language of the generated questions |
 
-**API này KHÔNG lưu vào database.** Nó chỉ sinh và trả về. Muốn lưu thì gọi tiếp
-`POST /api/questions/batch` với kết quả nhận được (xem format ở phần Question).
+**This endpoint does not write to the database.** It only generates and returns.
+To persist the result, pass it to `POST /api/questions/batch` (see the Question
+section for the format).
 
-### Response
+#### Response
 
 ```json
 {
   "questions": [
     {
-      "text": "Quá trình nào chuyển hơi nước thành nước lỏng?",
+      "text": "Which process turns water vapour into liquid water?",
       "type": "single",
-      "explanation": "Ngưng tụ là quá trình hơi nước chuyển thành nước lỏng.",
+      "explanation": "Condensation is the change from vapour to liquid.",
       "difficulty": 2,
       "points": 1,
       "options": [
-        { "text": "Bay hơi", "isCorrect": false, "order": 1 },
-        { "text": "Ngưng tụ", "isCorrect": true, "order": 2 },
-        { "text": "Mưa", "isCorrect": false, "order": 3 },
-        { "text": "Thoát hơi nước", "isCorrect": false, "order": 4 }
+        { "text": "Evaporation", "isCorrect": false, "order": 1 },
+        { "text": "Condensation", "isCorrect": true, "order": 2 },
+        { "text": "Precipitation", "isCorrect": false, "order": 3 },
+        { "text": "Transpiration", "isCorrect": false, "order": 4 }
       ]
     }
   ],
@@ -430,47 +506,50 @@ Lưu ý : mode = practice và showAnswerAfterSelect true thì nó mới hiện �
 }
 ```
 
-`skipped` chỉ xuất hiện khi có câu hỏi AI trả về sai format và bị bỏ:
+`skipped` appears only when the model returned a malformed question:
 
 ```json
 "skipped": [{ "index": 2, "error": "Generated question is missing text." }]
 ```
 
-### Mã lỗi
+#### Status codes
 
-| Status | Khi nào |
+| Status | When |
 |---|---|
-| `200` | Thành công |
-| `400` | Thiếu `topic`, `numQuestions` ngoài khoảng 1–50, input quá dài, **hoặc phát hiện prompt injection** |
-| `401` | Thiếu / sai access token |
-| `403` | User không có permission `ai:generate_quiz` |
-| `429` | Vượt rate limit (10 request / 15 phút / user) |
-| `502` | AI trả về lỗi, JSON không hợp lệ, hoặc hết token output |
-| `503` | Chưa cấu hình `OPENROUTER_API_KEY` |
-| `504` | Gọi AI quá timeout |
+| `200` | Success |
+| `400` | Missing `topic`, `numQuestions` outside 1–50, input too long, **or prompt injection detected** |
+| `401` | Missing or invalid access token |
+| `403` | Caller lacks the `ai:generate_quiz` permission |
+| `429` | Rate limit exceeded (10 requests / 15 min / user) |
+| `502` | The provider errored, returned invalid JSON, or ran out of output tokens |
+| `503` | `OPENROUTER_API_KEY` is not configured |
+| `504` | The AI request timed out |
 
-### Rate limit
+#### Rate limit
 
-**10 request / 15 phút**, tính theo `userId` (không phải IP). Vượt sẽ trả `429`.
-Response có header `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`.
+**10 requests per 15 minutes**, keyed by `userId` (not IP). Responses carry
+`RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` headers.
 
-### Bảo mật — chống prompt injection
+#### Prompt injection defence
 
-Input của user được coi là **dữ liệu không đáng tin**, không phải instruction:
+User input is treated as **untrusted data**, never as instructions:
 
-- **Từ chối thẳng (400)** nếu phát hiện pattern injection: `ignore all previous instructions`,
-  `you are now an admin`, `show me your system prompt`, `give me the api key`, `developer mode`...
-- System prompt nói rõ với model rằng phần user gửi vào là DATA, không phải mệnh lệnh.
-- Input được escape trước khi ghép vào prompt để không phá vỡ cấu trúc.
-- Chặn thêm các pattern nguy hiểm: `eval(`, `require(`, `<script`, `__proto__`...
+- **Rejected outright (400)** when an injection pattern is detected:
+  `ignore all previous instructions`, `you are now an admin`,
+  `show me your system prompt`, `give me the api key`, `developer mode`…
+- The system prompt states explicitly that user-supplied content is DATA.
+- Input is escaped before being interpolated into the prompt.
+- Additional dangerous patterns are blocked: `eval(`, `require(`, `<script`,
+  `__proto__`…
 
-Danh sách pattern nằm ở `src/infrastructure/utils/sanitize.js`.
+The pattern list lives in `src/infrastructure/utils/sanitize.js`.
 
-> **Chưa làm**: API này chưa được gán cho role `student`. Hiện chỉ `superadmin` gọi được.
-> Muốn mọi user dùng được thì phải grant permission `ai:generate_quiz` cho các role nền
-> trong `SeedSystemData.js` rồi chạy lại `npm run seed:system`.
+> **Not done yet:** the `ai:generate_quiz` permission is not granted to the
+> `student` role — only `superadmin` can call this today. To open it up, grant
+> the permission to the base roles in `SeedSystemData.js` and re-run
+> `npm run seed:system`.
 
-### Ví dụ gọi API
+#### Example
 
 ```bash
 curl -X POST http://localhost:5000/api/ai/generate-quiz \
@@ -484,95 +563,127 @@ curl -X POST http://localhost:5000/api/ai/generate-quiz \
   }'
 ```
 
-File test Postman: `backend/postman/ai-generate-quiz.postman_collection.json` (import vào Postman,
-sửa biến `accessToken` rồi bấm Send).
+Postman collection: `backend/postman/ai-generate-quiz.postman_collection.json`
+(import it, set the `accessToken` variable, then send).
+
 ---
 
-## Các file env — file nào được đọc khi nào
+## Environment files
 
-Có nhiều file `.env*` trong repo và rất dễ rối, vì **có hai cơ chế đọc khác nhau**:
-`dotenv` (đọc bởi code Node) và **Docker Compose** (đọc bởi Docker). Chúng độc lập với nhau.
+The repo contains several `.env*` files and they are easy to confuse, because
+**two independent mechanisms read them**: `dotenv` (read by the Node process)
+and **Docker Compose** (read by Docker).
 
-### Bảng tổng hợp
+### Summary
 
-| File | Ai đọc | Khi nào |
+| File | Read by | When |
 |---|---|---|
-| `.env` (thư mục gốc) | Docker Compose | Tự động, cho `${VAR}` trong `docker-compose*.yml` |
-| `.env.prod` (gốc) | Docker Compose | Khi deploy: `--env-file .env.prod` |
-| `backend/.env` | `dotenv` **và** Compose `env_file` | **Cả hai chế độ** |
-| `.env.example` | *(không ai đọc — chỉ để tham khảo)* | Được commit |
-| `.env.prod.example` | *(không ai đọc — chỉ để tham khảo)* | Được commit |
+| `.env` (repo root) | Docker Compose | Automatically, for `${VAR}` in `docker-compose*.yml` |
+| `.env.prod` (root) | Docker Compose | On deploy: `--env-file .env.prod` |
+| `backend/.env` | `dotenv` **and** Compose `env_file` | **Both modes** |
+| `.env.example` | *(nothing — reference only)* | Committed |
+| `.env.prod.example` | *(nothing — reference only)* | Committed |
 
-### Cơ chế 1 — `dotenv` (code Node đọc)
+### Mechanism 1 — `dotenv` (read by the Node process)
 
 ```js
 // src/server.js:1
-require("dotenv").config();   // KHÔNG có tham số
+require("dotenv").config();   // no arguments
 ```
 
-Không truyền đường dẫn → dotenv tìm file tên `.env` ở **thư mục hiện hành** (`process.cwd()`):
+With no path, dotenv looks for a file named `.env` in the **current working
+directory** (`process.cwd()`):
 
-- Chạy `npm run dev` trong `backend/` → đọc `backend/.env`
-- Trong Docker, `WORKDIR /app` → đọc `/app/.env` (chính là `backend/.env` được mount)
+- Running `npm run dev` inside `backend/` → reads `backend/.env`
+- Inside Docker, `WORKDIR /app` → reads `/app/.env` (the mounted `backend/.env`)
 
-Đây là lý do `.env` ở thư mục gốc **không** ảnh hưởng gì khi chạy local — code không nhìn thấy nó.
+This is why the root `.env` has no effect when running locally — the code never
+sees it.
 
-### Cơ chế 2 — Docker Compose (Docker đọc)
+### Mechanism 2 — Docker Compose
 
 ```yaml
 env_file:
-  - ./backend/.env      # nạp toàn bộ biến vào container
+  - ./backend/.env      # loads every variable into the container
 environment:
-  DB_HOST: mysql        # ghi đè lên env_file
+  DB_HOST: mysql        # overrides env_file
 ```
 
-Compose còn tự động đọc `.env` ở thư mục gốc để thay `${VAR}` trong file compose.
+Compose also reads the root `.env` automatically to substitute `${VAR}` inside
+the compose files.
 
-**Thứ tự ưu tiên (cao → thấp):**
+**Precedence (highest first):**
 
 ```
-environment:  >  env_file:  >  .env (gốc, cho ${VAR})
+environment:  >  env_file:  >  .env (root, for ${VAR})
 ```
 
-### Bốn tình huống thực tế
+### Four real scenarios
 
-**1. Chạy local**
+**1. Local development**
 ```bash
 cd backend && npm run dev
 ```
-Chỉ đọc `backend/.env`. Không file nào khác.
+Reads `backend/.env` only.
 
 **2. Docker dev**
 ```bash
 docker compose up
 ```
-Cả ba nguồn cùng lúc:
-- `.env` (gốc) → cấp `${MYSQL_ROOT_PASSWORD}`, `${MYSQL_PASSWORD}`…
-- `backend/.env` → `env_file`, nạp vào container
-- `environment:` → ghi đè (`DB_HOST=mysql`, `DB_USER=quizuser`…)
+All three sources at once:
+- root `.env` → provides `${MYSQL_ROOT_PASSWORD}`, `${MYSQL_PASSWORD}`…
+- `backend/.env` → `env_file`, loaded into the container
+- `environment:` → overrides (`DB_HOST=mysql`, `DB_USER=quizuser`…)
 
-**3. Deploy production**
+**3. Production deploy**
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 ```
-`.env.prod` thay cho `.env` gốc. `backend/.env` **vẫn được đọc**, nhưng bị `environment:` ghi đè.
+`.env.prod` replaces the root `.env`. `backend/.env` is **still read**, but
+overridden by `environment:`.
 
-**4. CI (GitHub Actions)**
-Không cần file env nào — toàn bộ test là unit test dùng fake repository.
+**4. CI (GitHub Actions)** — needs no env file at all; every test is a unit test
+using fake repositories.
 
-### Quy tắc để không bị rối
+### Rules of thumb
 
-| Loại biến | Để ở đâu |
+| Kind of variable | Where it goes |
 |---|---|
-| Hạ tầng (host, port, tên service) | `docker-compose*.yml` — hard-code |
-| Secrets của Docker (MySQL password) | `.env` gốc (dev) / `.env.prod` (prod) |
-| Secrets của app (JWT, OpenRouter key) | `.env.prod` (prod) hoặc `backend/.env` (local) |
-| Biến chỉ dùng khi chạy local | `backend/.env` |
+| Infrastructure (host, port, service names) | `docker-compose*.yml` — hard-coded |
+| Docker secrets (MySQL password) | root `.env` (dev) / `.env.prod` (prod) |
+| Application secrets (JWT, OpenRouter key) | `.env.prod` (prod) or `backend/.env` (local) |
+| Variables used only when running locally | `backend/.env` |
 
-**Vì sao `DB_HOST` phải khác nhau:** khi chạy local, MySQL ở `localhost`. Trong Docker, `localhost` là chính container backend — MySQL là một container khác, nên phải dùng tên service `mysql`. Compose override biến này qua `environment:` để `backend/.env` vẫn dùng được cho local.
+**Why `DB_HOST` differs:** locally MySQL is on `localhost`. Inside Docker,
+`localhost` is the backend container itself — MySQL is a separate container, so
+the service name `mysql` must be used. Compose overrides this via
+`environment:`, which lets `backend/.env` stay correct for local runs.
 
-**Vì sao `MYSQL_USER` không được là `root`:** entrypoint của MySQL từ chối thẳng và container crash-loop:
+**Why `MYSQL_USER` must not be `root`:** the MySQL entrypoint rejects it and the
+container crash-loops:
+
 ```
 MYSQL_USER and MYSQL_PASSWORD are for configuring a regular user
 and cannot be used for the root user
+```
+
+---
+
+## Caching
+
+A user's permission slugs are cached under `user_permissions:<userId>`:
+
+- **Key:** `user_permissions:<user-uuid>` (string)
+- **Value:** `["permission:one", "permission:two"]` (array of strings)
+- **TTL:** 600 seconds
+
+The cache is best-effort: if Redis is unreachable the permission check falls
+back to the database instead of failing the request. Any change to roles or
+permissions clears the affected keys.
+
+## Pagination examples
+
+```
+GET /subjects/search?search=math&page=1&limit=10&order=name
+GET /chapters/search?search=chapter1&subjectId=xxx&page=1&limit=10&order=name
 ```

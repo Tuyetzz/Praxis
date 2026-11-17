@@ -1,3 +1,5 @@
+name: praxis
+
 # Production stack for the Raspberry Pi (ARM64).
 #
 #   docker compose -f docker-compose.prod.yml up -d --build
@@ -135,7 +137,7 @@ services:
 
   nginx:
     image: nginx:1.27-alpine
-    container_name: lms_nginx
+    container_name: praxis_nginx
     restart: unless-stopped
     depends_on:
       backend:
