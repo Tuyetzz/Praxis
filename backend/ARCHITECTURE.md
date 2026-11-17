@@ -45,7 +45,9 @@ MYSQL_USER=quizuser
 MYSQL_PASSWORD=quizpass
 ```
 
-`/backend/.env.dev` — cho container backend (nội dung như bảng bên dưới, nhưng `DB_HOST=mysql`, `REDIS_HOST=redis`).
+`/backend/.env` — cho container backend. Compose nạp file này qua `env_file:` rồi **ghi đè** `DB_HOST`/`REDIS_HOST`/`DB_USER`/`DB_PASS` bằng block `environment:` (vì trong Docker network, `localhost` là chính container backend chứ không phải MySQL).
+
+Chi tiết đầy đủ về file env nào được đọc khi nào: xem mục **"Các file env"** ở cuối `README.md`.
 
 ### 2.2. Local
 

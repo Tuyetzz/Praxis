@@ -1,9 +1,9 @@
 ---
 name: add-page
-description: Add a new page to the QuizWeb frontend following the existing pattern (API module → type → page component → route), including CRUD screens in the admin area. Use when creating a new screen, adding an admin page, or adding a route for a new feature.
+description: Add a new page to the Praxis frontend following the existing pattern (API module → type → page component → route), including CRUD screens in the admin area. Use when creating a new screen, adding an admin page, or adding a route for a new feature.
 ---
 
-# Adding a new page (QuizWeb frontend)
+# Adding a new page (Praxis frontend)
 
 Before writing anything, **read a similar existing page and copy it**:
 

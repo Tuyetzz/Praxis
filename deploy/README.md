@@ -144,12 +144,64 @@ tables. Adding a column to a model means `ALTER TABLE` by hand on the Pi, or
 
 ## Port 80 already taken?
 
-Set `HTTP_PORT=8080` in `.env.prod` and reach the app on `http://<pi-ip>:8080/`.
-Nothing else needs changing — nginx is the only exposed service.
+**Check first — this is the most common first-deploy failure:**
+
+```bash
+sudo ss -tlnp | grep ':80 '
+```
+
+If something is already listening, the `nginx` container cannot bind the port
+and **exits immediately**. It will be missing from `docker ps` (use `ps -a` to
+see the corpse), and whatever was already on port 80 keeps answering — which
+looks confusingly like your deploy "worked" but shows the wrong page.
+
+Two different culprits, two different fixes:
+
+**1. nginx installed via apt** (shows as `Server: nginx` in a `curl -sI`)
+
+Raspberry Pi OS does not ship nginx by default, but it is easy to have
+installed it earlier and forgotten. It runs as a systemd service:
+
+```bash
+systemctl status nginx --no-pager | head -5
+sudo systemctl stop nginx
+sudo systemctl disable nginx
+```
+
+**2. Pi-hole**
+
+Pi-hole is a **DNS** server and normally only uses port 53, so it usually is
+*not* the cause. Its web admin (lighttpd) may hold port 80 if you enabled it —
+note that would show `Server: lighttpd`, not `nginx`.
+
+Do **not** uninstall Pi-hole to free port 80; that breaks DNS for your whole
+network without fixing anything. Instead, move this stack to another port:
+
+```bash
+# .env.prod
+HTTP_PORT=8080
+```
+
+Then reach the app on `http://<pi-ip>:8080/`. Nothing else needs changing —
+nginx is the only service that publishes a port.
 
 ---
 
 ## Troubleshooting
+
+**The nginx container is missing from `docker ps`**
+
+Use `ps -a` to see exited containers, then read the reason:
+
+```bash
+docker compose -f docker-compose.prod.yml ps -a
+docker compose -f docker-compose.prod.yml logs nginx --tail=30
+```
+
+`bind: address already in use` means port 80 is taken — see the section above.
+No log output at all usually means `depends_on` is still waiting: nginx is not
+created until both `backend` and `frontend` report healthy, which takes about
+90 seconds on a Pi's first boot.
 
 **MySQL crash-loops immediately**
 

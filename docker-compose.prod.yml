@@ -99,6 +99,7 @@ services:
       # Enable the cron job that auto-submits expired attempts.
       AUTO_SUBMIT_ENABLED: ${AUTO_SUBMIT_ENABLED:-true}
     # No ports: only nginx talks to it.
+    command: sh -c "npm run seed:system && node src/server.js"
     healthcheck:
       test:
         [
